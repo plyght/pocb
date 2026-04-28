@@ -2410,6 +2410,7 @@ CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QHash
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QObject
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QPointer
+ /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSettings
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QStandardPaths
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QString
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QStringList
@@ -2515,6 +2516,7 @@ CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qscopedpointer.h
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qscopeguard.h
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qset.h
+ /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsettings.h
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qshareddata.h
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qshareddata_impl.h
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsharedpointer.h

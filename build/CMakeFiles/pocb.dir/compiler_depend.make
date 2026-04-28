@@ -2408,6 +2408,7 @@ CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o: /Users/nicojaffer/pocb/src/BrowserW
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QHash \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QObject \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QPointer \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSettings \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QStandardPaths \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QString \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QStringList \
@@ -2513,6 +2514,7 @@ CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o: /Users/nicojaffer/pocb/src/BrowserW
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qscopedpointer.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qscopeguard.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qset.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsettings.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qshareddata.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qshareddata_impl.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsharedpointer.h \
@@ -18340,6 +18342,12 @@ CMakeFiles/pocb.dir/src/main.cpp.o: /Users/nicojaffer/pocb/src/main.cpp \
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSPopoverTouchBarItem.h:
 
+/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSPopUpButtonCell.h:
+
+/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreGraphics.framework/Headers/CGColorSpace.h:
+
+/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSPopUpButton.h:
+
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qwindowdefs.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSPersistentDocument.h:
@@ -18797,6 +18805,12 @@ CMakeFiles/pocb.dir/src/main.cpp.o: /Users/nicojaffer/pocb/src/main.cpp \
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QDesktopServices:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtimer.h:
+
+/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreText.framework/Headers/CTFontManagerErrors.h:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtoolbutton.h:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsettings.h:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qregularexpression.h:
 
@@ -19455,10 +19469,6 @@ pocb_autogen/UVLADIE3JM/moc_FloatingOmnibox.cpp:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_off_t.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_int64_t.h:
-
-/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreGraphics.framework/Headers/CGColorSpace.h:
-
-/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSPopUpButton.h:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qeventloop.h:
 
@@ -20174,6 +20184,10 @@ pocb_autogen/UVLADIE3JM/moc_FloatingOmnibox.cpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__tuple/tuple_like_ext.h:
 
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qkeysequence.h:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSettings:
+
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/Debugging.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/wctype.h:
@@ -20812,10 +20826,6 @@ pocb_autogen/UVLADIE3JM/moc_FaviconService.cpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__fwd/pair.h:
 
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSettings:
-
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qkeysequence.h:
-
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__fwd/map.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__bit/blsr.h:
@@ -20919,8 +20929,6 @@ pocb_autogen/UVLADIE3JM/moc_FaviconService.cpp:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__format/formatter.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_integral.h:
-
-/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AppKit.framework/Headers/NSPopUpButtonCell.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/cups/file.h:
 
@@ -21763,12 +21771,6 @@ pocb_autogen/UVLADIE3JM/moc_WebView.cpp:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Security.framework/Headers/cssmapi.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__chrono/zoned_time.h:
-
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsettings.h:
-
-/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreText.framework/Headers/CTFontManagerErrors.h:
-
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtoolbutton.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__memory/auto_ptr.h:
 

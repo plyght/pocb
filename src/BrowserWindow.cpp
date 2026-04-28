@@ -1,5 +1,6 @@
 #include "BrowserWindow.hpp"
 
+
 #include "FloatingOmnibox.hpp"
 #include "MacIntegration.hpp"
 #include "SettingsDialog.hpp"
@@ -16,6 +17,7 @@
 #include <QDir>
 #include <QShortcut>
 #include <QTimer>
+#include <QSettings>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QStackedLayout>
@@ -225,12 +227,18 @@ void BrowserWindow::setupUi() {
     root->addWidget(m_progress);
 
     m_splitter = new QSplitter(this);
-    m_splitter->setHandleWidth(1);
-    m_splitter->setChildrenCollapsible(false);
+    m_splitter->setOrientation(Qt::Horizontal);
+    // The splitter handle IS the seam between sidebar and web content.
+    // Both adjacent panels have zero inner padding on this edge so the
+    // handle is the only thing between them — drag anywhere along it to
+    // move the boundary.
+    m_splitter->setHandleWidth(8);
+    m_splitter->setChildrenCollapsible(true);
+    m_splitter->setOpaqueResize(true);
     m_splitter->setAttribute(Qt::WA_TranslucentBackground);
     m_splitter->setStyleSheet(
         "QSplitter { background: transparent; }"
-        "QSplitter::handle { background: transparent; }");
+        "QSplitter::handle:horizontal { background: transparent; }");
 
     auto *sidebar = new QWidget(m_splitter);
     sidebar->setObjectName("Sidebar");
@@ -241,7 +249,7 @@ void BrowserWindow::setupUi() {
     // on Big Sur+; first sidebar row sits just below the buttons). Left/right
     // insets pad the selection highlight inward from the window edge so it
     // visually aligns with the traffic-light leading edge.
-    sideLayout->setContentsMargins(10, 52, 10, 10);
+    sideLayout->setContentsMargins(10, 52, 0, 10);
     sideLayout->setSpacing(0);
 
     m_tabs = new QTreeWidget(sidebar);
@@ -281,14 +289,14 @@ void BrowserWindow::setupUi() {
                 }
             });
 
-    sidebar->setMinimumWidth(220);
-    sidebar->setMaximumWidth(360);
+    sidebar->setMinimumWidth(160);
+    sidebar->setMaximumWidth(520);
 
     auto *stackHost = new QWidget(m_splitter);
     stackHost->setObjectName("StackHost");
     stackHost->setStyleSheet("QWidget#StackHost { background: transparent; }");
     auto *hostLayout = new QVBoxLayout(stackHost);
-    hostLayout->setContentsMargins(6, 6, 6, 6);
+    hostLayout->setContentsMargins(0, 6, 6, 6);
     hostLayout->setSpacing(0);
     m_stack = new QWidget(stackHost);
     auto *stackLayout = new QStackedLayout(m_stack);
@@ -298,6 +306,42 @@ void BrowserWindow::setupUi() {
     m_splitter->addWidget(stackHost);
     m_splitter->setStretchFactor(0, 0);
     m_splitter->setStretchFactor(1, 1);
+    if (auto *handle = m_splitter->handle(1)) handle->setCursor(Qt::SplitHCursor);
+
+    QSettings settings;
+    const int savedSidebarWidth = settings.value("ui/sidebarWidth", 240).toInt();
+    const int initialSidebar = qBound(sidebar->minimumWidth(), savedSidebarWidth, sidebar->maximumWidth());
+    m_splitter->setSizes({initialSidebar, qMax(400, width() - initialSidebar)});
+    // Helper: when the sidebar is hidden the web content reclaims its
+    // normal 6 px breathing room on the left; when visible the seam is
+    // flush against the splitter handle.
+    auto applyStackHostInset = [hostLayout](bool sidebarVisible) {
+        hostLayout->setContentsMargins(sidebarVisible ? 0 : 6, 6, 6, 6);
+    };
+    m_setStackHostInset = applyStackHostInset;
+
+    connect(m_splitter, &QSplitter::splitterMoved, this, [this, sidebar, applyStackHostInset](int pos, int) {
+        if (!m_splitter) return;
+        const int collapseThreshold = sidebar->minimumWidth() * 7 / 10;
+        if (pos < collapseThreshold) {
+            if (sidebar->isVisible()) {
+                sidebar->setVisible(false);
+                mac::setTrafficLightsHidden(this, true);
+                applyStackHostInset(false);
+            }
+            return;
+        }
+        if (!sidebar->isVisible()) {
+            sidebar->setVisible(true);
+            mac::setTrafficLightsHidden(this, false);
+            applyStackHostInset(true);
+        }
+        const auto sizes = m_splitter->sizes();
+        if (!sizes.isEmpty() && sizes.first() >= sidebar->minimumWidth()) {
+            QSettings().setValue("ui/sidebarWidth", sizes.first());
+        }
+    });
+
     root->addWidget(m_splitter, 1);
     setCentralWidget(central);
     central->setObjectName("CentralRoot");
@@ -367,12 +411,30 @@ void BrowserWindow::setupActions() {
         m_floatingOmnibox->showFor(m_stack, current);
     });
     auto toggleSidebar = [this] {
-        if (auto *side = m_splitter->widget(0)) {
-            const bool nowVisible = !side->isVisible();
-            side->setVisible(nowVisible);
-            mac::setTrafficLightsHidden(this, !nowVisible);
+        auto *side = m_splitter->widget(0);
+        if (!side) return;
+        const bool nowVisible = !side->isVisible();
+        side->setVisible(nowVisible);
+        mac::setTrafficLightsHidden(this, !nowVisible);
+        if (m_setStackHostInset) m_setStackHostInset(nowVisible);
+        if (nowVisible) {
+            // Drag-collapse leaves the sidebar with size 0 in the splitter;
+            // restore the persisted (or default) width on re-open. Defer to
+            // the next event loop turn so the splitter has re-included the
+            // widget after setVisible(true) before we resize it.
+            QTimer::singleShot(0, this, [this, side] {
+                const int saved = QSettings().value("ui/sidebarWidth", 240).toInt();
+                const int target = qBound(side->minimumWidth(), saved, side->maximumWidth());
+                const int total = m_splitter->size().width();
+                m_splitter->setSizes({target, qMax(0, total - target - m_splitter->handleWidth())});
+            });
         }
     };
-    auto *sidebarShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_B), this, toggleSidebar);
-    sidebarShortcut->setContext(Qt::ApplicationShortcut);
+    auto *toggleSidebarAction = new QAction("Toggle Sidebar", this);
+    toggleSidebarAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_B));
+    toggleSidebarAction->setShortcutContext(Qt::ApplicationShortcut);
+    toggleSidebarAction->setMenuRole(QAction::NoRole);
+    connect(toggleSidebarAction, &QAction::triggered, this, toggleSidebar);
+    addAction(toggleSidebarAction);
+    mb->addMenu("View")->addAction(toggleSidebarAction);
 }

@@ -7,6 +7,7 @@
 #include <QHash>
 #include <QMainWindow>
 #include <QUrl>
+#include <functional>
 
 class FloatingOmnibox;
 class QHBoxLayout;
@@ -61,4 +62,5 @@ private:
     QAction *m_omniAction = nullptr;
     FaviconService *m_favicons = nullptr;
     QHBoxLayout *m_toolbarLayout = nullptr;
+    std::function<void(bool)> m_setStackHostInset;
 };
