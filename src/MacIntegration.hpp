@@ -29,6 +29,10 @@ void enableWindowVibrancy(QWidget *window, VibrancyMaterial material = VibrancyM
 // (Qt::WA_TranslucentBackground + transparent stylesheet) so the blur is visible.
 void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material = VibrancyMaterial::Sidebar);
 
+// Hide or show the three standard window buttons (close/min/zoom) on the
+// QMainWindow's NSWindow. Useful for collapsing them with a sidebar.
+void setTrafficLightsHidden(QWidget *window, bool hidden);
+
 // Asks AppKit / CoreAnimation to drive `window`'s NSWindow at the display's
 // maximum refresh rate (e.g. 120Hz on ProMotion panels) instead of the
 // default 60Hz. No-op off macOS / on non-ProMotion displays.

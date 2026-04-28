@@ -30,18 +30,29 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_NoSystemBackground);
     setAutoFillBackground(false);
+#ifdef Q_OS_MACOS
+    // Qt 6.9+ flags: extend the client area under the titlebar and stop Qt
+    // from reserving safe-area margins for the titlebar in the central
+    // widget. Without these, QMainWindow leaves a band of empty space at the
+    // top of the window even with NSWindowStyleMaskFullSizeContentView set
+    // (regression since Qt 6.4 — see QTBUG-134797).
+    setAttribute(Qt::WA_ContentsMarginsRespectsSafeArea, false);
+    setWindowFlags(windowFlags() | Qt::ExpandedClientAreaHint | Qt::NoTitleBarBackgroundHint);
+#endif
     setupUi();
     setupActions();
     setWindowTitle("pocb");
     resize(1280, 820);
+    // Force NSWindow creation so we can position the traffic lights before
+    // the window is visible (no one-frame flash at the default position).
+    winId();
+    mac::integrateUnifiedToolbar(this, nullptr, /*compact=*/true);
     newTab(QUrl(m_homePage));
 }
 
 void BrowserWindow::showEvent(QShowEvent *e) {
     QMainWindow::showEvent(e);
-    if (auto *tb = findChild<QWidget *>("MainToolbar")) {
-        mac::integrateUnifiedToolbar(this, tb, /*compact=*/true);
-    }
+    mac::integrateUnifiedToolbar(this, nullptr, /*compact=*/true);
     mac::enableWindowVibrancy(this, mac::VibrancyMaterial::Sidebar);
     mac::enableHighRefreshRate(this);
     // Round the web-content stack on the next event loop turn (after the
@@ -192,24 +203,9 @@ void BrowserWindow::setupUi() {
     root->setContentsMargins(0, 0, 0, 0);
     root->setSpacing(0);
 
-    // Empty toolbar row — no contents, but kept so the macOS unified
-    // titlebar treatment (transparent titlebar, full-size content view,
-    // traffic-lights over content) still applies via integrateUnifiedToolbar.
-    auto *toolbar = new QWidget(this);
-    toolbar->setObjectName("MainToolbar");
-    toolbar->setFixedHeight(38);
-    toolbar->setAttribute(Qt::WA_TranslucentBackground);
-    toolbar->setAutoFillBackground(false);
-    toolbar->setStyleSheet("QWidget#MainToolbar { background: transparent; border: none; }");
-    m_toolbarLayout = new QHBoxLayout(toolbar);
-    m_toolbarLayout->setContentsMargins(0, 0, 0, 0);
-    m_toolbarLayout->setSpacing(0);
-#ifdef Q_OS_MACOS
-    toolbar->setAttribute(Qt::WA_NativeWindow);
-    toolbar->winId();
-#else
-    toolbar->hide();
-#endif
+    // No toolbar row — the web content extends all the way up under the
+    // titlebar (NSWindowStyleMaskFullSizeContentView), and the traffic
+    // lights float on top, repositioned by MacIntegration.
 
     m_omnibox = new QLineEdit(this);
     m_omnibox->hide();
@@ -241,7 +237,11 @@ void BrowserWindow::setupUi() {
     sidebar->setStyleSheet("QWidget#Sidebar { background: transparent; }");
     sidebar->setAttribute(Qt::WA_TranslucentBackground);
     auto *sideLayout = new QVBoxLayout(sidebar);
-    sideLayout->setContentsMargins(6, 8, 6, 10);
+    // Top inset clears the traffic-light band (unified-toolbar height ~52px
+    // on Big Sur+; first sidebar row sits just below the buttons). Left/right
+    // insets pad the selection highlight inward from the window edge so it
+    // visually aligns with the traffic-light leading edge.
+    sideLayout->setContentsMargins(10, 52, 10, 10);
     sideLayout->setSpacing(0);
 
     m_tabs = new QTreeWidget(sidebar);
@@ -288,7 +288,7 @@ void BrowserWindow::setupUi() {
     stackHost->setObjectName("StackHost");
     stackHost->setStyleSheet("QWidget#StackHost { background: transparent; }");
     auto *hostLayout = new QVBoxLayout(stackHost);
-    hostLayout->setContentsMargins(6, 0, 6, 6);
+    hostLayout->setContentsMargins(6, 6, 6, 6);
     hostLayout->setSpacing(0);
     m_stack = new QWidget(stackHost);
     auto *stackLayout = new QStackedLayout(m_stack);
@@ -366,7 +366,13 @@ void BrowserWindow::setupActions() {
         }
         m_floatingOmnibox->showFor(m_stack, current);
     });
-    new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_S), this, [this] {
-        if (auto *side = m_splitter->widget(0)) side->setVisible(!side->isVisible());
-    });
+    auto toggleSidebar = [this] {
+        if (auto *side = m_splitter->widget(0)) {
+            const bool nowVisible = !side->isVisible();
+            side->setVisible(nowVisible);
+            mac::setTrafficLightsHidden(this, !nowVisible);
+        }
+    };
+    auto *sidebarShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_B), this, toggleSidebar);
+    sidebarShortcut->setContext(Qt::ApplicationShortcut);
 }
