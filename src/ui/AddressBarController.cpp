@@ -16,6 +16,7 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QKeyEvent>
+#include <QDebug>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -315,15 +316,20 @@ void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
             });
         };
         if (reply->error() != QNetworkReply::NoError) {
+            qDebug() << "suggestion request failed" << reply->url() << reply->errorString();
+            if (fallbackTried) m_statusText = QStringLiteral("Suggestions failed: %1").arg(reply->errorString());
             tryFallback();
             return;
         }
         if (!m_bar || replyQuery != m_pendingQuery) return;
 
         const QByteArray body = reply->readAll();
+        qDebug() << "suggestion response" << reply->url() << body.left(240);
         QJsonParseError parseError;
         const auto doc = QJsonDocument::fromJson(body, &parseError);
         if (parseError.error != QJsonParseError::NoError) {
+            qDebug() << "suggestion parse failed" << parseError.errorString();
+            if (fallbackTried) m_statusText = QStringLiteral("Suggestions returned non-JSON");
             tryFallback();
             return;
         }
@@ -361,6 +367,8 @@ void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
             }
         }
         if (items.isEmpty()) {
+            qDebug() << "suggestion parse returned no rows" << reply->url() << body.left(240);
+            if (fallbackTried) m_statusText = QStringLiteral("No suggestions in response");
             tryFallback();
             return;
         }
