@@ -1,9 +1,9 @@
 #include "SidebarController.hpp"
 
 #include "MacIntegration.hpp"
+#include "LayoutMetrics.hpp"
 
 #include <QCursor>
-#include <QDebug>
 #include <QEasingCurve>
 #include <QEvent>
 #include <QMainWindow>
@@ -15,11 +15,8 @@
 #include <QWidget>
 
 namespace {
-constexpr int kFloatingTopGap = 52;     // clears the toolbar (~52px tall)
-constexpr int kFloatingBottomGap = 8;
-constexpr int kFloatingSideGap = 8;
-constexpr int kDismissDelayMs = 180;
-constexpr int kSlideDurationMs = 160;
+constexpr int kDismissDelayMs = ui::metrics::FloatingDismissDelayMs;
+constexpr int kSlideDurationMs = ui::metrics::FloatingSlideDurationMs;
 }
 
 SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
@@ -84,9 +81,9 @@ SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
         if (!m_floating || !m_window || !m_floating->isVisible()) return;
         const QPoint cursor = QCursor::pos();
         const QRect panel = m_floating->frameGeometry();
-        const QPoint winTL = m_window->mapToGlobal(QPoint(0, 0));
-        const QRect keepAlive(winTL.x(), panel.top(),
-                              panel.right() - winTL.x() + 1, panel.height());
+        const QRect windowFrame = ui::metrics::windowContentRect(m_window);
+        const QRect keepAlive(windowFrame.left(), panel.top(),
+                              panel.right() - windowFrame.left() + 1, panel.height());
         if (keepAlive.contains(cursor)) {
             if (m_dismissTimer) m_dismissTimer->stop();
             if (m_slidingOut) showFloating();
@@ -165,7 +162,6 @@ void SidebarController::setHidden(bool hidden) {
     }
 
     side->setVisible(!hidden);
-    qInfo("[pocb-tl] SidebarController::setHidden(%s)", hidden ? "true" : "false");
     mac::setTrafficLightsHidden(m_window, hidden);
     mac::refreshUnifiedToolbar(m_window);
     if (m_setStackHostInset) m_setStackHostInset(!hidden);
@@ -186,24 +182,18 @@ void SidebarController::setHidden(bool hidden) {
 
 void SidebarController::positionHoverZone() {
     if (!m_hoverZone || !m_window) return;
-    constexpr int kZoneWidth = 48;
-    const QPoint topLeft = m_window->mapToGlobal(QPoint(0, 0));
-    const int top = topLeft.y() + 28;
-    const int height = qMax(0, m_window->height() - 28);
-    m_hoverZone->setGeometry(topLeft.x(), top, kZoneWidth, height);
+    m_hoverZone->setGeometry(ui::metrics::sidebarHoverZoneRect(m_window));
 }
 
 void SidebarController::positionFloating() {
     if (!m_floating || !m_window) return;
-    const int saved = QSettings().value("ui/sidebarWidth", 240).toInt();
-    const int width = qBound(180, saved, 520);
-    const QPoint topLeft = m_window->mapToGlobal(QPoint(0, 0));
-    const int top = topLeft.y() + kFloatingTopGap;
-    const int height = qMax(0, m_window->height() - kFloatingTopGap - kFloatingBottomGap);
-    m_floating->setGeometry(topLeft.x() + kFloatingSideGap, top, width, height);
+    const int saved = QSettings().value("ui/sidebarWidth", ui::metrics::SidebarDefaultWidth).toInt();
+    const int width = qBound(ui::metrics::SidebarMinimumWidth, saved, ui::metrics::SidebarMaximumWidth);
+    const QRect geometry = ui::metrics::floatingSidebarRect(m_window, width);
+    m_floating->setGeometry(geometry);
     if (m_floatingInner) {
         // Preserve current x offset (mid-animation) but match new size.
-        m_floatingInner->setGeometry(m_floatingInner->x(), 0, width, height);
+        m_floatingInner->setGeometry(m_floatingInner->x(), 0, width, geometry.height());
     }
 }
 
@@ -216,7 +206,7 @@ void SidebarController::expandAnimated() {
     setHidden(false);
     if (m_hoverZone) m_hoverZone->hide();
 
-    const int saved = QSettings().value("ui/sidebarWidth", 240).toInt();
+    const int saved = QSettings().value("ui/sidebarWidth", ui::metrics::SidebarDefaultWidth).toInt();
     const int target = qBound(side->minimumWidth(), saved, side->maximumWidth());
     const int total = m_splitter->size().width();
     const int handle = m_splitter->handleWidth();

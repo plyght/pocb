@@ -32,6 +32,7 @@ qt_add_executable(pocb MACOSX_BUNDLE
     src/ui/Topbar.hpp
     src/ui/ChromeWidgets.cpp
     src/ui/ChromeWidgets.hpp
+    src/ui/LayoutMetrics.hpp
     src/tabs/TabTree.cpp
     src/tabs/TabTree.hpp
     src/mac/MacIntegration.hpp
@@ -86,12 +87,13 @@ set_target_properties(pocb PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
 )
 
-set(QTBASE_PREFIX /opt/homebrew/Cellar/qtbase/6.10.2)
-add_custom_command(TARGET pocb POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/platforms"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${QTBASE_PREFIX}/share/qt/plugins/platforms/libqcocoa.dylib" "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/platforms/libqcocoa.dylib"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources"
-    COMMAND ${CMAKE_COMMAND} -E echo "[Paths]" > "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/qt.conf"
-    COMMAND ${CMAKE_COMMAND} -E echo "Plugins = PlugIns" >> "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/qt.conf"
-    VERBATIM
-)
+if(APPLE AND TARGET Qt6::QCocoaIntegrationPlugin)
+    add_custom_command(TARGET pocb POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/platforms"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::QCocoaIntegrationPlugin>" "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/platforms/libqcocoa.dylib"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources"
+        COMMAND ${CMAKE_COMMAND} -E echo "[Paths]" > "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/qt.conf"
+        COMMAND ${CMAKE_COMMAND} -E echo "Plugins = PlugIns" >> "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/qt.conf"
+        VERBATIM
+    )
+endif()

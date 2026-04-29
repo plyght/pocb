@@ -4,6 +4,7 @@
 #include "AddressBarController.hpp"
 #include "FloatingOmnibox.hpp"
 #include "ChromeWidgets.hpp"
+#include "LayoutMetrics.hpp"
 #include "MacIntegration.hpp"
 #include "SettingsDialog.hpp"
 #include "SidebarController.hpp"
@@ -27,6 +28,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QFrame>
 #include <QListWidget>
 #include <QListWidgetItem>
 #include <QMenuBar>
@@ -37,6 +39,7 @@
 #include <QProgressBar>
 #include <QDir>
 #include <QShortcut>
+#include <QShortcutEvent>
 #include <QTimer>
 #include <QUrlQuery>
 #include <QSettings>
@@ -75,7 +78,7 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
         if (!geom.isEmpty()) {
             restoreGeometry(geom);
         } else {
-            resize(1280, 820);
+            resize(ui::metrics::WindowDefaultWidth, ui::metrics::WindowDefaultHeight);
         }
     }
     // Force NSWindow creation so we can position the traffic lights before
@@ -95,7 +98,6 @@ void BrowserWindow::moveEvent(QMoveEvent *e) {
 
 void BrowserWindow::resizeEvent(QResizeEvent *e) {
     QMainWindow::resizeEvent(e);
-    qInfo("[pocb-tl] Qt resizeEvent %dx%d", e->size().width(), e->size().height());
     if (m_sidebar) {
         if (m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
         if (m_sidebar->floatingVisible()) m_sidebar->positionFloating();
@@ -116,7 +118,7 @@ void BrowserWindow::showEvent(QShowEvent *e) {
     // first QWebEngineView NSView exists).
     QTimer::singleShot(0, this, [this] {
         if (m_webContainer) {
-            mac::roundWidgetCorners(m_webContainer, 10.0, /*recurseDescendants=*/false);
+            mac::roundWidgetCorners(m_webContainer, ui::metrics::WebContainerRadius, /*recurseDescendants=*/false);
         }
         if (m_stack) mac::roundWidgetCorners(m_stack, 0.0);
         if (auto *host = findChild<QWidget *>("StackHost")) {
@@ -127,6 +129,55 @@ void BrowserWindow::showEvent(QShowEvent *e) {
 
 void BrowserWindow::loadFromOmnibox() {
     if (auto *view = currentView()) view->load(urlFromInput(m_omnibox->text()));
+}
+
+void BrowserWindow::showCopiedLinkPopup() {
+    QWidget *host = m_webContainer ? m_webContainer : m_stack;
+    if (!host) host = this;
+
+    auto *popup = new QFrame(host);
+    popup->setObjectName("CopiedLinkPopup");
+    popup->setAttribute(Qt::WA_DeleteOnClose);
+    popup->setAttribute(Qt::WA_TranslucentBackground);
+    popup->setAutoFillBackground(false);
+    popup->setFixedSize(ui::metrics::CopiedLinkPopupWidth, ui::metrics::CopiedLinkPopupHeight);
+    mac::applyVibrancyBehind(popup, mac::VibrancyMaterial::HUDWindow);
+    popup->setStyleSheet(QString(
+        "QFrame#CopiedLinkPopup {"
+        "  background: %1;"
+        "  border: 1px solid %2;"
+        "  border-radius: 8px;"
+        "}"
+        "QLabel {"
+        "  color: %3;"
+        "  font-family: '%4';"
+        "  font-size: %5px;"
+        "}")
+        .arg(QColor(36, 36, 38, 150).name(QColor::HexArgb),
+             m_theme.border.name(),
+             m_theme.foreground.name(),
+             m_theme.fontFamily,
+             QString::number(m_theme.regularSize)));
+
+    auto *row = new QHBoxLayout(popup);
+    row->setContentsMargins(12, 0, 12, 0);
+    row->setSpacing(8);
+
+    auto *icon = new QLabel(popup);
+    icon->setFixedSize(16, 16);
+    icon->setPixmap(mac::sfSymbolIcon("link", 12.5, m_theme.foreground).pixmap(16, 16));
+    row->addWidget(icon);
+
+    auto *label = new QLabel("Copied link", popup);
+    row->addWidget(label);
+
+    popup->move(ui::metrics::CopiedLinkPopupInset,
+                qMax(ui::metrics::CopiedLinkPopupInset,
+                     host->height() - popup->height() - ui::metrics::CopiedLinkPopupInset));
+    popup->show();
+    mac::roundWidgetCorners(popup, 8.0, false);
+    popup->raise();
+    QTimer::singleShot(1300, popup, &QWidget::close);
 }
 
 void BrowserWindow::showSettings() {
@@ -199,33 +250,25 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
         m_addressBar->installEventFilter(new FocusPopFilter(m_addrWrap, this));
     }
 
-    // Reveal the ellipsis menu only on pill hover.
-    if (m_addrWrap && m_pillMenuBtn) {
-        class PillHoverFilter : public QObject {
-        public:
-            PillHoverFilter(QToolButton *btn, QObject *parent) : QObject(parent), m_btn(btn) {}
-            bool eventFilter(QObject *o, QEvent *e) override {
-                if (e->type() == QEvent::Enter) m_btn->show();
-                else if (e->type() == QEvent::Leave) m_btn->hide();
-                return QObject::eventFilter(o, e);
-            }
-            QToolButton *m_btn;
-        };
-        m_addrWrap->installEventFilter(new PillHoverFilter(m_pillMenuBtn, this));
-    }
     if (m_pillMenuBtn) {
         connect(m_pillMenuBtn, &QToolButton::clicked, this, [this] {
-            QMenu menu(this);
-            menu.addAction("Copy URL", this, [this] {
+            auto copyUrl = [this] {
                 if (auto *v = currentView()) QApplication::clipboard()->setText(v->url().toString());
-            });
-            menu.addAction("Reload", this, [this] { if (auto *v = currentView()) v->reload(); });
-            menu.addSeparator();
-            menu.addAction("New Tab", this, [this] {
+            };
+            auto reload = [this] { if (auto *v = currentView()) v->reload(); };
+            auto newTab = [this] {
                 m_tabTree->newTab(QUrl("about:blank"));
                 m_floatingOmnibox->showFor(m_stack, QString());
-            });
-            menu.addAction("Settings…", this, &BrowserWindow::showSettings);
+            };
+            auto settings = [this] { showSettings(); };
+            if (mac::showNativePageActionsMenu(m_pillMenuBtn, copyUrl, reload, newTab, settings)) return;
+
+            QMenu menu(this);
+            menu.addAction("Copy URL", this, copyUrl);
+            menu.addAction("Reload", this, reload);
+            menu.addSeparator();
+            menu.addAction("New Tab", this, newTab);
+            menu.addAction("Settings…", this, settings);
             const QPoint pos = m_pillMenuBtn->mapToGlobal(QPoint(0, m_pillMenuBtn->height()));
             menu.exec(pos);
         });
@@ -308,7 +351,7 @@ void BrowserWindow::setupUi() {
     // Both adjacent panels have zero inner padding on this edge so the
     // handle is the only thing between them — drag anywhere along it to
     // move the boundary.
-    m_splitter->setHandleWidth(8);
+    m_splitter->setHandleWidth(ui::metrics::SplitterHandleWidth);
     m_splitter->setChildrenCollapsible(true);
     m_splitter->setOpaqueResize(true);
     m_splitter->setAttribute(Qt::WA_TranslucentBackground);
@@ -325,21 +368,24 @@ void BrowserWindow::setupUi() {
     // on Big Sur+; first sidebar row sits just below the buttons). Left/right
     // insets pad the selection highlight inward from the window edge so it
     // visually aligns with the traffic-light leading edge.
-    sideLayout->setContentsMargins(10, 52, 0, 10);
+    sideLayout->setContentsMargins(ui::metrics::DockedSidebarLeftInset,
+                                   ui::metrics::DockedSidebarTopInset,
+                                   ui::metrics::DockedSidebarRightInset,
+                                   ui::metrics::DockedSidebarBottomInset);
     sideLayout->setSpacing(0);
 
     const QDir cacheDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/favicons");
     cacheDir.mkpath(".");
     m_favicons = new FaviconService(cacheDir, this);
 
-    sidebar->setMinimumWidth(190);
-    sidebar->setMaximumWidth(520);
+    sidebar->setMinimumWidth(ui::metrics::SidebarMinimumWidth);
+    sidebar->setMaximumWidth(ui::metrics::SidebarMaximumWidth);
 
     auto *stackHost = new QWidget(m_splitter);
     stackHost->setObjectName("StackHost");
     stackHost->setStyleSheet("QWidget#StackHost { background: transparent; }");
     auto *hostLayout = new QVBoxLayout(stackHost);
-    hostLayout->setContentsMargins(0, 6, 6, 6);
+    hostLayout->setContentsMargins(ui::metrics::stackHostMargins(/*sidebarVisible=*/true));
     hostLayout->setSpacing(0);
 
     // The web container holds the top toolbar AND the web view stack inside
@@ -384,14 +430,14 @@ void BrowserWindow::setupUi() {
     if (auto *handle = m_splitter->handle(1)) handle->setCursor(Qt::SplitHCursor);
 
     QSettings settings;
-    const int savedSidebarWidth = settings.value("ui/sidebarWidth", 240).toInt();
+    const int savedSidebarWidth = settings.value("ui/sidebarWidth", ui::metrics::SidebarDefaultWidth).toInt();
     const int initialSidebar = qBound(sidebar->minimumWidth(), savedSidebarWidth, sidebar->maximumWidth());
     m_splitter->setSizes({initialSidebar, qMax(400, width() - initialSidebar)});
     // Helper: when the sidebar is hidden the web content reclaims its
     // normal 6 px breathing room on the left; when visible the seam is
     // flush against the splitter handle.
     auto applyStackHostInset = [hostLayout](bool sidebarVisible) {
-        hostLayout->setContentsMargins(sidebarVisible ? 0 : 6, 6, 6, 6);
+        hostLayout->setContentsMargins(ui::metrics::stackHostMargins(sidebarVisible));
     };
     m_sidebar = new SidebarController(this, m_splitter, applyStackHostInset, this);
     m_sidebar->setSidebarContent(m_tabTree->widget(), sideLayout);
@@ -409,7 +455,10 @@ void BrowserWindow::setupUi() {
         // Right margin matches the web container's left inset (0 — the
         // splitter handle itself provides the visual gap), so the sidebar
         // doesn't end with extra dead space relative to the page edge.
-        sideLayout->setContentsMargins(10, 0, 0, 10);
+        sideLayout->setContentsMargins(ui::metrics::DockedSidebarLeftInset,
+                                       0,
+                                       ui::metrics::DockedSidebarRightInset,
+                                       ui::metrics::DockedSidebarBottomInset);
 
         m_sidebarHeader = new QWidget(sidebar);
         m_sidebarHeader->setObjectName("SidebarHeader");
@@ -422,14 +471,15 @@ void BrowserWindow::setupUi() {
         // Traffic lights are painted by AppKit on the leading edge; nav
         // buttons sit on the trailing edge at the same vertical center.
         auto *navRow = new QWidget(m_sidebarHeader);
-        navRow->setFixedHeight(52);
+        navRow->setFixedHeight(ui::metrics::SidebarHeaderNavHeight);
         auto *navLayout = new QHBoxLayout(navRow);
         // Top inset positions buttons at the traffic-light vertical center
         // (~y=14 from window top); the leading spacer keeps a comfortable
         // gap between the lights and the back button on narrow sidebars.
-        navLayout->setContentsMargins(0, 11, 6, 0);
+        navLayout->setContentsMargins(0, ui::metrics::SidebarHeaderNavTopInset,
+                                      ui::metrics::SidebarHeaderNavRightInset, 0);
         navLayout->setSpacing(4);
-        navLayout->addSpacing(96);
+        navLayout->addSpacing(ui::metrics::SidebarHeaderTrafficLightClearance);
         navLayout->addStretch(1);
         for (QToolButton *btn : {m_backBtn, m_fwdBtn, m_reloadBtn}) {
             if (!btn) continue;
@@ -476,7 +526,7 @@ void BrowserWindow::setupUi() {
 
     connect(m_splitter, &QSplitter::splitterMoved, this, [this, sidebar](int pos, int) {
         if (!m_splitter) return;
-        const int collapseThreshold = sidebar->minimumWidth() * 7 / 10;
+        const int collapseThreshold = ui::metrics::sidebarCollapseThreshold(sidebar->minimumWidth());
         if (pos < collapseThreshold) {
             if (sidebar->isVisible()) m_sidebar->setHidden(true);
             return;
@@ -541,7 +591,7 @@ void BrowserWindow::setupActions() {
         m_sidebar->setHidden(!nowVisible);
         if (nowVisible) {
             QTimer::singleShot(0, this, [this, side] {
-                const int saved = QSettings().value("ui/sidebarWidth", 240).toInt();
+                const int saved = QSettings().value("ui/sidebarWidth", ui::metrics::SidebarDefaultWidth).toInt();
                 const int target = qBound(side->minimumWidth(), saved, side->maximumWidth());
                 const int total = m_splitter->size().width();
                 m_splitter->setSizes({target, qMax(0, total - target - m_splitter->handleWidth())});
@@ -565,7 +615,8 @@ void BrowserWindow::setupActions() {
         return [sel] { mac::sendStandardEditAction(sel); };
     };
 
-    auto *mb = new QMenuBar(nullptr);
+    auto *mb = new QMenuBar(this);
+    setMenuBar(mb);
 
     // ── App menu (auto: "pocb") ─────────────────────────────────────────
     auto *aboutAction = makeAction("About pocb", {}, [] { QApplication::aboutQt(); }, QAction::AboutRole);
@@ -597,11 +648,20 @@ void BrowserWindow::setupActions() {
     editMenu->addAction(makeAction("Paste", QKeySequence(Qt::CTRL | Qt::Key_V), fwd("paste:"),     QAction::TextHeuristicRole));
     editMenu->addAction(makeAction("Select All", QKeySequence(Qt::CTRL | Qt::Key_A), fwd("selectAll:"), QAction::TextHeuristicRole));
     editMenu->addSeparator();
-    editMenu->addAction(makeAction("Copy Current URL", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C),
-                                   [this] {
-                                       if (auto *v = currentView())
-                                           QApplication::clipboard()->setText(v->url().toString());
-                                   }));
+    auto copyCurrentUrl = [this] {
+        if (auto *v = currentView()) {
+            QApplication::clipboard()->setText(v->url().toString());
+            showCopiedLinkPopup();
+        }
+    };
+    auto *copyCurrentUrlAction = makeAction("Copy Current URL", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C),
+                                            copyCurrentUrl);
+    copyCurrentUrlAction->setShortcutContext(Qt::ApplicationShortcut);
+    addAction(copyCurrentUrlAction);
+    editMenu->addAction(copyCurrentUrlAction);
+    auto *copyCurrentUrlShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C), this);
+    copyCurrentUrlShortcut->setContext(Qt::ApplicationShortcut);
+    connect(copyCurrentUrlShortcut, &QShortcut::activated, this, copyCurrentUrl);
 
     // ── View ────────────────────────────────────────────────────────────
     auto *viewMenu = mb->addMenu("View");

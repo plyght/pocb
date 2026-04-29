@@ -120,9 +120,7 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
              QString::number(theme.regularSize)));
     addrRow->addWidget(w.addressBar, 1);
 
-    // Hover-only ellipsis menu button on the right edge of the pill. Shown
-    // only when the pill is hovered (controlled by enter/leave events on the
-    // pill widget); kept hidden by default.
+    // Ellipsis menu button on the right edge of the pill.
     w.pillMenuBtn = new QToolButton(addrWrap);
     w.pillMenuBtn->setAutoRaise(true);
     w.pillMenuBtn->setFocusPolicy(Qt::NoFocus);
@@ -135,7 +133,7 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
         "QToolButton { background: transparent; border: none; border-radius: 4px; }"
         "QToolButton:hover { background: rgba(255,255,255,0.10); }"
         "QToolButton:pressed { background: rgba(255,255,255,0.18); }");
-    w.pillMenuBtn->hide();
+    w.pillMenuBtn->show();
     addrRow->addWidget(w.pillMenuBtn);
 
     row->addWidget(addrWrap, 1);

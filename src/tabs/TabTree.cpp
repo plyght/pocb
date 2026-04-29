@@ -1,16 +1,62 @@
 #include "TabTree.hpp"
 
 #include "FaviconService.hpp"
+#include "MacIntegration.hpp"
 #include "ProfileStore.hpp"
 #include "WebView.hpp"
 
+#include <QEvent>
+#include <QHeaderView>
 #include <QIcon>
+#include <QMouseEvent>
+#include <QPainter>
 #include <QPixmap>
 #include <QStackedLayout>
+#include <QStyledItemDelegate>
 #include <QStringList>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QVariant>
+
+namespace {
+
+QRect closeButtonRect(const QRect &rowRect, int viewportWidth) {
+    const int side = 18;
+    const int right = viewportWidth > 0 ? viewportWidth - 6 : rowRect.right() - 6;
+    return QRect(right - side,
+                 rowRect.top() + (rowRect.height() - side) / 2,
+                 side,
+                 side);
+}
+
+class TabItemDelegate final : public QStyledItemDelegate {
+public:
+    TabItemDelegate(const Theme &theme, QObject *parent)
+        : QStyledItemDelegate(parent), m_closeIcon(mac::sfSymbolIcon("xmark", 10.5, theme.foreground)) {}
+
+    void paint(QPainter *painter, const QStyleOptionViewItem &option,
+               const QModelIndex &index) const override {
+        QStyledItemDelegate::paint(painter, option, index);
+        const int viewportWidth = option.widget ? option.widget->width() : 0;
+        const QRect closeRect = closeButtonRect(option.rect, viewportWidth);
+        if (!m_closeIcon.isNull()) {
+            m_closeIcon.paint(painter, closeRect.adjusted(4, 4, -4, -4), Qt::AlignCenter);
+        } else {
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing, true);
+            painter->setPen(QPen(option.palette.color(QPalette::Text), 1.6));
+            const QRectF r = closeRect.adjusted(5, 5, -5, -5);
+            painter->drawLine(r.topLeft(), r.bottomRight());
+            painter->drawLine(r.topRight(), r.bottomLeft());
+            painter->restore();
+        }
+    }
+
+private:
+    QIcon m_closeIcon;
+};
+
+}  // namespace
 
 TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stack,
                  const Theme &theme, QWidget *sidebarParent, QObject *parent)
@@ -19,6 +65,7 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
     m_tabs = new QTreeWidget(sidebarParent);
     m_tabs->setObjectName("TabTree");
     m_tabs->setHeaderHidden(true);
+    m_tabs->header()->setStretchLastSection(true);
     m_tabs->setIndentation(14);
     m_tabs->setRootIsDecorated(false);
     m_tabs->setAnimated(true);
@@ -26,13 +73,17 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
     m_tabs->setIconSize(QSize(16, 16));
     m_tabs->setExpandsOnDoubleClick(false);
     m_tabs->setUniformRowHeights(true);
+    m_tabs->setMouseTracking(true);
+    m_tabs->viewport()->setMouseTracking(true);
+    m_tabs->viewport()->installEventFilter(this);
+    m_tabs->setItemDelegate(new TabItemDelegate(m_theme, m_tabs));
     m_tabs->setAttribute(Qt::WA_MacShowFocusRect, false);
     m_tabs->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     m_tabs->setAttribute(Qt::WA_TranslucentBackground);
     m_tabs->viewport()->setAutoFillBackground(false);
     m_tabs->setStyleSheet(QString(
         "QTreeWidget#TabTree { background: transparent; border: none; color: %1; }"
-        "QTreeWidget#TabTree::item { padding: 4px 6px; border-radius: 6px; color: %1; }"
+        "QTreeWidget#TabTree::item { padding: 4px 28px 4px 6px; border-radius: 6px; color: %1; }"
         "QTreeWidget#TabTree::item:selected { background: %2; color: %1; }"
         "QTreeWidget#TabTree::item:hover:!selected { background: %3; }")
         .arg(m_theme.foreground.name(),
@@ -80,6 +131,28 @@ void TabTree::selectItem(QTreeWidgetItem *item) {
     emit currentTabChanged();
 }
 
+bool TabTree::eventFilter(QObject *watched, QEvent *event) {
+    if (watched == m_tabs->viewport() && event->type() == QEvent::Resize) {
+        m_tabs->setColumnWidth(0, m_tabs->viewport()->width());
+    }
+    if (watched == m_tabs->viewport() &&
+        (event->type() == QEvent::MouseMove || event->type() == QEvent::Leave)) {
+        m_tabs->viewport()->update();
+    }
+    if (watched == m_tabs->viewport() && event->type() == QEvent::MouseButtonPress) {
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        if (mouse->button() == Qt::LeftButton) {
+            if (auto *item = m_tabs->itemAt(mouse->pos())) {
+                if (closeButtonRect(m_tabs->visualItemRect(item), m_tabs->viewport()->width()).contains(mouse->pos())) {
+                    closeItem(item);
+                    return true;
+                }
+            }
+        }
+    }
+    return QObject::eventFilter(watched, event);
+}
+
 void TabTree::newTab(const QUrl &url, bool background, QTreeWidgetItem *parentItem) {
     auto *view = new WebView(m_profiles->currentProfile(), m_stack);
 
@@ -113,7 +186,10 @@ void TabTree::adoptChildView(WebView *child, QTreeWidgetItem *parentItem, bool b
 }
 
 void TabTree::closeCurrent() {
-    auto *item = currentItem();
+    closeItem(currentItem());
+}
+
+void TabTree::closeItem(QTreeWidgetItem *item) {
     if (!item) return;
     auto *view = m_views.take(item);
     if (view) view->deleteLater();

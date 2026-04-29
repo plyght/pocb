@@ -46,9 +46,11 @@ signals:
     void themeColorChanged(const QColor &color);
 
 private:
+    bool eventFilter(QObject *watched, QEvent *event) override;
     void wireView(WebView *view, QTreeWidgetItem *item);
     void adoptChildView(WebView *child, QTreeWidgetItem *parentItem, bool background);
     void selectItem(QTreeWidgetItem *item);
+    void closeItem(QTreeWidgetItem *item);
 
     ProfileStore *m_profiles = nullptr;
     FaviconService *m_favicons = nullptr;

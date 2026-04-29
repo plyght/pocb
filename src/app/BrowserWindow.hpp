@@ -52,6 +52,7 @@ private:
     void setupUi();
     void setupActions();
     QWidget *buildTopbar(QWidget *parent);
+    void showCopiedLinkPopup();
     Theme m_theme;
     ProfileStore m_profiles;
     QString m_homePage = "https://search.brave.com";

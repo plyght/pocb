@@ -3,6 +3,8 @@
 #include <QIcon>
 #include <QString>
 
+#include <functional>
+
 class QColor;
 class QMainWindow;
 class QWidget;
@@ -73,5 +75,11 @@ void enableHighRefreshRate(QWidget *window);
 // QMenuBar items route Cmd-X/C/V/A through the AppKit responder chain so
 // native NSText/WKWebView views handle them. No-op off macOS.
 void sendStandardEditAction(const char *selector);
+
+bool showNativePageActionsMenu(QWidget *anchor,
+                               std::function<void()> copyUrl,
+                               std::function<void()> reload,
+                               std::function<void()> newTab,
+                               std::function<void()> settings);
 
 }  // namespace mac
