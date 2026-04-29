@@ -3,6 +3,7 @@
 
 #ifdef __APPLE__
 #import <AppKit/AppKit.h>
+#import <QuartzCore/QuartzCore.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
 
@@ -35,8 +36,10 @@
 //      startMonitoringFlagsChanged pokes — so glyphs appear/disappear and
 //      Option-key swap (zoom→maximize) works.
 //
-// Safety: NO method swizzles. NO class swaps. NO theme-frame interference.
-// We only touch the fresh buttons we created, plus hide the originals.
+// Visual size: _NSThemeWidget paints at a fixed ~14pt logical size. We keep
+// cellSize / frames at that nominal size (centered in each g_buttonWH slot)
+// and apply CALayer scale so the drawn dots actually grow — scaling only the
+// outer g_buttonWH×g_buttonWH frame left empty padding (user-visible bug).
 // =============================================================================
 
 static char kPocbContainerKey;
@@ -56,11 +59,13 @@ static char kPocbCellOnKey;
 static NSMutableDictionary<NSValue *, NSValue *> *g_cellSizeOrigIMPByMethod;
 
 extern CGFloat g_buttonWH;
+// Theme widgets paint ~14×14; we center that in each slot and scale the layer.
+static const CGFloat kPocbTrafficNativeDrawWH = 14.0;
 
 static NSSize pocb_cell_size(id self, SEL _cmd) {
     NSCell *cell = (NSCell *)self;
     if (objc_getAssociatedObject(cell, &kPocbCellOnKey)) {
-        return NSMakeSize(g_buttonWH, g_buttonWH);
+        return NSMakeSize(kPocbTrafficNativeDrawWH, kPocbTrafficNativeDrawWH);
     }
     Method m = class_getInstanceMethod(object_getClass((id)cell), _cmd);
     if (!m) return NSMakeSize(14, 14);
@@ -94,7 +99,8 @@ static void pocb_enable_cell(NSButton *btn) {
     if (!btn) return;
     NSCell *c = btn.cell;
     if (!c) return;
-    pocb_swizzle_cell_size_if_needed(object_getClass(c));
+    Class cellClass = object_getClass((id)c);
+    pocb_swizzle_cell_size_if_needed(cellClass);
     objc_setAssociatedObject(c, &kPocbCellOnKey, @YES, OBJC_ASSOCIATION_RETAIN);
 }
 
@@ -112,6 +118,8 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
                          window:(NSWindow *)window
                        buttonWH:(CGFloat)wh
                         spacing:(CGFloat)spacing;
+/// Updates layout metrics from globals; call after changing g_buttonWH / g_spacing.
+- (void)setButtonMetricsWH:(CGFloat)wh spacing:(CGFloat)spacing;
 - (void)layoutButtons;
 @end
 
@@ -135,7 +143,6 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
     _window  = window;
     _buttonWH = wh;
     _spacing = spacing;
-    // No wantsLayer — can interfere with AppKit hit-testing in edge cases.
     for (NSButton *b in buttons) {
         [self addSubview:b];
     }
@@ -175,10 +182,40 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
     [NSNotificationCenter.defaultCenter removeObserver:self];
 }
 
+- (void)setButtonMetricsWH:(CGFloat)wh spacing:(CGFloat)spacing {
+    _buttonWH = wh;
+    _spacing = spacing;
+    [self layoutButtons];
+    for (NSButton *b in _buttons)
+        [b setNeedsDisplay:YES];
+    [self setNeedsDisplay:YES];
+}
+
 - (void)layoutButtons {
+    // Native paint requires 14×14 frame; the visible disc grows to fill
+    // _buttonWH via CALayer scale. Hit-testing handled at container level
+    // (see hitTest:/mouseDown:) so the full slot is clickable/hoverable.
+    const CGFloat n = kPocbTrafficNativeDrawWH;
+    const CGFloat scale = MAX(0.35, MIN(5.0, _buttonWH / n));
     NSInteger i = 0;
     for (NSButton *b in _buttons) {
-        b.frame = NSMakeRect((CGFloat)i * _spacing, 0, _buttonWH, _buttonWH);
+        const CGFloat cx = (CGFloat)i * _spacing + _buttonWH * 0.5;
+        const CGFloat cy = _buttonWH * 0.5;
+        b.frame = NSMakeRect(cx - n * 0.5, cy - n * 0.5, n, n);
+        b.wantsLayer = YES;
+        // Don't touch layer.anchorPoint: NSView keeps it at (0,0) and
+        // synchronises layer.position with frame.origin. Changing it to
+        // (0.5,0.5) shifts the rendered layer by -(n/2, n/2), so the visible
+        // disc no longer overlaps the click/hover slot. Scale around the
+        // layer's geometric centre with a translate-scale-translate transform
+        // instead, which leaves position/anchorPoint untouched.
+        const CGFloat tx = n * 0.5;
+        const CGFloat ty = n * 0.5;
+        CATransform3D t = CATransform3DIdentity;
+        t = CATransform3DTranslate(t, tx, ty, 0);
+        t = CATransform3DScale(t, scale, scale, 1.0);
+        t = CATransform3DTranslate(t, -tx, -ty, 0);
+        b.layer.transform = t;
         i++;
     }
 }
@@ -221,10 +258,64 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
     return _mouseInGroup;
 }
 
+- (NSButton *)buttonAtSuperviewPoint:(NSPoint)point {
+    const NSPoint local = [self convertPoint:point fromView:self.superview];
+    NSInteger i = 0;
+    for (NSButton *b in _buttons) {
+        const NSRect slot = NSMakeRect((CGFloat)i * _spacing, 0,
+                                       _buttonWH, _buttonWH);
+        if (NSPointInRect(local, slot)) return b;
+        i++;
+    }
+    return nil;
+}
+
+// Buttons are 14×14 under a layer scale; redirect every event in the slot
+// rect to us so click + drag tracking matches the visible disc, not the
+// underlying frame.
 - (NSView *)hitTest:(NSPoint)point {
-    if (self.alphaValue == 0) return nil;
-    NSView *v = [super hitTest:point];
-    return (v == self) ? nil : v;  // pass-through outside buttons
+    if (self.alphaValue == 0 || self.hidden) return nil;
+    return [self buttonAtSuperviewPoint:point] ? self : nil;
+}
+
+- (BOOL)acceptsFirstMouse:(NSEvent *)event { (void)event; return YES; }
+
+- (void)mouseDown:(NSEvent *)event {
+    const NSPoint inSuper =
+        [self.superview convertPoint:event.locationInWindow fromView:nil];
+    NSButton *target = [self buttonAtSuperviewPoint:inSuper];
+    if (!target) return;
+
+    target.highlighted = YES;
+    [target setNeedsDisplay:YES];
+
+    const NSEventMask mask =
+        NSEventMaskLeftMouseDragged | NSEventMaskLeftMouseUp;
+    while (1) {
+        // -[NSWindow nextEventMatchingMask:] doesn't exist; modal dispatch is
+        // on NSApplication. Without this, the loop returned nil and the click
+        // action never fired.
+        NSEvent *e = [NSApp nextEventMatchingMask:mask
+                                        untilDate:[NSDate distantFuture]
+                                           inMode:NSEventTrackingRunLoopMode
+                                          dequeue:YES];
+        if (!e) break;
+        const NSPoint p =
+            [self.superview convertPoint:e.locationInWindow fromView:nil];
+        const BOOL inside = ([self buttonAtSuperviewPoint:p] == target);
+        if (target.highlighted != inside) {
+            target.highlighted = inside;
+            [target setNeedsDisplay:YES];
+        }
+        if (e.type == NSEventTypeLeftMouseUp) {
+            target.highlighted = NO;
+            [target setNeedsDisplay:YES];
+            if (inside && target.action) {
+                [NSApp sendAction:target.action to:target.target from:target];
+            }
+            break;
+        }
+    }
 }
 
 - (void)updateTrackingAreas {
@@ -311,9 +402,27 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
 // =============================================================================
 
 CGFloat g_originX        = 20.0;
-CGFloat g_originY_topPad = 14.0;
-CGFloat g_spacing        = 21.0;
-CGFloat g_buttonWH       = 24.0;
+CGFloat g_originY_topPad = 16.0;
+CGFloat g_spacing        = 22.0;
+CGFloat g_buttonWH       = 16.0;
+
+static void pocb_sync_traffic_container(NSWindow *nsw, PocbWindowButtonsView *container) {
+    if (!nsw || !container) return;
+    [container setButtonMetricsWH:g_buttonWH spacing:g_spacing];
+    NSView *cv = nsw.contentView;
+    const CGFloat cvH = NSHeight(cv.frame);
+    const CGFloat rowW = (CGFloat)container.subviews.count > 0
+                         ? (((CGFloat)container.subviews.count - 1.0) * g_spacing + g_buttonWH)
+                         : g_buttonWH;
+    NSRect cf;
+    cf.origin.x = g_originX;
+    cf.origin.y = cv.isFlipped ? g_originY_topPad
+                              : (cvH - g_originY_topPad - g_buttonWH);
+    cf.size.width = rowW;
+    cf.size.height = g_buttonWH;
+    container.frame = cf;
+    [container updateTrackingAreas];
+}
 
 static void apply(QMainWindow *win) {
     NSWindow *nsw = mac::internal::nsWindowOf(win);
@@ -376,22 +485,8 @@ static void apply(QMainWindow *win) {
                           relativeTo:nil];
     }
 
-    // Position the container in contentView coordinates: titlebar region
-    // is at the top of the contentView (full-size content view).
     NSView *cv = nsw.contentView;
-    const CGFloat cvH = NSHeight(cv.frame);
-    const CGFloat w   = (CGFloat)container.subviews.count > 0
-                        ? (((CGFloat)container.subviews.count - 1.0) * g_spacing + g_buttonWH)
-                        : g_buttonWH;
-    NSRect cf;
-    cf.origin.x    = g_originX;
-    cf.origin.y    = cv.isFlipped ? g_originY_topPad
-                                  : (cvH - g_originY_topPad - g_buttonWH);
-    cf.size.width  = w;
-    cf.size.height = g_buttonWH;
-    container.frame = cf;
-    [container layoutButtons];
-    [container updateTrackingAreas];
+    pocb_sync_traffic_container(nsw, container);
     // Qt may reorder contentView subviews during layout; stay above WebKit/Qt.
     [cv addSubview:container positioned:NSWindowAbove relativeTo:nil];
 
@@ -411,11 +506,8 @@ void integrateUnifiedToolbar(QMainWindow *win, QWidget *toolbarRow, bool compact
 #ifdef __APPLE__
     (void)toolbarRow; (void)compact;
     if (!win) return;
-
-    g_originX        = 20.0;
-    g_originY_topPad = 14.0;
-    g_spacing        = 21.0;
-    g_buttonWH       = 24.0;
+    // g_originX, g_originY_topPad, g_spacing, g_buttonWH are file-level
+    // tunables; do not reset them here or edits never stick.
 
     auto run = [win] { apply(win); };
     run();
@@ -432,14 +524,8 @@ void refreshUnifiedToolbar(QWidget *window) {
     NSWindow *nsw = mac::internal::nsWindowOf(window);
     if (!nsw) return;
     PocbWindowButtonsView *c = objc_getAssociatedObject(nsw, &kPocbContainerKey);
-    if (c) {
-        NSView *cv = nsw.contentView;
-        NSRect f = c.frame;
-        f.origin.y = cv.isFlipped ? g_originY_topPad
-                                  : (NSHeight(cv.frame) - g_originY_topPad - g_buttonWH);
-        c.frame = f;
-        [c setNeedsDisplay:YES];
-    }
+    if (c)
+        pocb_sync_traffic_container(nsw, c);
 #else
     (void)window;
 #endif

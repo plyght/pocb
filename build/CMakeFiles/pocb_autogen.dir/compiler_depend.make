@@ -1028,7 +1028,6 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
   /Users/nicojaffer/pocb/src/mac/MacInternal.hpp \
   /Users/nicojaffer/pocb/src/mac/MacInternal.mm \
   /Users/nicojaffer/pocb/src/mac/SfSymbols.mm \
-  /Users/nicojaffer/pocb/src/mac/TrafficLights.mm \
   /Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm \
   /Users/nicojaffer/pocb/src/mac/Vibrancy.mm \
   /Users/nicojaffer/pocb/src/main.cpp \
@@ -1970,8 +1969,6 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Gui/Qt6QJpegPluginTargets-release.cmake:
 
 /Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm:
-
-/Users/nicojaffer/pocb/src/mac/TrafficLights.mm:
 
 /Users/nicojaffer/pocb/src/ui/SidebarController.hpp:
 
