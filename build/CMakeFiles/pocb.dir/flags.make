@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB
 
-CXX_INCLUDES = -I/Users/nicojaffer/pocb/build/pocb_autogen/include -I/Users/nicojaffer/pocb/src -I/Users/nicojaffer/pocb/src/app -I/Users/nicojaffer/pocb/src/ui -I/Users/nicojaffer/pocb/src/tabs -I/Users/nicojaffer/pocb/src/web -I/Users/nicojaffer/pocb/src/services -I/Users/nicojaffer/pocb/src/mac -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers -iframework /opt/homebrew/Cellar/qtbase/6.10.2/lib -isystem /opt/homebrew/Cellar/qtbase/6.10.2/share/qt/mkspecs/macx-clang -isystem /opt/homebrew/Cellar/qtbase/6.10.2/include -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers
+CXX_INCLUDES = -I/Users/nicojaffer/pocb/build/pocb_autogen/include -I/Users/nicojaffer/pocb/src -I/Users/nicojaffer/pocb/src/app -I/Users/nicojaffer/pocb/src/ui -I/Users/nicojaffer/pocb/src/tabs -I/Users/nicojaffer/pocb/src/web -I/Users/nicojaffer/pocb/src/services -I/Users/nicojaffer/pocb/src/mac -isystem /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers -iframework /opt/homebrew/opt/qtbase/lib -isystem /opt/homebrew/opt/qtbase/share/qt/mkspecs/macx-clang -isystem /opt/homebrew/opt/qtbase/include -isystem /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers -isystem /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers -isystem /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers
 
 CXX_FLAGSarm64 = -std=gnu++20 -arch arm64
 

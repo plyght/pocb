@@ -5,6 +5,7 @@
 #include "ProfileStore.hpp"
 #include "WebView.hpp"
 
+#include <QCursor>
 #include <QEvent>
 #include <QHeaderView>
 #include <QIcon>
@@ -135,8 +136,15 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
     if (watched == m_tabs->viewport() && event->type() == QEvent::Resize) {
         m_tabs->setColumnWidth(0, m_tabs->viewport()->width());
     }
-    if (watched == m_tabs->viewport() &&
-        (event->type() == QEvent::MouseMove || event->type() == QEvent::Leave)) {
+    if (watched == m_tabs->viewport() && event->type() == QEvent::MouseMove) {
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        const auto *item = m_tabs->itemAt(mouse->pos());
+        const bool overClose = item && closeButtonRect(m_tabs->visualItemRect(const_cast<QTreeWidgetItem *>(item)), m_tabs->viewport()->width()).contains(mouse->pos());
+        m_tabs->viewport()->setCursor(overClose ? Qt::PointingHandCursor : Qt::ArrowCursor);
+        m_tabs->viewport()->update();
+    }
+    if (watched == m_tabs->viewport() && event->type() == QEvent::Leave) {
+        m_tabs->viewport()->unsetCursor();
         m_tabs->viewport()->update();
     }
     if (watched == m_tabs->viewport() && event->type() == QEvent::MouseButtonPress) {
@@ -144,6 +152,7 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
         if (mouse->button() == Qt::LeftButton) {
             if (auto *item = m_tabs->itemAt(mouse->pos())) {
                 if (closeButtonRect(m_tabs->visualItemRect(item), m_tabs->viewport()->width()).contains(mouse->pos())) {
+                    m_tabs->viewport()->unsetCursor();
                     closeItem(item);
                     return true;
                 }

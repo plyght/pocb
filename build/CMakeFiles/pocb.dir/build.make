@@ -415,15 +415,15 @@ pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/web/WebView.mm.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/build.make
-pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Versions/A/QtWidgets
-pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Versions/A/QtNetwork
-pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/QtGui
-pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/QtCore
+pocb.app/Contents/MacOS/pocb: /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Versions/A/QtWidgets
+pocb.app/Contents/MacOS/pocb: /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Versions/A/QtNetwork
+pocb.app/Contents/MacOS/pocb: /opt/homebrew/opt/qtbase/lib/QtGui.framework/Versions/A/QtGui
+pocb.app/Contents/MacOS/pocb: /opt/homebrew/opt/qtbase/lib/QtCore.framework/Versions/A/QtCore
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Linking CXX executable pocb.app/Contents/MacOS/pocb"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/pocb.dir/link.txt --verbose=$(VERBOSE)
 	/opt/homebrew/bin/cmake -E make_directory /Users/nicojaffer/pocb/build/pocb.app/Contents/PlugIns/platforms
-	/opt/homebrew/bin/cmake -E copy_if_different /opt/homebrew/Cellar/qtbase/6.10.2/share/qt/plugins/platforms/libqcocoa.dylib /Users/nicojaffer/pocb/build/pocb.app/Contents/PlugIns/platforms/libqcocoa.dylib
+	/opt/homebrew/bin/cmake -E copy_if_different /opt/homebrew/opt/qtbase/share/qt/plugins/platforms/libqcocoa.dylib /Users/nicojaffer/pocb/build/pocb.app/Contents/PlugIns/platforms/libqcocoa.dylib
 	/opt/homebrew/bin/cmake -E make_directory /Users/nicojaffer/pocb/build/pocb.app/Contents/Resources
 	/opt/homebrew/bin/cmake -E echo [Paths] > /Users/nicojaffer/pocb/build/pocb.app/Contents/Resources/qt.conf
 	/opt/homebrew/bin/cmake -E echo "Plugins = PlugIns" >> /Users/nicojaffer/pocb/build/pocb.app/Contents/Resources/qt.conf

@@ -68,8 +68,8 @@ include CMakeFiles/pocb_autogen.dir/progress.make
 
 CMakeFiles/pocb_autogen: pocb_autogen/timestamp
 
-pocb_autogen/timestamp: /opt/homebrew/Cellar/qtbase/6.10.2/share/qt/libexec/moc
-pocb_autogen/timestamp: /opt/homebrew/Cellar/qtbase/6.10.2/share/qt/libexec/uic
+pocb_autogen/timestamp: /opt/homebrew/opt/qtbase/share/qt/libexec/moc
+pocb_autogen/timestamp: /opt/homebrew/opt/qtbase/share/qt/libexec/uic
 pocb_autogen/timestamp: CMakeFiles/pocb_autogen.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Automatic MOC and UIC for target pocb"
 	/opt/homebrew/bin/cmake -E cmake_autogen /Users/nicojaffer/pocb/build/CMakeFiles/pocb_autogen.dir/AutogenInfo.json ""

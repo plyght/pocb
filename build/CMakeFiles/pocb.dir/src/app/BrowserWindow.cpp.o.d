@@ -2,10 +2,10 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Users/nicojaffer/pocb/src/app/BrowserWindow.cpp \
   /Users/nicojaffer/pocb/src/app/BrowserWindow.hpp \
   /Users/nicojaffer/pocb/src/services/FaviconService.hpp \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QDir \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdir.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcompare.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qglobal.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QDir \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qdir.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcompare.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qglobal.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/type_traits \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__config \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__config_site \
@@ -301,33 +301,33 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_static_assert.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/stdbool.h \
   /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stdbool.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtcoreglobal.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtversionchecks.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtconfiginclude.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qconfig.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtcore-config.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtconfigmacros.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtdeprecationdefinitions.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcompilerdetection.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qprocessordetection.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsystemdetection.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtcoreglobal.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtversionchecks.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtconfiginclude.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qconfig.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtcore-config.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtconfigmacros.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtdeprecationdefinitions.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcompilerdetection.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qprocessordetection.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qsystemdetection.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/TargetConditionals.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/AvailabilityMacros.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/atomic \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtcoreexports.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtdeprecationmarkers.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtclasshelpermacros.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtpreprocessorsupport.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qassert.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtnoop.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtypes.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtversion.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtypeinfo.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcontainerfwd.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsysinfo.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qlogging.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qflags.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcompare_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtcoreexports.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtdeprecationmarkers.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtclasshelpermacros.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtpreprocessorsupport.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qassert.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtnoop.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtypes.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtversion.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtypeinfo.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcontainerfwd.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qsysinfo.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qlogging.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qflags.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcompare_impl.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/algorithm \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/adjacent_find.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/comp.h \
@@ -820,30 +820,30 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__memory/uses_allocator_construction.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/stdexcept \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/optional \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qatomic.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qbasicatomic.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qatomic_cxx11.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qgenericatomic.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qyieldcpu.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qconstructormacros.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdarwinhelpers.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qexceptionhandling.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qforeach.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qttypetraits.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qfunctionpointer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qglobalstatic.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qmalloc.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qminmax.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qnumeric.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q20type_traits.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qoverload.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qswap.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtenvironmentvariables.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtresource.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qttranslation.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qversiontagging.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstdlibdetection.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcomparehelpers.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qatomic.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qbasicatomic.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qatomic_cxx11.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qgenericatomic.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qyieldcpu.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qconstructormacros.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qdarwinhelpers.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qexceptionhandling.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qforeach.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qttypetraits.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qfunctionpointer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qglobalstatic.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmalloc.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qminmax.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qnumeric.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q20type_traits.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qoverload.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qswap.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtenvironmentvariables.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtresource.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qttranslation.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qversiontagging.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstdlibdetection.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcomparehelpers.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/functional \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/binary_negate.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/bind.h \
@@ -986,44 +986,44 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__locale_dir/wbuffer_convert.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__locale_dir/wstring_convert.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/cstdarg \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstring.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qchar.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstringview.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qbytearray.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qrefcount.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qnamespace.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtmetamacros.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qarraydata.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qpair.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qarraydatapointer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qarraydataops.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcontainertools_impl.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qxptype_traits.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q20functional.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q20memory.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q17memory.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qbytearrayalgorithms.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qbytearrayview.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstringfwd.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstringalgorithms.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qlatin1stringview.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qanystringview.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qutf8stringview.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstringtokenizer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q23type_traits.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstringbuilder.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstringconverter.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstringconverter_base.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdirlisting.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qfiledevice.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qiodevice.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qiodevicebase.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qobject.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qobjectdefs.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qobjectdefs_impl.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qfunctionaltools_impl.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qlist.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qhashfunctions.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstring.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qchar.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstringview.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qbytearray.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qrefcount.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qnamespace.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtmetamacros.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qarraydata.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qpair.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qarraydatapointer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qarraydataops.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcontainertools_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qxptype_traits.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q20functional.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q20memory.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q17memory.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qbytearrayalgorithms.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qbytearrayview.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstringfwd.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstringalgorithms.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qlatin1stringview.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qanystringview.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qutf8stringview.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstringtokenizer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q23type_traits.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstringbuilder.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstringconverter.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstringconverter_base.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qdirlisting.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qfiledevice.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qiodevice.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qiodevicebase.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qobject.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qobjectdefs.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qobjectdefs_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qfunctionaltools_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qlist.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qhashfunctions.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/numeric \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/accumulate.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/adjacent_difference.h \
@@ -1042,7 +1042,7 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/saturation_arithmetic.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/execution \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_execution_policy.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qiterator.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qiterator.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/ranges \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/all.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/compose.h \
@@ -1078,16 +1078,16 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/transform_view.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/views.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/istream_view.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qbytearraylist.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstringlist.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qalgorithms.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstringmatcher.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qscopedpointer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qmetatype.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdatastream.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qfloat16.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qmath.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtformat_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qbytearraylist.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstringlist.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qalgorithms.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstringmatcher.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qscopedpointer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmetatype.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qdatastream.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qfloat16.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmath.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtformat_impl.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/format \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__format/buffer.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__format/concepts.h \
@@ -1131,18 +1131,18 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/queue \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/deque \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/stack \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qiterable.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtaggedpointer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qmetacontainer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcontainerinfo.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qscopeguard.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qiterable.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtaggedpointer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmetacontainer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcontainerinfo.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qscopeguard.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/list \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/map \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__fwd/map.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__tree \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__fwd/set.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qobject_impl.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qbindingstorage.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qobject_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qbindingstorage.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/chrono \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__chrono/file_clock.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__chrono/calendar.h \
@@ -1184,30 +1184,30 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/from_chars_result.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/from_chars_integral.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/to_chars.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qspan.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qspan.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/cassert \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q20iterator.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdatetime.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcalendar.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qlocale.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qvariant.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdebug.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtextstream.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcontiguouscache.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsharedpointer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qshareddata.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsharedpointer_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q20iterator.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qdatetime.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcalendar.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qlocale.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qvariant.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qdebug.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtextstream.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcontiguouscache.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qsharedpointer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qshareddata.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qsharedpointer_impl.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/set \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/unordered_set \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qmap.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qshareddata_impl.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qset.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qhash.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qvarlengtharray.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qalloc.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q23utility.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q20utility.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qfile.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmap.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qshareddata_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qset.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qhash.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qvarlengtharray.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qalloc.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q23utility.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q20utility.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qfile.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/filesystem \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__filesystem/copy_options.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__filesystem/directory_entry.h \
@@ -1226,219 +1226,224 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__filesystem/path_iterator.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__filesystem/recursive_directory_iterator.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__filesystem/u8path.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qfileinfo.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtimezone.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QHash \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QObject \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QPixmap \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpixmap.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtguiglobal.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtgui-config.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtguiexports.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpaintdevice.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qwindowdefs.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qrect.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcheckedint_impl.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qmargins.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsize.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qpoint.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qcolor.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qrgb.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qrgba64.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qimage.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpixelformat.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtransform.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpolygon.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qregion.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qline.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QPointer \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qpointer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QString \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QUrl \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qurl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qfileinfo.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtimezone.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QHash \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QObject \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QPixmap \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpixmap.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtguiglobal.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtgui-config.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtguiexports.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpaintdevice.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qwindowdefs.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qrect.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcheckedint_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmargins.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qsize.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qpoint.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qcolor.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qrgb.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qrgba64.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qimage.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpixelformat.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtransform.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpolygon.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qregion.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qline.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QPointer \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qpointer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QString \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QUrl \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qurl.h \
   /Users/nicojaffer/pocb/src/services/ProfileStore.hpp \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QStringList \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QStringList \
   /Users/nicojaffer/pocb/src/services/Theme.hpp \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QColor \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QMainWindow \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qmainwindow.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtwidgetsglobal.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtwidgets-config.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtwidgetsexports.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qwidget.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qaction.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qkeysequence.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qicon.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpalette.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qbrush.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfont.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qendian.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontmetrics.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontinfo.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontvariableaxis.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qsizepolicy.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qcursor.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qbitmap.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtabwidget.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QColor \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QMainWindow \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qmainwindow.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtwidgetsglobal.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtwidgets-config.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtwidgetsexports.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qwidget.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qaction.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qkeysequence.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qicon.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpalette.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qbrush.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qfont.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qendian.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qfontmetrics.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qfontinfo.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qfontvariableaxis.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qsizepolicy.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qcursor.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qbitmap.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtabwidget.h \
   /Users/nicojaffer/pocb/src/ui/AddressBarController.hpp \
   /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QWidget \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QWidget \
   /Users/nicojaffer/pocb/src/ui/ChromeWidgets.hpp \
+  /Users/nicojaffer/pocb/src/ui/LayoutMetrics.hpp \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QMargins \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QPoint \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QRect \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QSize \
   /Users/nicojaffer/pocb/src/mac/MacIntegration.hpp \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QIcon \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QIcon \
   /Users/nicojaffer/pocb/src/app/SettingsDialog.hpp \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QDialog \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qdialog.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QDialog \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qdialog.h \
   /Users/nicojaffer/pocb/src/ui/SidebarController.hpp \
   /Users/nicojaffer/pocb/src/tabs/TabTree.hpp \
   /Users/nicojaffer/pocb/src/ui/Topbar.hpp \
   /Users/nicojaffer/pocb/src/web/WebView.hpp \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QAction \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QApplication \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qapplication.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcoreapplication.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcoreevent.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qbasictimer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qabstracteventdispatcher.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qeventloop.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdeadlinetimer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qnativeinterface.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcoreapplication_platform.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qguiapplication.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qinputmethod.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qguiapplication_platform.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QDebug \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QClipboard \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qclipboard.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QDesktopServices \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qdesktopservices.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QMenu \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qmenu.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QEvent \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QFocusEvent \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qevent.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qeventpoint.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qvector2d.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qvectornd.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpointingdevice.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qinputdevice.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qscreen.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QList \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QRect \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSize \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSizeF \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QTransform \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qscreen_platform.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QHBoxLayout \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qboxlayout.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlayout.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlayoutitem.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qgridlayout.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QJsonArray \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qjsonarray.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qjsonvalue.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcborvalue.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcborcommon.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qregularexpression.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/quuid.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qjsondocument.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qjsonparseerror.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QJsonDocument \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QJsonObject \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qjsonobject.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QJsonValue \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QKeyEvent \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QLabel \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlabel.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qframe.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpicture.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextdocument.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QLineEdit \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlineedit.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextcursor.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextformat.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpen.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextoption.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QListWidget \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlistwidget.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlistview.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qabstractitemview.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qabstractscrollarea.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qabstractitemmodel.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qitemselectionmodel.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qabstractitemdelegate.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qstyleoption.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qabstractspinbox.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qvalidator.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qslider.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qabstractslider.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qstyle.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtabbar.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qrubberband.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QListWidgetItem \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QMenuBar \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qmenubar.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QMouseEvent \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/QNetworkAccessManager \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qnetworkaccessmanager.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qtnetworkglobal.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qtnetwork-config.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qtnetworkexports.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qnetworkrequest.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qhttpheaders.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qmetaobject.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSharedDataPointer \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QVariant \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q26numeric.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/QSslConfiguration \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qsslconfiguration.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qsslsocket.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qtcpsocket.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qabstractsocket.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qhostaddress.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qsslerror.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qsslcertificate.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcryptographichash.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qssl.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QFlags \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/QSslPreSharedKeyAuthenticator \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qsslpresharedkeyauthenticator.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QMetaType \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/QNetworkReply \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qnetworkreply.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QIODevice \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/QNetworkRequest \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QProgressBar \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qprogressbar.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QShortcut \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qshortcut.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QTimer \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtimer.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QUrlQuery \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qurlquery.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSettings \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsettings.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QSplitter \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qsplitter.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QStandardPaths \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qstandardpaths.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QStackedLayout \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qstackedlayout.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QStatusBar \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qstatusbar.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QStyle \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QToolBar \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtoolbar.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QToolButton \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtoolbutton.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qabstractbutton.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QTreeWidget \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtreewidget.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtreeview.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtreewidgetitemiterator.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QVariantAnimation \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qvariantanimation.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qabstractanimation.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qeasingcurve.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QEasingCurve \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QVBoxLayout
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QAction \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QApplication \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qapplication.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcoreapplication.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcoreevent.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qbasictimer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qabstracteventdispatcher.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qeventloop.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qdeadlinetimer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qnativeinterface.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcoreapplication_platform.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qguiapplication.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qinputmethod.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qguiapplication_platform.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QDebug \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QClipboard \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qclipboard.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QDesktopServices \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qdesktopservices.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QMenu \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qmenu.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QEvent \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QFocusEvent \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qevent.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qeventpoint.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qvector2d.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qvectornd.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpointingdevice.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qinputdevice.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qscreen.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QList \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QSizeF \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QTransform \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qscreen_platform.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QHBoxLayout \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qboxlayout.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qlayout.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qlayoutitem.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qgridlayout.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QJsonArray \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qjsonarray.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qjsonvalue.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcborvalue.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcborcommon.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qregularexpression.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/quuid.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qjsondocument.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qjsonparseerror.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QJsonDocument \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QJsonObject \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qjsonobject.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QJsonValue \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QKeyEvent \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QLabel \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qlabel.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qframe.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpicture.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtextdocument.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QLineEdit \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qlineedit.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtextcursor.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtextformat.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpen.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtextoption.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QFrame \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QListWidget \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qlistwidget.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qlistview.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qabstractitemview.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qabstractscrollarea.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qabstractitemmodel.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qitemselectionmodel.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qabstractitemdelegate.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qstyleoption.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qabstractspinbox.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qvalidator.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qslider.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qabstractslider.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qstyle.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtabbar.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qrubberband.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QListWidgetItem \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QMenuBar \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qmenubar.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QMouseEvent \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/QNetworkAccessManager \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qnetworkaccessmanager.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qtnetworkglobal.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qtnetwork-config.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qtnetworkexports.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qnetworkrequest.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qhttpheaders.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmetaobject.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QSharedDataPointer \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QVariant \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q26numeric.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/QSslConfiguration \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qsslconfiguration.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qsslsocket.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qtcpsocket.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qabstractsocket.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qhostaddress.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qsslerror.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qsslcertificate.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcryptographichash.h \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qssl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QFlags \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/QSslPreSharedKeyAuthenticator \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qsslpresharedkeyauthenticator.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QMetaType \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/QNetworkReply \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/qnetworkreply.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QIODevice \
+  /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/QNetworkRequest \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QProgressBar \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qprogressbar.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QShortcut \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qshortcut.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QShortcutEvent \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QTimer \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtimer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QUrlQuery \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qurlquery.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QSettings \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qsettings.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QSplitter \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qsplitter.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QStandardPaths \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qstandardpaths.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QStackedLayout \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qstackedlayout.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QStatusBar \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qstatusbar.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QStyle \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QToolBar \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtoolbar.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QToolButton \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtoolbutton.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qabstractbutton.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QTreeWidget \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtreewidget.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtreeview.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtreewidgetitemiterator.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QVariantAnimation \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qvariantanimation.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qabstractanimation.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qeasingcurve.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QEasingCurve \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QVBoxLayout
