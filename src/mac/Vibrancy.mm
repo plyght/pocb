@@ -27,6 +27,12 @@ NSVisualEffectView *makeVev(NSRect frame, mac::VibrancyMaterial m,
     v.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     return v;
 }
+NSComparisonResult compareBehindVibrancySubviews(__kindof NSView *a, __kindof NSView *b, void *) {
+    const BOOL av = [a isKindOfClass:[NSVisualEffectView class]] && [a.identifier isEqualToString:@"PocbBehindVibrancy"];
+    const BOOL bv = [b isKindOfClass:[NSVisualEffectView class]] && [b.identifier isEqualToString:@"PocbBehindVibrancy"];
+    if (av == bv) return NSOrderedSame;
+    return av ? NSOrderedAscending : NSOrderedDescending;
+}
 }  // namespace
 #endif
 
@@ -162,12 +168,7 @@ void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material) {
     for (NSView *sub in view.subviews) {
         if ([sub isKindOfClass:[NSVisualEffectView class]] &&
             [sub.identifier isEqualToString:@"PocbBehindVibrancy"]) {
-            [view sortSubviewsUsingFunction:[](NSView *a, NSView *b, void *) -> NSComparisonResult {
-                const BOOL av = [a isKindOfClass:[NSVisualEffectView class]] && [a.identifier isEqualToString:@"PocbBehindVibrancy"];
-                const BOOL bv = [b isKindOfClass:[NSVisualEffectView class]] && [b.identifier isEqualToString:@"PocbBehindVibrancy"];
-                if (av == bv) return NSOrderedSame;
-                return av ? NSOrderedAscending : NSOrderedDescending;
-            } context:nullptr];
+            [view sortSubviewsUsingFunction:compareBehindVibrancySubviews context:nullptr];
             return;
         }
     }

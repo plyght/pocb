@@ -86,9 +86,21 @@ target_link_libraries(pocb PRIVATE
 set_target_properties(pocb PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER lol.plyght.pocb
     MACOSX_BUNDLE_BUNDLE_NAME pocb
+    MACOSX_BUNDLE_ICON_FILE pcob
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
 )
+
+if(APPLE)
+    add_custom_command(TARGET pocb POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources"
+        COMMAND /usr/bin/xcrun actool "${CMAKE_SOURCE_DIR}/icons/pcob.icon" --app-icon pcob --compile "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources" --output-partial-info-plist "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/assetcatalog_generated_info.plist" --minimum-deployment-target 11.0 --platform macosx --target-device mac
+        COMMAND /bin/chmod u+w "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
+        COMMAND /usr/bin/plutil -replace CFBundleIconFile -string pcob "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
+        COMMAND /usr/bin/plutil -replace CFBundleIconName -string pcob "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
+        VERBATIM
+    )
+endif()
 
 if(APPLE AND TARGET Qt6::QCocoaIntegrationPlugin)
     get_target_property(_qt_qmake Qt6::qmake IMPORTED_LOCATION)

@@ -400,7 +400,7 @@ void WebView::sniffTopColor() {
         QColor color;
         if (s && s.length > 0) {
             QString qs = QString::fromNSString(s).trimmed();
-            color.setNamedColor(qs);
+            color = QColor::fromString(qs);
             if (!color.isValid()) {
                 static const QRegularExpression re(
                     "rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*(?:,\\s*([0-9.]+)\\s*)?\\)");
