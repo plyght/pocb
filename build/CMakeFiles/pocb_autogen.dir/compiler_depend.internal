@@ -1202,6 +1202,7 @@
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qxptype_traits.h
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qyieldcpu.h
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/QColor
+ /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/QIcon
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/QPixmap
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/qaction.h
  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/qbitmap.h

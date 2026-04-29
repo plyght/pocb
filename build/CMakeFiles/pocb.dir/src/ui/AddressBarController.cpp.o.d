@@ -1082,15 +1082,37 @@ CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QHash \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qhash.h \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QString \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QObject \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qobject.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QIcon \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qicon.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qsize.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcheckedint_impl.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmargins.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q23utility.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q20utility.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpixmap.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpaintdevice.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qwindowdefs.h \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qobjectdefs.h \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qobjectdefs_impl.h \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qfunctionaltools_impl.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qscopedpointer.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmetatype.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qrect.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qpoint.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qshareddata.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qimage.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpixelformat.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtransform.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpolygon.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qregion.h \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qdatastream.h \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qiodevicebase.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qscopedpointer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qspan.h \
+  /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/cassert \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q20iterator.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qline.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QObject \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qobject.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmetatype.h \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qfloat16.h \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmath.h \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtformat_impl.h \
@@ -1191,28 +1213,6 @@ CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/from_chars_integral.h \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/to_chars.h \
   /Users/nicojaffer/pocb/src/mac/MacIntegration.hpp \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QIcon \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qicon.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qsize.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qcheckedint_impl.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qmargins.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q23utility.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q20utility.h \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpixmap.h \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpaintdevice.h \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qwindowdefs.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qrect.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qpoint.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qshareddata.h \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qimage.h \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpixelformat.h \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qtransform.h \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpolygon.h \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qregion.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qspan.h \
-  /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/cassert \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/q20iterator.h \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qline.h \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QApplication \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qapplication.h \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtwidgetsglobal.h \
@@ -1257,6 +1257,7 @@ CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: \
   /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qfontmetrics.h \
   /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QPainterPath \
   /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qpainterpath.h \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QPixmap \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QVBoxLayout \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qboxlayout.h \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qlayout.h \
@@ -1362,5 +1363,7 @@ CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: \
   /opt/homebrew/opt/qtbase/lib/QtNetwork.framework/Headers/QNetworkRequest \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QTimer \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qtimer.h \
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QSet \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QUrlQuery \
-  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qurlquery.h
+  /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/qurlquery.h \
+  /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QStyle

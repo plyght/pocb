@@ -1296,6 +1296,7 @@ CMakeFiles/pocb.dir/pocb_autogen/mocs_compilation.cpp.o: \
   /Users/nicojaffer/pocb/build/pocb_autogen/BUWON6PSIR/../../../src/tabs/TabTree.hpp \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/moc_AddressBarController.cpp \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/../../../src/ui/AddressBarController.hpp \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QIcon \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/moc_ChromeWidgets.cpp \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/../../../src/ui/ChromeWidgets.hpp \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QWidget \

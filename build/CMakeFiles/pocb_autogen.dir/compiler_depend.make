@@ -1201,6 +1201,7 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qxptype_traits.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qyieldcpu.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/QColor \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/QIcon \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/QPixmap \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/qaction.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/qbitmap.h \
@@ -4378,6 +4379,8 @@ CMakeFiles/4.2.3/CMakeCXXCompiler.cmake:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/_types.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/all_of.h:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/QIcon:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/rank.h:
 

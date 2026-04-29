@@ -1281,6 +1281,7 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/qbitmap.h \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qtabwidget.h \
   /Users/nicojaffer/pocb/src/ui/AddressBarController.hpp \
+  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QIcon \
   /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QWidget \
   /Users/nicojaffer/pocb/src/ui/ChromeWidgets.hpp \
@@ -1290,7 +1291,6 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QRect \
   /opt/homebrew/opt/qtbase/lib/QtCore.framework/Headers/QSize \
   /Users/nicojaffer/pocb/src/mac/MacIntegration.hpp \
-  /opt/homebrew/opt/qtbase/lib/QtGui.framework/Headers/QIcon \
   /Users/nicojaffer/pocb/src/app/SettingsDialog.hpp \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/QDialog \
   /opt/homebrew/opt/qtbase/lib/QtWidgets.framework/Headers/qdialog.h \

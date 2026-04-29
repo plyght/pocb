@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# CMake
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# Qt
+*_autogen/
+*.qmlc
+*.jsc
+.qmake.stash
+
+# Build artifacts
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.app/
+*.dSYM/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

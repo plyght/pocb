@@ -3,6 +3,7 @@
 #include "Theme.hpp"
 
 #include <QColor>
+#include <QIcon>
 #include <QObject>
 #include <QString>
 
@@ -51,10 +52,13 @@ private:
     void beginEditing();
     void commit();
     void fetchSuggestions();
+    void onSuggestionReplyFinished(QNetworkReply *reply);
     void populatePopup(const QStringList &items);
     void positionPopup();
     void showPopup();
     void hidePopup();
+    QIcon engineIcon() const;
+    void fetchEngineIcon(const QString &host);
 
     QLineEdit *m_bar = nullptr;
     QLabel *m_lockIcon = nullptr;
@@ -68,10 +72,14 @@ private:
     QListWidget *m_popupList = nullptr;
     QString m_pendingQuery;
     QString m_savedUrl;
+    QString m_statusText;
     QString m_currentUrl;       // Full URL of the active page (for editing).
     bool m_isHttps = false;
     bool m_showFull = false;
     QColor m_iconColor;
+    QIcon m_engineIcon;
+    QString m_engineIconHost;
+    bool m_engineIconLoading = false;
     bool m_editing = false;
 
     void renderLock();

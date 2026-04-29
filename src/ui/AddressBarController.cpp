@@ -5,6 +5,7 @@
 #include <QApplication>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPixmap>
 #include <QVBoxLayout>
 #include <QSettings>
 #include <QEvent>
@@ -23,8 +24,10 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QTimer>
+#include <QSet>
 #include <QUrl>
 #include <QUrlQuery>
+#include <QStyle>
 
 namespace {
 
@@ -72,7 +75,7 @@ AddrEngine engineForHost(const QString &host) {
     const QString h = host.toLower();
     if (h.contains("duckduckgo")) return {"duckduckgo.com", "/ac/", {{"type","list"}}, "q"};
     if (h.contains("google"))     return {"suggestqueries.google.com", "/complete/search", {{"client","firefox"}}, "q"};
-    if (h.contains("brave"))      return {"search.brave.com", "/api/suggest", {{"source","web"}}, "q"};
+    if (h.contains("brave"))      return {"search.brave.com", "/api/suggest", {}, "q"};
     if (h.contains("bing"))       return {"www.bing.com", "/osjson.aspx", {}, "query"};
     if (h.contains("ecosia"))     return {"ac.ecosia.org", "/", {{"type","list"}}, "q"};
     if (h.contains("startpage"))  return {"www.startpage.com", "/suggestions",
@@ -95,11 +98,13 @@ AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, con
     m_net = new QNetworkAccessManager(this);
     m_debounce = new QTimer(this);
     m_debounce->setSingleShot(true);
-    m_debounce->setInterval(120);
+    m_debounce->setInterval(80);
     connect(m_debounce, &QTimer::timeout, this, &AddressBarController::fetchSuggestions);
     connect(m_bar, &QLineEdit::textEdited, this, [this](const QString &t) {
         m_pendingQuery = t.trimmed();
-        if (m_pendingQuery.isEmpty()) { hidePopup(); return; }
+        m_statusText = m_pendingQuery.isEmpty() ? QString() : QStringLiteral("Searching…");
+        populatePopup({});
+        if (m_pendingQuery.isEmpty()) return;
         m_debounce->start();
     });
     connect(m_bar, &QLineEdit::returnPressed, this, &AddressBarController::commit);
@@ -178,8 +183,9 @@ bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
     if (ev->type() == QEvent::FocusIn) {
         beginEditing();
     } else if (ev->type() == QEvent::FocusOut) {
+        if (m_popup && m_popup->isVisible()) return false;
         QWidget *now = QApplication::focusWidget();
-        if (!m_popup || (now != m_popup && now != m_popup && (!m_popupList || now != m_popupList->viewport()))) {
+        if (!m_popup || (now != m_popup && (!m_popupList || now != m_popupList->viewport()))) {
             endEditing(/*restoreUrl=*/true, m_savedUrl);
         }
     } else if (ev->type() == QEvent::KeyPress) {
@@ -228,7 +234,9 @@ void AddressBarController::commit() {
     QString text;
     if (m_popupList && m_popup && m_popup->isVisible() && m_popupList->currentItem()
         && (m_popupList->currentItem()->flags() & Qt::ItemIsSelectable)) {
-        text = m_popupList->currentItem()->text();
+        text = m_popupList->currentItem()->data(Qt::UserRole).toString().isEmpty()
+                   ? m_popupList->currentItem()->text()
+                   : m_popupList->currentItem()->data(Qt::UserRole).toString();
     } else {
         text = m_bar->text();
     }
@@ -263,34 +271,133 @@ void AddressBarController::fetchSuggestions() {
                      QNetworkRequest::NoLessSafeRedirectPolicy);
     QNetworkReply *reply = m_net->get(req);
     reply->setProperty("query", m_pendingQuery);
+    reply->setProperty("fallbackTried", false);
     m_inflight = reply;
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
-        reply->deleteLater();
-        if (reply != m_inflight) return;
-        m_inflight = nullptr;
-        if (reply->error() != QNetworkReply::NoError) return;
-        if (!m_bar || reply->property("query").toString() != m_bar->text().trimmed()) return;
+        onSuggestionReplyFinished(reply);
+    });
+}
+
+void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
+    reply->deleteLater();
+    if (reply != m_inflight) return;
+    m_inflight = nullptr;
+        const QString replyQuery = reply->property("query").toString();
+        const bool fallbackTried = reply->property("fallbackTried").toBool();
+        auto tryFallback = [this, replyQuery, fallbackTried] {
+            if (fallbackTried || replyQuery.isEmpty() || replyQuery != m_pendingQuery) {
+                if (replyQuery == m_pendingQuery) {
+                    m_statusText = QStringLiteral("No suggestions available");
+                    populatePopup({});
+                }
+                return;
+            }
+            QUrl fallback;
+            fallback.setScheme("https");
+            fallback.setHost("suggestqueries.google.com");
+            fallback.setPath("/complete/search");
+            QUrlQuery fq;
+            fq.addQueryItem("client", "firefox");
+            fq.addQueryItem("q", replyQuery);
+            fallback.setQuery(fq);
+            QNetworkRequest fallbackReq(fallback);
+            fallbackReq.setHeader(QNetworkRequest::UserAgentHeader,
+                                  "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605 (KHTML, like Gecko) pocb");
+            fallbackReq.setRawHeader("Accept", "application/json,text/javascript,*/*;q=0.1");
+            fallbackReq.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                                     QNetworkRequest::NoLessSafeRedirectPolicy);
+            QNetworkReply *fallbackReply = m_net->get(fallbackReq);
+            fallbackReply->setProperty("query", replyQuery);
+            fallbackReply->setProperty("fallbackTried", true);
+            m_inflight = fallbackReply;
+            connect(fallbackReply, &QNetworkReply::finished, this, [this, fallbackReply] {
+                onSuggestionReplyFinished(fallbackReply);
+            });
+        };
+        if (reply->error() != QNetworkReply::NoError) {
+            tryFallback();
+            return;
+        }
+        if (!m_bar || replyQuery != m_pendingQuery) return;
 
         const QByteArray body = reply->readAll();
-        const auto doc = QJsonDocument::fromJson(body);
+        QJsonParseError parseError;
+        const auto doc = QJsonDocument::fromJson(body, &parseError);
+        if (parseError.error != QJsonParseError::NoError) {
+            tryFallback();
+            return;
+        }
         QStringList items;
+        auto addSuggestion = [&items](const QString &s) {
+            const QString trimmed = s.trimmed();
+            if (!trimmed.isEmpty() && !items.contains(trimmed, Qt::CaseInsensitive)) items << trimmed;
+        };
+        auto addFromObject = [&addSuggestion](const QJsonObject &o) {
+            addSuggestion(o.value("phrase").toString());
+            addSuggestion(o.value("suggestion").toString());
+            addSuggestion(o.value("value").toString());
+            addSuggestion(o.value("text").toString());
+            addSuggestion(o.value("query").toString());
+            addSuggestion(o.value("term").toString());
+        };
         if (doc.isArray() && doc.array().size() >= 2 && doc.array().at(1).isArray()) {
             for (const auto &v : doc.array().at(1).toArray()) {
-                const QString s = v.toString();
-                if (!s.isEmpty()) items << s;
+                if (v.isString()) addSuggestion(v.toString());
+                else if (v.isObject()) addFromObject(v.toObject());
             }
         } else if (doc.isArray()) {
             for (const auto &v : doc.array()) {
-                if (v.isString()) items << v.toString();
-                else if (v.isObject()) {
-                    const auto o = v.toObject();
-                    const QString s = o.value("phrase").toString(o.value("suggestion").toString());
-                    if (!s.isEmpty()) items << s;
+                if (v.isString()) addSuggestion(v.toString());
+                else if (v.isObject()) addFromObject(v.toObject());
+            }
+        } else if (doc.isObject()) {
+            const auto root = doc.object();
+            for (const QString &key : {QStringLiteral("suggestions"), QStringLiteral("results"), QStringLiteral("items"), QStringLiteral("data")}) {
+                const auto arr = root.value(key).toArray();
+                for (const auto &v : arr) {
+                    if (v.isString()) addSuggestion(v.toString());
+                    else if (v.isObject()) addFromObject(v.toObject());
                 }
             }
         }
+        if (items.isEmpty()) {
+            tryFallback();
+            return;
+        }
+        m_statusText.clear();
         if (items.size() > 8) items = items.mid(0, 8);
         populatePopup(items);
+}
+
+QIcon AddressBarController::engineIcon() const {
+    if (!m_engineIcon.isNull()) return m_engineIcon;
+    return mac::sfSymbolIcon("magnifyingglass", 13.0, m_iconColor);
+}
+
+void AddressBarController::fetchEngineIcon(const QString &host) {
+    if (host.isEmpty() || m_engineIconLoading || m_engineIconHost == host) return;
+    m_engineIconLoading = true;
+    QUrl url;
+    url.setScheme("https");
+    url.setHost("www.google.com");
+    url.setPath("/s2/favicons");
+    QUrlQuery q;
+    q.addQueryItem("domain", host);
+    q.addQueryItem("sz", "32");
+    url.setQuery(q);
+    QNetworkReply *reply = m_net->get(QNetworkRequest(url));
+    connect(reply, &QNetworkReply::finished, this, [this, reply, host] {
+        reply->deleteLater();
+        m_engineIconLoading = false;
+        if (reply->error() != QNetworkReply::NoError) return;
+        QPixmap pix;
+        if (!pix.loadFromData(reply->readAll())) return;
+        m_engineIcon = QIcon(pix);
+        m_engineIconHost = host;
+        if (!m_popupList) return;
+        for (int i = 0; i < m_popupList->count(); ++i) {
+            m_popupList->item(i)->setIcon(m_engineIcon);
+        }
     });
 }
 
@@ -302,13 +409,8 @@ void AddressBarController::populatePopup(const QStringList &items) {
         QColor fill = m_theme.panel;
         fill.setAlphaF(0.96);
         m_popup = new AddrPopupFrame(fill, m_theme.border);
-        // Match FloatingOmnibox window setup exactly — this combination
-        // (Popup + Frameless + NoDropShadow + Translucent + NoSystemBg)
-        // is the path that actually renders a rounded translucent panel
-        // on macOS. WA_ShowWithoutActivating keeps the window from
-        // grabbing key-window status so the line-edit's focus survives.
-        m_popup->setWindowFlags(Qt::Popup | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
-        m_popup->setAttribute(Qt::WA_ShowWithoutActivating);
+        m_popup->setParent(m_bar ? m_bar->window() : nullptr);
+        m_popup->setWindowFlags(Qt::Widget);
         m_popup->setFocusPolicy(Qt::NoFocus);
 
         auto *vbox = new QVBoxLayout(m_popup);
@@ -351,16 +453,24 @@ void AddressBarController::populatePopup(const QStringList &items) {
             if (!it) return;
             // Skip non-selectable header row.
             if (!(it->flags() & Qt::ItemIsSelectable)) return;
-            m_bar->setText(it->text());
+            m_bar->setText(it->data(Qt::UserRole).toString().isEmpty() ? it->text() : it->data(Qt::UserRole).toString());
             commit();
         });
     }
     m_popupList->clear();
     {
-        const QString headerText = m_bar ? m_bar->text() : QString();
-        auto *header = new QListWidgetItem(headerText.isEmpty() ? QStringLiteral("Search or enter address") : headerText, m_popupList);
-        header->setIcon(mac::sfSymbolIcon("magnifyingglass", 13.0, m_iconColor));
-        header->setFlags(Qt::ItemIsEnabled);
+        const QString headerText = m_bar ? m_bar->text().trimmed() : QString();
+        const QString engineHost = QUrl(m_searchEngine).host().isEmpty()
+                                   ? QStringLiteral("search")
+                                   : QUrl(m_searchEngine).host();
+        fetchEngineIcon(engineHost);
+        auto *header = new QListWidgetItem(headerText.isEmpty()
+                                           ? QStringLiteral("Search or enter address")
+                                           : QStringLiteral("Search %1 for “%2”").arg(engineHost, headerText),
+                                           m_popupList);
+        header->setData(Qt::UserRole, headerText);
+        header->setIcon(engineIcon());
+        header->setFlags(headerText.isEmpty() ? Qt::ItemIsEnabled : Qt::ItemIsEnabled | Qt::ItemIsSelectable);
         header->setSizeHint(QSize(0, 32));
         QFont f = m_popupList->font();
         f.setBold(true);
@@ -368,7 +478,15 @@ void AddressBarController::populatePopup(const QStringList &items) {
     }
     for (const auto &s : items) {
         auto *it = new QListWidgetItem(s, m_popupList);
-        it->setSizeHint(QSize(0, 28));
+        it->setData(Qt::UserRole, s);
+        it->setIcon(engineIcon());
+        it->setSizeHint(QSize(0, 30));
+    }
+    if (items.isEmpty() && !m_statusText.isEmpty()) {
+        auto *status = new QListWidgetItem(m_statusText, m_popupList);
+        status->setFlags(Qt::ItemIsEnabled);
+        status->setSizeHint(QSize(0, 30));
+        status->setForeground(m_theme.muted);
     }
     m_popupList->setCurrentRow(-1);
     showPopup();
@@ -377,14 +495,32 @@ void AddressBarController::populatePopup(const QStringList &items) {
 void AddressBarController::positionPopup() {
     if (!m_popup || !m_bar) return;
     QWidget *anchor = m_bar->parentWidget() ? m_bar->parentWidget() : m_bar;
-    const QPoint topLeft = anchor->mapToGlobal(QPoint(0, anchor->height() + 6));
-    // Tight to the anchor in the sidebar; extends a bit past it on a
-    // narrow column so suggestions don't truncate. Compact dimensions —
-    // header 32 px, rows 28 px, 6 px chrome — keep it from feeling huge.
-    const int width = qMax(anchor->width(), 320);
+    const bool inTopbar = anchor->window() && anchor->window()->findChild<QWidget *>("WebTopbar")
+                          && anchor->window()->findChild<QWidget *>("WebTopbar")->isAncestorOf(anchor);
+
+    const QPoint anchorBottom = anchor->mapToGlobal(QPoint(0, anchor->height()));
+    const QPoint parentBottom = m_popup->parentWidget()
+                                ? m_popup->parentWidget()->mapFromGlobal(anchorBottom)
+                                : anchorBottom;
+    const QRect available = m_popup->parentWidget()
+                            ? m_popup->parentWidget()->rect()
+                            : QRect();
+
     const int rows = qMin(m_popupList ? m_popupList->count() : 0, 9);
-    const int height = 32 + qMax(0, rows - 1) * 28 + 12;
-    m_popup->setGeometry(topLeft.x(), topLeft.y(), width, height);
+    const int height = 32 + qMax(0, rows - 1) * 30 + 12;
+    int width = inTopbar ? qBound(420, anchor->width(), 720)
+                         : qMax(anchor->width(), 320);
+    int x = parentBottom.x() + (anchor->width() - width) / 2;
+    int y = parentBottom.y() + (inTopbar ? 8 : 6);
+
+    if (available.isValid()) {
+        width = qMin(width, available.width() - 24);
+        x = qBound(available.left() + 12, x, available.right() - width - 12);
+        const int maxHeight = qMax(96, available.bottom() - y - 12);
+        m_popup->setGeometry(x, y, width, qMin(height, maxHeight));
+    } else {
+        m_popup->setGeometry(x, y, width, height);
+    }
 }
 
 void AddressBarController::showPopup() {
@@ -392,6 +528,7 @@ void AddressBarController::showPopup() {
     positionPopup();
     if (!m_popup->isVisible()) m_popup->show();
     m_popup->raise();
+    if (m_bar && !m_bar->hasFocus()) m_bar->setFocus(Qt::OtherFocusReason);
 }
 
 void AddressBarController::hidePopup() {
