@@ -102,8 +102,10 @@ private:
     QTimer *m_sidebarSwipeSettleTimer = nullptr;
     int m_profileSwipeRemainder = 0;
     int m_sidebarSwipeOffset = 0;
+    int m_sidebarSwipeDirection = 0;
     bool m_sidebarSwipeActive = false;
     bool m_sidebarSwipeSettling = false;
+    QString m_sidebarPreviewProfile;
     QHash<QString, QStringList> m_profileTabSnapshots;
     QHash<QString, QToolButton *> m_extensionActionButtons;
     QLineEdit *m_addressBar = nullptr;

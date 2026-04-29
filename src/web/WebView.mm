@@ -7,6 +7,7 @@
 #import <WebKit/WKWebView.h>
 #import <WebKit/WKWebViewConfiguration.h>
 
+#include <QPointer>
 #include <QRegularExpression>
 #import <WebKit/WKWebsiteDataStore.h>
 #import <WebKit/WKNavigationDelegate.h>
@@ -242,6 +243,7 @@ WebView::WebView(WebKitProfile *profile, QWidget *parent)
 }
 
 WebView::~WebView() {
+    if (m_impl->bridge) m_impl->bridge.owner = nullptr;
     if (m_impl->observedHost) {
         [[NSNotificationCenter defaultCenter] removeObserver:m_impl->bridge
                                                         name:NSViewFrameDidChangeNotification
@@ -391,11 +393,11 @@ void WebView::sniffTopColor() {
         @"  } catch(e) {}"
         @"  return '';"
         @"})()";
-    Impl *impl = m_impl;
-    WebView *self = this;
+    QPointer<WebView> guard(this);
     [m_impl->wk evaluateJavaScript:kSniff completionHandler:^(id result, NSError *error) {
         (void)error;
-        if (!self || !impl) return;
+        WebView *self = guard.data();
+        if (!self || !self->m_impl || !self->m_impl->wk) return;
         NSString *s = [result isKindOfClass:[NSString class]] ? (NSString *)result : nil;
         QColor color;
         if (s && s.length > 0) {
@@ -411,7 +413,7 @@ void WebView::sniffTopColor() {
                 }
             }
         }
-        impl->cachedTopColor = color;
+        self->m_impl->cachedTopColor = color;
         emit self->themeColorChanged(color);
     }];
 }

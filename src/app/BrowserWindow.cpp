@@ -435,7 +435,10 @@ void BrowserWindow::updateSidebarPreview(int direction) {
     const int next = qBound(0, current + direction, list.size() - 1);
     if (next == current || next < 0 || next >= list.size()) return;
     const QString profile = list.at(next);
+    if (m_sidebarPreviewProfile == profile) return;
+    m_sidebarPreviewProfile = profile;
     m_sidebarPreviewIcon->setIcon(mac::sfSymbolIcon(m_profiles.iconName(profile), 18.0, m_theme.foreground));
+    m_sidebarPreviewTabs->setUpdatesEnabled(false);
     m_sidebarPreviewTabs->clear();
     const QStringList titles = m_profileTabSnapshots.value(profile, QStringList{QStringLiteral("New tab")});
     for (const QString &title : titles) {
@@ -443,26 +446,34 @@ void BrowserWindow::updateSidebarPreview(int direction) {
         item->setIcon(0, mac::sfSymbolIcon("globe", 12.0, m_theme.muted));
         m_sidebarPreviewTabs->addTopLevelItem(item);
     }
+    m_sidebarPreviewTabs->setUpdatesEnabled(true);
 }
 
 void BrowserWindow::setSidebarSwipeOffset(int offset) {
     if (!m_sidebarPage || !m_sidebarViewport) return;
     const int width = qMax(1, m_sidebarViewport->width());
     const QRect bounds(QPoint(0, 0), m_sidebarViewport->size());
-    if (m_sidebarStrip) m_sidebarStrip->setGeometry(bounds);
     m_sidebarViewport->setMask(QRegion(bounds));
     m_sidebarSwipeOffset = qBound(-width, offset, width);
-    m_sidebarPage->setGeometry(bounds.translated(m_sidebarSwipeOffset, 0));
-    if (m_sidebarPreviewPage) {
-        if (m_sidebarSwipeOffset == 0) {
-            m_sidebarPreviewPage->hide();
-        } else {
-            const int direction = m_sidebarSwipeOffset < 0 ? 1 : -1;
-            updateSidebarPreview(direction);
-            m_sidebarPreviewPage->setGeometry(bounds.translated(direction > 0 ? width + m_sidebarSwipeOffset : -width + m_sidebarSwipeOffset, 0));
-            m_sidebarPreviewPage->show();
-        }
+    if (!m_sidebarStrip) return;
+    if (m_sidebarSwipeOffset == 0) {
+        m_sidebarStrip->setGeometry(bounds);
+        m_sidebarPage->setGeometry(bounds);
+        if (m_sidebarPreviewPage) m_sidebarPreviewPage->hide();
+        return;
     }
+    const int direction = m_sidebarSwipeDirection != 0 ? m_sidebarSwipeDirection : (m_sidebarSwipeOffset < 0 ? 1 : -1);
+    updateSidebarPreview(direction);
+    m_sidebarStrip->setGeometry(direction > 0 ? m_sidebarSwipeOffset : m_sidebarSwipeOffset - width,
+                                0, width * 2, bounds.height());
+    if (direction > 0) {
+        m_sidebarPage->setGeometry(0, 0, width, bounds.height());
+        if (m_sidebarPreviewPage) m_sidebarPreviewPage->setGeometry(width, 0, width, bounds.height());
+    } else {
+        if (m_sidebarPreviewPage) m_sidebarPreviewPage->setGeometry(0, 0, width, bounds.height());
+        m_sidebarPage->setGeometry(width, 0, width, bounds.height());
+    }
+    if (m_sidebarPreviewPage) m_sidebarPreviewPage->show();
 }
 
 void BrowserWindow::settleSidebarSwipe(bool commit) {
@@ -474,8 +485,8 @@ void BrowserWindow::settleSidebarSwipe(bool commit) {
         m_sidebarSwipeAnim = nullptr;
     }
     const int width = m_sidebarWidget ? qMax(160, m_sidebarWidget->width()) : 240;
-    const int direction = m_sidebarSwipeOffset < 0 ? 1 : -1;
     const int startOffset = m_sidebarSwipeOffset;
+    const int direction = startOffset < 0 ? 1 : -1;
     const QStringList list = orderedProfiles();
     const int current = qMax(0, list.indexOf(m_profiles.currentName()));
     const int next = qBound(0, current + direction, list.size() - 1);
@@ -484,7 +495,7 @@ void BrowserWindow::settleSidebarSwipe(bool commit) {
     m_sidebarSwipeAnim = driver;
     driver->setStartValue(startOffset);
     driver->setEndValue(commit ? (direction > 0 ? -width : width) : 0);
-    driver->setDuration(commit ? 190 : 150);
+    driver->setDuration(commit ? 160 : 120);
     driver->setEasingCurve(QEasingCurve::OutCubic);
     m_sidebarSwipeSettling = true;
     connect(driver, &QVariantAnimation::valueChanged, this, [this](const QVariant &value) {
@@ -499,6 +510,8 @@ void BrowserWindow::settleSidebarSwipe(bool commit) {
         m_sidebarSwipeActive = false;
         m_sidebarSwipeSettling = false;
         m_profileSwipeRemainder = 0;
+        m_sidebarSwipeDirection = 0;
+        m_sidebarPreviewProfile.clear();
         m_sidebarSwipeAnim = nullptr;
         driver->deleteLater();
     });
@@ -744,7 +757,7 @@ void BrowserWindow::setupUi() {
     m_sidebar->setSidebarContent(m_sidebarViewport, sideLayout);
     m_sidebarSwipeSettleTimer = new QTimer(this);
     m_sidebarSwipeSettleTimer->setSingleShot(true);
-    m_sidebarSwipeSettleTimer->setInterval(420);
+    m_sidebarSwipeSettleTimer->setInterval(180);
     connect(m_sidebarSwipeSettleTimer, &QTimer::timeout, this, [this] {
         if (!m_sidebarSwipeActive) return;
         settleSidebarSwipe(qAbs(m_profileSwipeRemainder) >= qMax(160, m_sidebarWidget ? m_sidebarWidget->width() : 240) / 3);
@@ -1144,22 +1157,40 @@ bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
             auto *wheel = static_cast<QWheelEvent *>(ev);
             const QPoint pixel = wheel->pixelDelta();
             const QPoint angle = wheel->angleDelta();
+            const bool highResolutionTrackpad = !pixel.isNull();
+            if (wheel->phase() == Qt::ScrollBegin && !m_sidebarSwipeSettling) {
+                if (m_sidebarSwipeSettleTimer) m_sidebarSwipeSettleTimer->stop();
+                m_profileSwipeRemainder = m_sidebarSwipeOffset;
+            }
+            if (wheel->phase() == Qt::ScrollEnd && m_sidebarSwipeActive) {
+                settleSidebarSwipe(qAbs(m_sidebarSwipeOffset) >= qMax(160, m_sidebarWidget->width()) / 4);
+                return true;
+            }
             const int horizontal = pixel.x() != 0 ? pixel.x() : angle.x() / 2;
             const int vertical = pixel.y() != 0 ? pixel.y() : angle.y() / 2;
             if (qAbs(horizontal) > qAbs(vertical) && horizontal != 0) {
-                if (m_sidebarSwipeSettleTimer) m_sidebarSwipeSettleTimer->stop();
                 const int width = qMax(160, m_sidebarWidget->width());
+                if (m_sidebarSwipeSettleTimer) m_sidebarSwipeSettleTimer->stop();
                 const int intended = m_profileSwipeRemainder + horizontal;
-                const int intendedDirection = intended < 0 ? 1 : -1;
+                if (m_sidebarSwipeDirection != 0 && ((m_sidebarSwipeDirection > 0 && intended > 0) || (m_sidebarSwipeDirection < 0 && intended < 0))) {
+                    m_profileSwipeRemainder = 0;
+                    setSidebarSwipeOffset(0);
+                    m_sidebarSwipeActive = true;
+                    return true;
+                }
+                const int intendedDirection = m_sidebarSwipeDirection != 0 ? m_sidebarSwipeDirection : (intended < 0 ? 1 : -1);
                 const QStringList list = orderedProfiles();
                 const int profileIndex = qMax(0, list.indexOf(m_profiles.currentName()));
                 const int targetIndex = profileIndex + intendedDirection;
                 if (targetIndex < 0 || targetIndex >= list.size()) {
                     m_profileSwipeRemainder = 0;
+                    m_sidebarSwipeDirection = 0;
                     setSidebarSwipeOffset(0);
                     m_sidebarSwipeActive = false;
+                    m_sidebarPreviewProfile.clear();
                     return true;
                 }
+                m_sidebarSwipeDirection = intendedDirection;
                 m_profileSwipeRemainder = qBound(-width, intended, width);
                 const int sign = m_profileSwipeRemainder < 0 ? -1 : 1;
                 const int magnitude = qAbs(m_profileSwipeRemainder);
@@ -1172,8 +1203,8 @@ bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
                     settleSidebarSwipe(true);
                 } else if (wheel->phase() == Qt::ScrollEnd) {
                     settleSidebarSwipe(magnitude >= width / 4);
-                } else if (wheel->phase() == Qt::NoScrollPhase && m_sidebarSwipeSettleTimer) {
-                    m_sidebarSwipeSettleTimer->start(qAbs(horizontal) >= 18 ? 520 : 420);
+                } else if (!highResolutionTrackpad && m_sidebarSwipeSettleTimer) {
+                    m_sidebarSwipeSettleTimer->start(180);
                 }
                 return true;
             }
