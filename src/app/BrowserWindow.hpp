@@ -113,6 +113,7 @@ private:
     QWidget *m_addrWrap = nullptr;
     QWidget *m_sidebarWidget = nullptr;
     QWidget *m_sidebarViewport = nullptr;
+    QWidget *m_sidebarStrip = nullptr;
     QWidget *m_sidebarPage = nullptr;
     QWidget *m_sidebarPreviewPage = nullptr;
     QTreeWidget *m_sidebarPreviewTabs = nullptr;

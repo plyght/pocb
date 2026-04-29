@@ -448,7 +448,9 @@ void BrowserWindow::updateSidebarPreview(int direction) {
 void BrowserWindow::setSidebarSwipeOffset(int offset) {
     if (!m_sidebarPage || !m_sidebarViewport) return;
     const int width = qMax(1, m_sidebarViewport->width());
-    const QRect bounds = m_sidebarViewport->rect();
+    const QRect bounds(QPoint(0, 0), m_sidebarViewport->size());
+    if (m_sidebarStrip) m_sidebarStrip->setGeometry(bounds);
+    m_sidebarViewport->setMask(QRegion(bounds));
     m_sidebarSwipeOffset = qBound(-width, offset, width);
     m_sidebarPage->setGeometry(bounds.translated(m_sidebarSwipeOffset, 0));
     if (m_sidebarPreviewPage) {
@@ -662,11 +664,14 @@ void BrowserWindow::setupUi() {
     m_sidebarViewport = new QWidget(sidebar);
     m_sidebarViewport->setObjectName("SidebarViewport");
     m_sidebarViewport->setAttribute(Qt::WA_TranslucentBackground);
-    m_sidebarViewport->setAttribute(Qt::WA_NativeWindow, false);
     m_sidebarViewport->setStyleSheet("QWidget#SidebarViewport { background: transparent; }");
     m_sidebarViewport->installEventFilter(this);
+    m_sidebarStrip = new QWidget(m_sidebarViewport);
+    m_sidebarStrip->setObjectName("SidebarStrip");
+    m_sidebarStrip->setAttribute(Qt::WA_TranslucentBackground);
+    m_sidebarStrip->setStyleSheet("QWidget#SidebarStrip { background: transparent; }");
 
-    m_sidebarPage = new QWidget(m_sidebarViewport);
+    m_sidebarPage = new QWidget(m_sidebarStrip);
     m_sidebarPage->setObjectName("SidebarPage");
     m_sidebarPage->setAttribute(Qt::WA_TranslucentBackground);
     m_sidebarPage->setStyleSheet("QWidget#SidebarPage { background: transparent; }");
@@ -682,7 +687,7 @@ void BrowserWindow::setupUi() {
     m_profileSwitcher = buildProfileSwitcher(m_sidebarPage);
     pageLayout->addWidget(m_profileSwitcher, 0, Qt::AlignLeft | Qt::AlignBottom);
     sideLayout->addWidget(m_sidebarViewport, 1);
-    m_sidebarPreviewPage = new QWidget(m_sidebarViewport);
+    m_sidebarPreviewPage = new QWidget(m_sidebarStrip);
     m_sidebarPreviewPage->setObjectName("SidebarPreviewPage");
     m_sidebarPreviewPage->setAttribute(Qt::WA_TranslucentBackground);
     m_sidebarPreviewPage->setStyleSheet("QWidget#SidebarPreviewPage { background: transparent; }");
@@ -715,8 +720,8 @@ void BrowserWindow::setupUi() {
     m_sidebarPreviewIcon->setStyleSheet("QToolButton { background: transparent; border: none; }");
     previewLayout->addWidget(m_sidebarPreviewIcon, 0, Qt::AlignLeft | Qt::AlignBottom);
     m_sidebarPreviewPage->hide();
-    m_sidebarPage->setGeometry(m_sidebarViewport->rect());
-    m_sidebarPreviewPage->setGeometry(m_sidebarViewport->rect().translated(m_sidebarViewport->width(), 0));
+    m_sidebarPage->setGeometry(QRect(QPoint(0, 0), m_sidebarViewport->size()));
+    m_sidebarPreviewPage->setGeometry(QRect(QPoint(m_sidebarViewport->width(), 0), m_sidebarViewport->size()));
 
     hostLayout->addWidget(m_webContainer, 1);
     m_splitter->addWidget(sidebar);
@@ -739,7 +744,7 @@ void BrowserWindow::setupUi() {
     m_sidebar->setSidebarContent(m_sidebarViewport, sideLayout);
     m_sidebarSwipeSettleTimer = new QTimer(this);
     m_sidebarSwipeSettleTimer->setSingleShot(true);
-    m_sidebarSwipeSettleTimer->setInterval(260);
+    m_sidebarSwipeSettleTimer->setInterval(420);
     connect(m_sidebarSwipeSettleTimer, &QTimer::timeout, this, [this] {
         if (!m_sidebarSwipeActive) return;
         settleSidebarSwipe(qAbs(m_profileSwipeRemainder) >= qMax(160, m_sidebarWidget ? m_sidebarWidget->width() : 240) / 3);
@@ -1168,7 +1173,7 @@ bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
                 } else if (wheel->phase() == Qt::ScrollEnd) {
                     settleSidebarSwipe(magnitude >= width / 4);
                 } else if (wheel->phase() == Qt::NoScrollPhase && m_sidebarSwipeSettleTimer) {
-                    m_sidebarSwipeSettleTimer->start();
+                    m_sidebarSwipeSettleTimer->start(qAbs(horizontal) >= 18 ? 520 : 420);
                 }
                 return true;
             }

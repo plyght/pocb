@@ -27,17 +27,45 @@ NSImage *symbolImage(NSString *name) {
     return nil;
 }
 
+constexpr CGFloat kIconButtonSize = 30.0;
+
 NSButton *symbolButton(NSString *name, BOOL selected) {
     NSButton *button = [NSButton buttonWithImage:symbolImage(name) target:nil action:nil];
     button.translatesAutoresizingMaskIntoConstraints = NO;
-    button.bezelStyle = selected ? NSBezelStyleRegularSquare : NSBezelStyleInline;
+    button.bezelStyle = NSBezelStyleInline;
+    button.bordered = NO;
     button.imagePosition = NSImageOnly;
-    button.controlSize = NSControlSizeLarge;
+    button.imageScaling = NSImageScaleProportionallyDown;
+    button.controlSize = NSControlSizeRegular;
+    button.contentTintColor = selected ? [NSColor controlAccentColor] : [NSColor labelColor];
     button.toolTip = name;
     button.wantsLayer = YES;
-    button.layer.cornerRadius = 9.0;
-    [button.widthAnchor constraintEqualToConstant:34.0].active = YES;
-    [button.heightAnchor constraintEqualToConstant:34.0].active = YES;
+    button.layer.cornerRadius = 8.0;
+    button.layer.backgroundColor = selected ? [[NSColor controlAccentColor] colorWithAlphaComponent:0.16].CGColor : NSColor.clearColor.CGColor;
+    [button.widthAnchor constraintEqualToConstant:kIconButtonSize].active = YES;
+    [button.heightAnchor constraintEqualToConstant:kIconButtonSize].active = YES;
+    return button;
+}
+
+NSButton *footerButton(NSString *title, id target, SEL action) {
+    NSButton *button = [NSButton buttonWithTitle:title target:target action:action];
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    button.bezelStyle = NSBezelStyleRegularSquare;
+    button.controlSize = NSControlSizeSmall;
+    [button.heightAnchor constraintEqualToConstant:26.0].active = YES;
+    [button.widthAnchor constraintGreaterThanOrEqualToConstant:58.0].active = YES;
+    return button;
+}
+
+NSButton *footerIconButton(NSString *name, id target, SEL action) {
+    NSButton *button = [NSButton buttonWithImage:symbolImage(name) target:target action:action];
+    button.translatesAutoresizingMaskIntoConstraints = NO;
+    button.bezelStyle = NSBezelStyleRegularSquare;
+    button.imagePosition = NSImageOnly;
+    button.imageScaling = NSImageScaleProportionallyDown;
+    button.controlSize = NSControlSizeSmall;
+    [button.widthAnchor constraintEqualToConstant:26.0].active = YES;
+    [button.heightAnchor constraintEqualToConstant:26.0].active = YES;
     return button;
 }
 
@@ -92,7 +120,7 @@ NSButton *symbolButton(NSString *name, BOOL selected) {
     NSGridView *grid = [[NSGridView alloc] init];
     grid.translatesAutoresizingMaskIntoConstraints = NO;
     grid.rowSpacing = 8.0;
-    grid.columnSpacing = 8.0;
+    grid.columnSpacing = 9.0;
     scroll.documentView = grid;
 
     NSArray<NSString *> *icons = @[
@@ -109,7 +137,7 @@ NSButton *symbolButton(NSString *name, BOOL selected) {
     ];
     self.selectedIcon = toNSString(self.profiles->iconName(self.profiles->currentName()));
     self.iconButtons = [NSMutableArray array];
-    const NSInteger columns = 6;
+    const NSInteger columns = 7;
     const NSInteger rows = ((NSInteger)icons.count + columns - 1) / columns;
     for (NSInteger row = 0; row < rows; ++row) {
         NSMutableArray<NSView *> *views = [NSMutableArray array];
@@ -117,7 +145,7 @@ NSButton *symbolButton(NSString *name, BOOL selected) {
             NSInteger index = row * columns + col;
             if (index >= (NSInteger)icons.count) {
                 NSView *spacer = [[NSView alloc] init];
-                [spacer.widthAnchor constraintEqualToConstant:34.0].active = YES;
+                [spacer.widthAnchor constraintEqualToConstant:kIconButtonSize].active = YES;
                 [views addObject:spacer];
                 continue;
             }
@@ -131,24 +159,16 @@ NSButton *symbolButton(NSString *name, BOOL selected) {
         }
         [grid addRowWithViews:views];
     }
-    [grid.widthAnchor constraintGreaterThanOrEqualToConstant:244.0].active = YES;
-
+    [grid.widthAnchor constraintEqualToConstant:264.0].active = YES;
     NSStackView *buttons = [[NSStackView alloc] init];
     buttons.orientation = NSUserInterfaceLayoutOrientationHorizontal;
     buttons.spacing = 8.0;
     buttons.alignment = NSLayoutAttributeCenterY;
     buttons.translatesAutoresizingMaskIntoConstraints = NO;
-    NSButton *add = [NSButton buttonWithImage:symbolImage(@"plus") target:self action:@selector(addProfile:)];
-    add.bezelStyle = NSBezelStyleRounded;
-    add.controlSize = NSControlSizeLarge;
+    NSButton *add = footerIconButton(@"plus", self, @selector(addProfile:));
     add.toolTip = @"New Profile";
-    [add.widthAnchor constraintEqualToConstant:32.0].active = YES;
-    NSButton *cancel = [NSButton buttonWithTitle:@"Cancel" target:self action:@selector(cancel:)];
-    cancel.bezelStyle = NSBezelStyleRounded;
-    cancel.controlSize = NSControlSizeLarge;
-    NSButton *save = [NSButton buttonWithTitle:@"Save" target:self action:@selector(save:)];
-    save.bezelStyle = NSBezelStyleRounded;
-    save.controlSize = NSControlSizeLarge;
+    NSButton *cancel = footerButton(@"Cancel", self, @selector(cancel:));
+    NSButton *save = footerButton(@"Save", self, @selector(save:));
     save.keyEquivalent = @"\r";
     [buttons addArrangedSubview:add];
     [buttons addArrangedSubview:[[NSView alloc] init]];
@@ -163,7 +183,9 @@ NSButton *symbolButton(NSString *name, BOOL selected) {
 - (void)iconPicked:(NSButton *)sender {
     self.selectedIcon = sender.identifier;
     for (NSButton *button in self.iconButtons) {
-        button.bezelStyle = [button.identifier isEqualToString:self.selectedIcon] ? NSBezelStyleRegularSquare : NSBezelStyleInline;
+        BOOL selected = [button.identifier isEqualToString:self.selectedIcon];
+        button.contentTintColor = selected ? [NSColor controlAccentColor] : [NSColor labelColor];
+        button.layer.backgroundColor = selected ? [[NSColor controlAccentColor] colorWithAlphaComponent:0.16].CGColor : NSColor.clearColor.CGColor;
     }
 }
 
@@ -177,7 +199,9 @@ NSButton *symbolButton(NSString *name, BOOL selected) {
     self.nameField.placeholderString = @"New profile name";
     self.selectedIcon = @"person.crop.circle.fill";
     for (NSButton *button in self.iconButtons) {
-        button.bezelStyle = [button.identifier isEqualToString:self.selectedIcon] ? NSBezelStyleRegularSquare : NSBezelStyleInline;
+        BOOL selected = [button.identifier isEqualToString:self.selectedIcon];
+        button.contentTintColor = selected ? [NSColor controlAccentColor] : [NSColor labelColor];
+        button.layer.backgroundColor = selected ? [[NSColor controlAccentColor] colorWithAlphaComponent:0.16].CGColor : NSColor.clearColor.CGColor;
     }
     [self.view.window makeFirstResponder:self.nameField];
 }
