@@ -41,6 +41,8 @@ if(APPLE)
     endfunction()
 
     remove_agl_framework_from_target(WrapOpenGL::WrapOpenGL)
+    remove_agl_framework_from_target(OpenGL::GL)
+    remove_agl_framework_from_target(OpenGL::OpenGL)
     remove_agl_framework_from_target(Qt6::Gui)
     remove_agl_framework_from_target(Qt6::Widgets)
 endif()
