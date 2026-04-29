@@ -88,9 +88,16 @@ set_target_properties(pocb PROPERTIES
 )
 
 if(APPLE AND TARGET Qt6::QCocoaIntegrationPlugin)
+    get_target_property(_qt_qmake Qt6::qmake IMPORTED_LOCATION)
+    get_filename_component(_qt_bin_dir "${_qt_qmake}" DIRECTORY)
+    get_filename_component(_qt_prefix "${_qt_bin_dir}" DIRECTORY)
+    set(_qt_openssl_backend "${_qt_prefix}/share/qt/plugins/tls/libqopensslbackend.dylib")
+
     add_custom_command(TARGET pocb POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/platforms"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::QCocoaIntegrationPlugin>" "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/platforms/libqcocoa.dylib"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/tls"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_qt_openssl_backend}" "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/tls/libqopensslbackend.dylib"
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources"
         COMMAND ${CMAKE_COMMAND} -E echo "[Paths]" > "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/qt.conf"
         COMMAND ${CMAKE_COMMAND} -E echo "Plugins = PlugIns" >> "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/qt.conf"

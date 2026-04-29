@@ -14,6 +14,48 @@
 #import <WebKit/WKWindowFeatures.h>
 #import <WebKit/WKPreferences.h>
 
+static void disableWebKit60FpsCap(WKPreferences *preferences) {
+    if (!preferences) return;
+
+    Class prefsClass = NSClassFromString(@"WKPreferences");
+    SEL featuresSelector = NSSelectorFromString(@"_features");
+    if (!prefsClass || ![prefsClass respondsToSelector:featuresSelector]) return;
+
+    NSArray *features = nil;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    features = [prefsClass performSelector:featuresSelector];
+#pragma clang diagnostic pop
+    if (![features isKindOfClass:[NSArray class]]) return;
+
+    SEL keySelector = NSSelectorFromString(@"key");
+    SEL setEnabledSelector = NSSelectorFromString(@"_setEnabled:forFeature:");
+    if (![preferences respondsToSelector:setEnabledSelector]) return;
+
+    for (id feature in features) {
+        if (![feature respondsToSelector:keySelector]) continue;
+        NSString *key = nil;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+        key = [feature performSelector:keySelector];
+#pragma clang diagnostic pop
+        if (![key isKindOfClass:[NSString class]]) continue;
+        if (![key isEqualToString:@"PreferPageRenderingUpdatesNear60FPSEnabled"]) continue;
+
+        NSMethodSignature *signature = [preferences methodSignatureForSelector:setEnabledSelector];
+        if (!signature) return;
+        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+        BOOL enabled = NO;
+        invocation.target = preferences;
+        invocation.selector = setEnabledSelector;
+        id featureArgument = feature;
+        [invocation setArgument:&enabled atIndex:2];
+        [invocation setArgument:&featureArgument atIndex:3];
+        [invocation invoke];
+        return;
+    }
+}
+
 // Forward decl of helper that does the QWidget -> NSView bridge.
 static NSView *qtNSView(QWidget *w) {
     if (!w) return nil;
@@ -37,6 +79,7 @@ struct WebView::Impl {
 - (void)attachKVO:(WKWebView *)wk;
 - (void)detachKVO:(WKWebView *)wk;
 - (void)hostFrameDidChange:(NSNotification *)note;
+- (void)contentMouseDown:(NSGestureRecognizer *)sender;
 @end
 
 @implementation PocbWKBridge
@@ -51,6 +94,11 @@ struct WebView::Impl {
     @try { [wk removeObserver:self forKeyPath:@"URL"]; } @catch (...) {}
     @try { [wk removeObserver:self forKeyPath:@"title"]; } @catch (...) {}
     @try { [wk removeObserver:self forKeyPath:@"estimatedProgress"]; } @catch (...) {}
+}
+
+- (void)contentMouseDown:(NSGestureRecognizer *)sender {
+    (void)sender;
+    if (self.owner) emit self.owner->contentMouseDown();
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath
@@ -99,6 +147,7 @@ struct WebView::Impl {
     (void)wk; (void)windowFeatures;
     if (!self.owner) return nil;
 
+    disableWebKit60FpsCap(configuration.preferences);
     WKWebView *child = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:configuration];
 
     // Wrap into a new Qt-side WebView and hand it to the parent so it can
@@ -157,6 +206,7 @@ WebView::WebView(WebKitProfile *profile, QWidget *parent)
 
     if (profile) {
         WKWebViewConfiguration *cfg = [[WKWebViewConfiguration alloc] init];
+        disableWebKit60FpsCap(cfg.preferences);
         if (profile->dataStore()) {
             cfg.websiteDataStore = (__bridge WKWebsiteDataStore *)profile->dataStore();
         }
@@ -192,6 +242,7 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
         [m_impl->bridge detachKVO:m_impl->wk];
         [m_impl->wk removeFromSuperview];
     }
+    disableWebKit60FpsCap(wk.configuration.preferences);
     m_impl->wk = wk;
     if (!m_impl->bridge) {
         m_impl->bridge = [[PocbWKBridge alloc] init];
@@ -199,6 +250,9 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
     }
     wk.navigationDelegate = m_impl->bridge;
     wk.UIDelegate = m_impl->bridge;
+    NSClickGestureRecognizer *click = [[NSClickGestureRecognizer alloc] initWithTarget:m_impl->bridge action:@selector(contentMouseDown:)];
+    click.delaysPrimaryMouseButtonEvents = NO;
+    [wk addGestureRecognizer:click];
     [m_impl->bridge attachKVO:wk];
 
     NSView *host = qtNSView(this);

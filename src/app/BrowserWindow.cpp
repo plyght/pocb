@@ -558,6 +558,9 @@ void BrowserWindow::setupUi() {
     });
     connect(m_tabTree, &TabTree::themeColorChanged, this,
             &BrowserWindow::applyChromeForPageColor);
+    connect(m_tabTree, &TabTree::contentMouseDown, this, [this] {
+        if (m_addressBarCtl && m_addressBarCtl->isEditing()) m_addressBarCtl->cancelEditing();
+    });
     connect(&m_profiles, &ProfileStore::currentProfileChanged, this, [this] {
         m_tabTree->rebuildForProfile();
     });

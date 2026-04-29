@@ -42,6 +42,7 @@ signals:
     // Emitted after a navigation finishes, with the page's preferred chrome
     // colour. Invalid QColor when the page exposes nothing useful.
     void themeColorChanged(const QColor &color);
+    void contentMouseDown();
 
 protected:
     void resizeEvent(QResizeEvent *e) override;

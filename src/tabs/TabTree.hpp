@@ -44,6 +44,7 @@ signals:
     // navigation finishes with the page's preferred chrome colour. Invalid
     // QColor when the page exposes nothing useful.
     void themeColorChanged(const QColor &color);
+    void contentMouseDown();
 
 private:
     bool eventFilter(QObject *watched, QEvent *event) override;

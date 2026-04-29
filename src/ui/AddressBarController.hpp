@@ -5,6 +5,7 @@
 #include <QColor>
 #include <QIcon>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 
 class QLabel;
@@ -37,6 +38,7 @@ public:
     // Cancel editing and hide popup; if restoreUrl is true, the bar's text is
     // overwritten by the supplied current url string.
     void endEditing(bool restoreUrl, const QString &currentUrl);
+    void cancelEditing();
 
 protected:
     bool eventFilter(QObject *obj, QEvent *ev) override;
@@ -66,7 +68,7 @@ private:
     QString m_searchEngine;
 
     QNetworkAccessManager *m_net = nullptr;
-    QNetworkReply *m_inflight = nullptr;
+    QPointer<QNetworkReply> m_inflight;
     QTimer *m_debounce = nullptr;
     QWidget *m_popup = nullptr;
     QListWidget *m_popupList = nullptr;
@@ -80,6 +82,7 @@ private:
     QIcon m_engineIcon;
     QString m_engineIconHost;
     bool m_engineIconLoading = false;
+    bool m_appFilterInstalled = false;
     bool m_editing = false;
 
     void renderLock();

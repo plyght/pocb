@@ -111,7 +111,8 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
                     if (pm.isNull()) return;
                     const QIcon icon(pm);
                     for (auto it = m_views.constBegin(); it != m_views.constEnd(); ++it) {
-                        const QString itemDomain = it.value()->url().host();
+                        QString itemDomain = it.value()->url().host();
+                        if (itemDomain.startsWith("www.")) itemDomain.remove(0, 4);
                         if (itemDomain == domain) it.key()->setIcon(0, icon);
                     }
                 });
@@ -240,6 +241,9 @@ void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {
         emit themeColorChanged(c);
     });
     connect(view, &WebView::loadFinished, this, [this](bool) { emit currentTabChanged(); });
+    connect(view, &WebView::contentMouseDown, this, [this, view] {
+        if (view == currentView()) emit contentMouseDown();
+    });
     connect(view, &WebView::newTabRequested, this, [this, item](WebView *child, bool background) {
         adoptChildView(child, item, background);
     });

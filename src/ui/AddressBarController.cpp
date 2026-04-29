@@ -16,17 +16,17 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QKeyEvent>
-#include <QDebug>
 #include <QLabel>
 #include <QLineEdit>
+#include <QGuiApplication>
 #include <QListWidget>
 #include <QListWidgetItem>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QTimer>
-#include <QSet>
 #include <QUrl>
+#include <QScreen>
 #include <QUrlQuery>
 #include <QStyle>
 
@@ -103,9 +103,9 @@ AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, con
     connect(m_debounce, &QTimer::timeout, this, &AddressBarController::fetchSuggestions);
     connect(m_bar, &QLineEdit::textEdited, this, [this](const QString &t) {
         m_pendingQuery = t.trimmed();
-        m_statusText = m_pendingQuery.isEmpty() ? QString() : QStringLiteral("Searching…");
+        m_statusText.clear();
+        if (m_pendingQuery.isEmpty()) { hidePopup(); return; }
         populatePopup({});
-        if (m_pendingQuery.isEmpty()) return;
         m_debounce->start();
     });
     connect(m_bar, &QLineEdit::returnPressed, this, &AddressBarController::commit);
@@ -172,23 +172,40 @@ void AddressBarController::applyDisplay() {
     m_bar->setCursorPosition(0);
 }
 
+void AddressBarController::cancelEditing() {
+    endEditing(/*restoreUrl=*/true, m_savedUrl);
+    if (m_bar) m_bar->clearFocus();
+}
+
 void AddressBarController::endEditing(bool restoreUrl, const QString &currentUrl) {
     hidePopup();
+    if (m_appFilterInstalled) {
+        qApp->removeEventFilter(this);
+        m_appFilterInstalled = false;
+    }
     m_editing = false;
     if (!currentUrl.isEmpty()) m_currentUrl = currentUrl;
     if (restoreUrl && m_bar) applyDisplay();
 }
 
 bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
-    if (obj != m_bar) return QObject::eventFilter(obj, ev);
+    if (obj != m_bar) {
+        if (m_editing && ev->type() == QEvent::MouseButtonPress) {
+            auto *w = qobject_cast<QWidget *>(obj);
+            if (w && w != m_bar && w != m_popup && !m_bar->isAncestorOf(w) && (!m_popup || !m_popup->isAncestorOf(w))) {
+                endEditing(/*restoreUrl=*/true, m_savedUrl);
+            }
+        }
+        return QObject::eventFilter(obj, ev);
+    }
     if (ev->type() == QEvent::FocusIn) {
         beginEditing();
     } else if (ev->type() == QEvent::FocusOut) {
-        if (m_popup && m_popup->isVisible()) return false;
-        QWidget *now = QApplication::focusWidget();
-        if (!m_popup || (now != m_popup && (!m_popupList || now != m_popupList->viewport()))) {
+        QTimer::singleShot(0, this, [this] {
+            QWidget *now = QApplication::focusWidget();
+            if (now == m_bar || now == m_popup || (m_popupList && now == m_popupList->viewport())) return;
             endEditing(/*restoreUrl=*/true, m_savedUrl);
-        }
+        });
     } else if (ev->type() == QEvent::KeyPress) {
         auto *ke = static_cast<QKeyEvent *>(ev);
         if (ke->key() == Qt::Key_Escape) {
@@ -197,16 +214,16 @@ bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
             return true;
         }
         if ((ke->key() == Qt::Key_Down || ke->key() == Qt::Key_Up) &&
-            m_popupList && m_popup && m_popup->isVisible() && m_popupList->count() > 1) {
-            // Skip the non-selectable header row at index 0.
+            m_popupList && m_popup && m_popup->isVisible() && m_popupList->count() > 0) {
             int row = m_popupList->currentRow();
-            if (row < 1) row = 1;
             if (ke->key() == Qt::Key_Down)
-                row = row + 1 >= m_popupList->count() ? 1 : row + 1;
+                row = row + 1 >= m_popupList->count() ? 0 : row + 1;
             else
-                row = row <= 1 ? m_popupList->count() - 1 : row - 1;
+                row = row <= 0 ? m_popupList->count() - 1 : row - 1;
             m_popupList->setCurrentRow(row);
-            m_bar->setText(m_popupList->item(row)->text());
+            m_bar->setText(m_popupList->item(row)->data(Qt::UserRole).toString().isEmpty()
+                           ? m_popupList->item(row)->text()
+                           : m_popupList->item(row)->data(Qt::UserRole).toString());
             return true;
         }
     }
@@ -216,6 +233,10 @@ bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
 void AddressBarController::beginEditing() {
     if (m_editing) return;
     m_editing = true;
+    if (!m_appFilterInstalled) {
+        qApp->installEventFilter(this);
+        m_appFilterInstalled = true;
+    }
     m_savedUrl = m_currentUrl;
     // Swap to the full URL for editing — never the prettified form, since
     // editing a domain-only string would mangle paths and queries on commit.
@@ -250,9 +271,10 @@ void AddressBarController::commit() {
 void AddressBarController::fetchSuggestions() {
     if (m_pendingQuery.isEmpty()) return;
     if (m_inflight) {
-        m_inflight->abort();
-        m_inflight->deleteLater();
-        m_inflight = nullptr;
+        QNetworkReply *oldReply = m_inflight.data();
+        m_inflight.clear();
+        oldReply->abort();
+        oldReply->deleteLater();
     }
     const QString engineHost = QUrl(m_searchEngine).host();
     const auto eng = engineForHost(engineHost);
@@ -281,8 +303,8 @@ void AddressBarController::fetchSuggestions() {
 
 void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
     reply->deleteLater();
-    if (reply != m_inflight) return;
-    m_inflight = nullptr;
+    if (reply != m_inflight.data()) return;
+    m_inflight.clear();
         const QString replyQuery = reply->property("query").toString();
         const bool fallbackTried = reply->property("fallbackTried").toBool();
         auto tryFallback = [this, replyQuery, fallbackTried] {
@@ -316,7 +338,6 @@ void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
             });
         };
         if (reply->error() != QNetworkReply::NoError) {
-            qDebug() << "suggestion request failed" << reply->url() << reply->errorString();
             if (fallbackTried) m_statusText = QStringLiteral("Suggestions failed: %1").arg(reply->errorString());
             tryFallback();
             return;
@@ -324,11 +345,9 @@ void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
         if (!m_bar || replyQuery != m_pendingQuery) return;
 
         const QByteArray body = reply->readAll();
-        qDebug() << "suggestion response" << reply->url() << body.left(240);
         QJsonParseError parseError;
         const auto doc = QJsonDocument::fromJson(body, &parseError);
         if (parseError.error != QJsonParseError::NoError) {
-            qDebug() << "suggestion parse failed" << parseError.errorString();
             if (fallbackTried) m_statusText = QStringLiteral("Suggestions returned non-JSON");
             tryFallback();
             return;
@@ -367,7 +386,6 @@ void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
             }
         }
         if (items.isEmpty()) {
-            qDebug() << "suggestion parse returned no rows" << reply->url() << body.left(240);
             if (fallbackTried) m_statusText = QStringLiteral("No suggestions in response");
             tryFallback();
             return;
@@ -415,10 +433,16 @@ void AddressBarController::populatePopup(const QStringList &items) {
         // widget itself sits inside as a transparent child, so its rows
         // can be painted/styled independently of the panel chrome.
         QColor fill = m_theme.panel;
-        fill.setAlphaF(0.96);
-        m_popup = new AddrPopupFrame(fill, m_theme.border);
-        m_popup->setParent(m_bar ? m_bar->window() : nullptr);
-        m_popup->setWindowFlags(Qt::Widget);
+        fill.setAlphaF(0.52);
+        QColor border = m_theme.border;
+        border.setAlpha(150);
+        m_popup = new AddrPopupFrame(fill, border);
+        m_popup->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint | Qt::WindowStaysOnTopHint);
+        m_popup->setAttribute(Qt::WA_ShowWithoutActivating);
+        m_popup->setAttribute(Qt::WA_MacAlwaysShowToolWindow);
+        m_popup->setAttribute(Qt::WA_TranslucentBackground);
+        m_popup->setAttribute(Qt::WA_NoSystemBackground);
+        m_popup->setAutoFillBackground(false);
         m_popup->setFocusPolicy(Qt::NoFocus);
 
         auto *vbox = new QVBoxLayout(m_popup);
@@ -440,23 +464,22 @@ void AddressBarController::populatePopup(const QStringList &items) {
         f.setPointSize(m_theme.regularSize);
         m_popupList->setFont(f);
         m_popupList->setStyleSheet(QString(
-            "QListWidget#AddrPopup { background: transparent; border: none; padding: 0px; color: %3; }"
+            "QListWidget#AddrPopup { background: transparent; border: none; padding: 0px; color: %1; }"
             "QListWidget#AddrPopup::item {"
             "  padding: 6px 10px;"
             "  margin: 1px 2px;"
             "  border-radius: 6px;"
-            "  color: %3;"
+            "  color: %1;"
             "}"
-            "QListWidget#AddrPopup::item:selected { background: %4; }"
-            "QListWidget#AddrPopup::item:hover:!selected { background: %5; }"
+            "QListWidget#AddrPopup::item:selected { background: %2; }"
+            "QListWidget#AddrPopup::item:hover:!selected { background: %3; }"
             "QListWidget#AddrPopup QScrollBar:vertical { background: transparent; width: 6px; margin: 4px 2px; }"
-            "QListWidget#AddrPopup QScrollBar::handle:vertical { background: %2; border-radius: 3px; min-height: 24px; }"
+            "QListWidget#AddrPopup QScrollBar::handle:vertical { background: %4; border-radius: 3px; min-height: 24px; }"
             "QListWidget#AddrPopup QScrollBar::add-line, QListWidget#AddrPopup QScrollBar::sub-line { height:0; width:0; }")
-            .arg(m_theme.panel.name(),
-                 m_theme.border.name(),
-                 m_theme.foreground.name(),
+            .arg(m_theme.foreground.name(),
                  m_theme.raised.name(),
-                 m_theme.hover.name()));
+                 m_theme.hover.name(),
+                 m_theme.border.name()));
         connect(m_popupList, &QListWidget::itemClicked, this, [this](QListWidgetItem *it) {
             if (!it) return;
             // Skip non-selectable header row.
@@ -466,35 +489,19 @@ void AddressBarController::populatePopup(const QStringList &items) {
         });
     }
     m_popupList->clear();
-    {
-        const QString headerText = m_bar ? m_bar->text().trimmed() : QString();
-        const QString engineHost = QUrl(m_searchEngine).host().isEmpty()
-                                   ? QStringLiteral("search")
-                                   : QUrl(m_searchEngine).host();
-        fetchEngineIcon(engineHost);
-        auto *header = new QListWidgetItem(headerText.isEmpty()
-                                           ? QStringLiteral("Search or enter address")
-                                           : QStringLiteral("Search %1 for “%2”").arg(engineHost, headerText),
-                                           m_popupList);
-        header->setData(Qt::UserRole, headerText);
-        header->setIcon(engineIcon());
-        header->setFlags(headerText.isEmpty() ? Qt::ItemIsEnabled : Qt::ItemIsEnabled | Qt::ItemIsSelectable);
-        header->setSizeHint(QSize(0, 32));
-        QFont f = m_popupList->font();
-        f.setBold(true);
-        header->setFont(f);
+    if (items.isEmpty()) {
+        hidePopup();
+        return;
     }
+    const QString engineHost = QUrl(m_searchEngine).host().isEmpty()
+                               ? QStringLiteral("search")
+                               : QUrl(m_searchEngine).host();
+    fetchEngineIcon(engineHost);
     for (const auto &s : items) {
         auto *it = new QListWidgetItem(s, m_popupList);
         it->setData(Qt::UserRole, s);
         it->setIcon(engineIcon());
         it->setSizeHint(QSize(0, 30));
-    }
-    if (items.isEmpty() && !m_statusText.isEmpty()) {
-        auto *status = new QListWidgetItem(m_statusText, m_popupList);
-        status->setFlags(Qt::ItemIsEnabled);
-        status->setSizeHint(QSize(0, 30));
-        status->setForeground(m_theme.muted);
     }
     m_popupList->setCurrentRow(-1);
     showPopup();
@@ -507,19 +514,17 @@ void AddressBarController::positionPopup() {
                           && anchor->window()->findChild<QWidget *>("WebTopbar")->isAncestorOf(anchor);
 
     const QPoint anchorBottom = anchor->mapToGlobal(QPoint(0, anchor->height()));
-    const QPoint parentBottom = m_popup->parentWidget()
-                                ? m_popup->parentWidget()->mapFromGlobal(anchorBottom)
-                                : anchorBottom;
-    const QRect available = m_popup->parentWidget()
-                            ? m_popup->parentWidget()->rect()
-                            : QRect();
+    QRect available;
+    if (QScreen *screen = QGuiApplication::screenAt(anchorBottom)) {
+        available = screen->availableGeometry();
+    }
 
     const int rows = qMin(m_popupList ? m_popupList->count() : 0, 9);
-    const int height = 32 + qMax(0, rows - 1) * 30 + 12;
+    const int height = qMax(1, rows) * 30 + 12;
     int width = inTopbar ? qBound(420, anchor->width(), 720)
                          : qMax(anchor->width(), 320);
-    int x = parentBottom.x() + (anchor->width() - width) / 2;
-    int y = parentBottom.y() + (inTopbar ? 8 : 6);
+    int x = anchorBottom.x() + (anchor->width() - width) / 2;
+    int y = anchorBottom.y() + (inTopbar ? 8 : 6);
 
     if (available.isValid()) {
         width = qMin(width, available.width() - 24);
