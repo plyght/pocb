@@ -140,7 +140,7 @@ set_target_properties(pocb PROPERTIES
 if(APPLE)
     add_custom_command(TARGET pocb POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources"
-        COMMAND /usr/bin/xcrun actool "${CMAKE_SOURCE_DIR}/icons/pcob.icon" --app-icon pcob --compile "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources" --output-partial-info-plist "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/assetcatalog_generated_info.plist" --minimum-deployment-target 11.0 --platform macosx --target-device mac
+        COMMAND /usr/bin/xcrun actool "${CMAKE_SOURCE_DIR}/icons/pcob.icon" --app-icon pcob --compile "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources" --output-partial-info-plist "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/assetcatalog_generated_info.plist" --minimum-deployment-target 26.0 --platform macosx --target-device mac
         COMMAND /bin/chmod u+w "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
         COMMAND /usr/bin/plutil -replace CFBundleIconFile -string pcob "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
         COMMAND /usr/bin/plutil -replace CFBundleIconName -string pcob "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
@@ -152,16 +152,32 @@ if(APPLE AND TARGET Qt6::QCocoaIntegrationPlugin)
     get_target_property(_qt_qmake Qt6::qmake IMPORTED_LOCATION)
     get_filename_component(_qt_bin_dir "${_qt_qmake}" DIRECTORY)
     get_filename_component(_qt_prefix "${_qt_bin_dir}" DIRECTORY)
-    set(_qt_openssl_backend "${_qt_prefix}/share/qt/plugins/tls/libqopensslbackend.dylib")
+    set(_qt_openssl_backend_candidates
+        "${_qt_prefix}/share/qt/plugins/tls/libqopensslbackend.dylib"
+        "${_qt_prefix}/plugins/tls/libqopensslbackend.dylib"
+    )
+    set(_qt_openssl_backend "")
+    foreach(_qt_openssl_backend_candidate IN LISTS _qt_openssl_backend_candidates)
+        if(EXISTS "${_qt_openssl_backend_candidate}")
+            set(_qt_openssl_backend "${_qt_openssl_backend_candidate}")
+            break()
+        endif()
+    endforeach()
 
     add_custom_command(TARGET pocb POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/platforms"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::QCocoaIntegrationPlugin>" "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/platforms/libqcocoa.dylib"
-        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/tls"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_qt_openssl_backend}" "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/tls/libqopensslbackend.dylib"
         COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources"
         COMMAND ${CMAKE_COMMAND} -E echo "[Paths]" > "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/qt.conf"
         COMMAND ${CMAKE_COMMAND} -E echo "Plugins = PlugIns" >> "$<TARGET_BUNDLE_DIR:pocb>/Contents/Resources/qt.conf"
         VERBATIM
     )
+
+    if(_qt_openssl_backend)
+        add_custom_command(TARGET pocb POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/tls"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_qt_openssl_backend}" "$<TARGET_BUNDLE_DIR:pocb>/Contents/PlugIns/tls/libqopensslbackend.dylib"
+            VERBATIM
+        )
+    endif()
 endif()

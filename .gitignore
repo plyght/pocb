@@ -31,6 +31,12 @@ Testing/
 *.app/
 *.dSYM/
 
+# App icon source
+icons/Icon Exports/
+!icons/
+!icons/pcob.icon/
+!icons/pcob.icon/**
+
 # Editor
 .vscode/
 .idea/
