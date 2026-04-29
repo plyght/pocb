@@ -210,8 +210,7 @@ jobs:
       - name: Create DMG
         run: |
           mkdir -p dist
-          bunx --yes create-dmg build/pocb.app dist --overwrite
-          mv dist/pocb*.dmg dist/pocb-${{ steps.version.outputs.version }}-macos26-arm64.dmg
+          hdiutil create -volname pocb -srcfolder build/pocb.app -ov -format UDZO dist/pocb-${{ steps.version.outputs.version }}-macos26-arm64.dmg
 
       - name: Upload DMG to release
         uses: softprops/action-gh-release@v2
