@@ -1307,6 +1307,7 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qguiapplication.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qinputmethod.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qguiapplication_platform.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QDebug \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QClipboard \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qclipboard.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QDesktopServices \

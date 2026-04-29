@@ -2327,4 +2327,7 @@ CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontvariableaxis.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qsizepolicy.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qcursor.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qbitmap.h
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qbitmap.h \
+  /Users/nicojaffer/pocb/src/mac/MacIntegration.hpp \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QIcon \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QString

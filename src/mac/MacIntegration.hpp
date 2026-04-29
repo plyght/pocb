@@ -58,9 +58,20 @@ void makeTitlebarTransparent(QWidget *window);
 // QMainWindow's NSWindow. Useful for collapsing them with a sidebar.
 void setTrafficLightsHidden(QWidget *window, bool hidden);
 
+// Re-runs the unified-toolbar traffic-light layout for `window`. Call after
+// any operation that changes window chrome (sidebar toggle, content view
+// resize) since AppKit will have re-laid the titlebar on its own.
+void refreshUnifiedToolbar(QWidget *window);
+
 // Asks AppKit / CoreAnimation to drive `window`'s NSWindow at the display's
 // maximum refresh rate (e.g. 120Hz on ProMotion panels) instead of the
 // default 60Hz. No-op off macOS / on non-ProMotion displays.
 void enableHighRefreshRate(QWidget *window);
+
+// Sends a standard AppKit edit selector (e.g. "cut:", "copy:", "paste:",
+// "selectAll:", "undo:", "redo:") to the current first responder. Lets
+// QMenuBar items route Cmd-X/C/V/A through the AppKit responder chain so
+// native NSText/WKWebView views handle them. No-op off macOS.
+void sendStandardEditAction(const char *selector);
 
 }  // namespace mac

@@ -13,4 +13,17 @@ NSWindow *nsWindowOf(QWidget *w) {
 }
 
 }  // namespace mac::internal
+
+#include "MacIntegration.hpp"
+#import <AppKit/AppKit.h>
+
+namespace mac {
+
+void sendStandardEditAction(const char *selector) {
+    if (!selector || !*selector) return;
+    SEL sel = sel_registerName(selector);
+    [NSApp sendAction:sel to:nil from:nil];
+}
+
+}  // namespace mac
 #endif

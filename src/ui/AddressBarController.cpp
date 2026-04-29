@@ -38,7 +38,9 @@ public:
     explicit AddrPopupFrame(const QColor &fill, const QColor &border)
         : m_fill(fill), m_border(border) {
         setAttribute(Qt::WA_TranslucentBackground);
+        setAttribute(Qt::WA_NoSystemBackground);
         setAttribute(Qt::WA_ShowWithoutActivating);
+        setAutoFillBackground(false);
     }
 
 protected:
@@ -300,7 +302,12 @@ void AddressBarController::populatePopup(const QStringList &items) {
         QColor fill = m_theme.panel;
         fill.setAlphaF(0.96);
         m_popup = new AddrPopupFrame(fill, m_theme.border);
-        m_popup->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+        // Match FloatingOmnibox window setup exactly — this combination
+        // (Popup + Frameless + NoDropShadow + Translucent + NoSystemBg)
+        // is the path that actually renders a rounded translucent panel
+        // on macOS. WA_ShowWithoutActivating keeps the window from
+        // grabbing key-window status so the line-edit's focus survives.
+        m_popup->setWindowFlags(Qt::Popup | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
         m_popup->setAttribute(Qt::WA_ShowWithoutActivating);
         m_popup->setFocusPolicy(Qt::NoFocus);
 

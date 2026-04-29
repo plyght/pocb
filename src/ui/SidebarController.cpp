@@ -3,6 +3,7 @@
 #include "MacIntegration.hpp"
 
 #include <QCursor>
+#include <QDebug>
 #include <QEasingCurve>
 #include <QEvent>
 #include <QMainWindow>
@@ -164,7 +165,9 @@ void SidebarController::setHidden(bool hidden) {
     }
 
     side->setVisible(!hidden);
+    qInfo("[pocb-tl] SidebarController::setHidden(%s)", hidden ? "true" : "false");
     mac::setTrafficLightsHidden(m_window, hidden);
+    mac::refreshUnifiedToolbar(m_window);
     if (m_setStackHostInset) m_setStackHostInset(!hidden);
     if (!m_hoverZone) return;
     if (hidden) {

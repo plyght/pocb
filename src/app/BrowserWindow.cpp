@@ -13,6 +13,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QDebug>
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QMenu>
@@ -94,6 +95,7 @@ void BrowserWindow::moveEvent(QMoveEvent *e) {
 
 void BrowserWindow::resizeEvent(QResizeEvent *e) {
     QMainWindow::resizeEvent(e);
+    qInfo("[pocb-tl] Qt resizeEvent %dx%d", e->size().width(), e->size().height());
     if (m_sidebar) {
         if (m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
         if (m_sidebar->floatingVisible()) m_sidebar->positionFloating();
@@ -145,6 +147,7 @@ void BrowserWindow::showSettings() {
 }
 
 void BrowserWindow::updateForCurrentTab() {
+    mac::refreshUnifiedToolbar(this);
     auto *view = currentView();
     if (!view) return;
     static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
@@ -444,7 +447,7 @@ void BrowserWindow::setupUi() {
         // same 6 px corner radius.
         if (m_addrWrap) {
             m_addrWrap->setParent(m_sidebarHeader);
-            m_addrWrap->setFixedHeight(24);
+            m_addrWrap->setFixedHeight(30);
             if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
                 pill->setRadius(6);
             }
@@ -453,15 +456,15 @@ void BrowserWindow::setupUi() {
                 row->setSpacing(6);
                 row->setSizeConstraint(QLayout::SetNoConstraint);
             }
-            m_addrWrap->setMinimumHeight(0);
-            m_addrWrap->setMaximumHeight(24);
+            m_addrWrap->setMinimumHeight(30);
+            m_addrWrap->setMaximumHeight(30);
             if (m_searchIcon) {
                 m_searchIcon->setFixedSize(16, 16);
                 m_searchIcon->setPixmap(mac::sfSymbolIcon("magnifyingglass", 13.0, m_theme.muted).pixmap(16, 16));
             }
             if (m_lockIcon) m_lockIcon->setFixedSize(16, 16);
             if (m_addressBar) {
-                m_addressBar->setFixedHeight(20);
+                m_addressBar->setFixedHeight(22);
                 m_addressBar->setContentsMargins(0, 0, 0, 0);
                 m_addressBar->setTextMargins(0, 0, 0, 0);
             }
@@ -511,31 +514,8 @@ void BrowserWindow::setupUi() {
 }
 
 void BrowserWindow::setupActions() {
-    auto *back        = new QAction(QStringLiteral(u"\u2039"), this);   // ‹
-    auto *forward     = new QAction(QStringLiteral(u"\u203A"), this);   // ›
-    auto *reload      = new QAction(QStringLiteral(u"\u21BB"), this);   // ↻
-    auto *newTabAction= new QAction(QStringLiteral(u"+"), this);
-    auto *closeTab    = new QAction("Close Tab", this);
-    auto *settings    = new QAction(QStringLiteral(u"\u2699"), this);   // ⚙
-
-    back->setToolTip("Back");
-    forward->setToolTip("Forward");
-    reload->setToolTip("Reload  (⌘R)");
-    newTabAction->setToolTip("New Tab  (⌘T)");
-    settings->setToolTip("Settings");
-
-    back->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_BracketLeft));
-    forward->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_BracketRight));
-
-    auto *mb = new QMenuBar(nullptr);
-    mb->addMenu("File")->addAction(newTabAction);
-    mb->addMenu("Settings")->addAction(settings);
-
-    connect(back, &QAction::triggered, this, [this] { if (auto *view = currentView()) view->back(); });
-    connect(forward, &QAction::triggered, this, [this] { if (auto *view = currentView()) view->forward(); });
-    connect(reload, &QAction::triggered, this, [this] { if (auto *view = currentView()) view->reload(); });
     auto openBlankTabWithOmnibox = [this] {
-        m_tabTree->newTab(QUrl("about:blank"));  // skip the homepage path; we override below.
+        m_tabTree->newTab(QUrl("about:blank"));
         if (auto *view = currentView()) {
             const QString bg = m_theme.background.name();
             view->loadHtml(QStringLiteral(
@@ -545,14 +525,7 @@ void BrowserWindow::setupActions() {
         }
         m_floatingOmnibox->showFor(m_stack, QString());
     };
-    connect(newTabAction, &QAction::triggered, this, openBlankTabWithOmnibox);
-    connect(closeTab, &QAction::triggered, this, [this] { m_tabTree->closeCurrent(); });
-    connect(settings, &QAction::triggered, this, &BrowserWindow::showSettings);
-
-    new QShortcut(QKeySequence::AddTab, this, openBlankTabWithOmnibox);
-    new QShortcut(QKeySequence::Close, this, [this] { m_tabTree->closeCurrent(); });
-    new QShortcut(QKeySequence::Refresh, this, [this] { if (auto *view = currentView()) view->reload(); });
-    new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_L), this, [this] {
+    auto focusOmnibox = [this] {
         QString current;
         if (auto *view = currentView()) {
             const QUrl u = view->url();
@@ -560,17 +533,13 @@ void BrowserWindow::setupActions() {
             if (!s.isEmpty() && s != "about:blank" && !s.startsWith("data:")) current = s;
         }
         m_floatingOmnibox->showFor(m_stack, current);
-    });
+    };
     auto toggleSidebar = [this] {
         auto *side = m_splitter->widget(0);
         if (!side) return;
         const bool nowVisible = !side->isVisible();
         m_sidebar->setHidden(!nowVisible);
         if (nowVisible) {
-            // Drag-collapse leaves the sidebar with size 0 in the splitter;
-            // restore the persisted (or default) width on re-open. Defer to
-            // the next event loop turn so the splitter has re-included the
-            // widget after setVisible(true) before we resize it.
             QTimer::singleShot(0, this, [this, side] {
                 const int saved = QSettings().value("ui/sidebarWidth", 240).toInt();
                 const int target = qBound(side->minimumWidth(), saved, side->maximumWidth());
@@ -579,13 +548,175 @@ void BrowserWindow::setupActions() {
             });
         }
     };
-    auto *toggleSidebarAction = new QAction("Toggle Sidebar", this);
-    toggleSidebarAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_B));
+
+    auto makeAction = [this](const QString &text, const QKeySequence &shortcut,
+                             std::function<void()> slot,
+                             QAction::MenuRole role = QAction::NoRole) {
+        auto *a = new QAction(text, this);
+        if (!shortcut.isEmpty()) a->setShortcut(shortcut);
+        a->setMenuRole(role);
+        if (slot) connect(a, &QAction::triggered, this, std::move(slot));
+        return a;
+    };
+
+    // Edit menu items forward to the AppKit first responder so native
+    // NSText fields (and WKWebView) handle them.
+    auto fwd = [](const char *sel) {
+        return [sel] { mac::sendStandardEditAction(sel); };
+    };
+
+    auto *mb = new QMenuBar(nullptr);
+
+    // ── App menu (auto: "pocb") ─────────────────────────────────────────
+    auto *aboutAction = makeAction("About pocb", {}, [] { QApplication::aboutQt(); }, QAction::AboutRole);
+    auto *prefsAction = makeAction("Settings…", QKeySequence(Qt::CTRL | Qt::Key_Comma),
+                                   [this] { showSettings(); }, QAction::PreferencesRole);
+    auto *quitAction  = makeAction("Quit pocb", QKeySequence(Qt::CTRL | Qt::Key_Q),
+                                   [] { QApplication::quit(); }, QAction::QuitRole);
+
+    // ── File ────────────────────────────────────────────────────────────
+    auto *fileMenu = mb->addMenu("File");
+    fileMenu->addAction(makeAction("New Tab", QKeySequence(Qt::CTRL | Qt::Key_T), openBlankTabWithOmnibox));
+    fileMenu->addAction(makeAction("New Window", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N),
+                                   [] { (new BrowserWindow())->show(); }));
+    fileMenu->addSeparator();
+    fileMenu->addAction(makeAction("Close Tab", QKeySequence(Qt::CTRL | Qt::Key_W),
+                                   [this] { m_tabTree->closeCurrent(); }));
+    fileMenu->addAction(makeAction("Close Window", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_W),
+                                   [this] { close(); }));
+    fileMenu->addSeparator();
+    fileMenu->addAction(makeAction("Open Location…", QKeySequence(Qt::CTRL | Qt::Key_L), focusOmnibox));
+
+    // ── Edit ────────────────────────────────────────────────────────────
+    auto *editMenu = mb->addMenu("Edit");
+    editMenu->addAction(makeAction("Undo", QKeySequence(Qt::CTRL | Qt::Key_Z), fwd("undo:")));
+    editMenu->addAction(makeAction("Redo", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Z), fwd("redo:")));
+    editMenu->addSeparator();
+    editMenu->addAction(makeAction("Cut",   QKeySequence(Qt::CTRL | Qt::Key_X), fwd("cut:"),       QAction::TextHeuristicRole));
+    editMenu->addAction(makeAction("Copy",  QKeySequence(Qt::CTRL | Qt::Key_C), fwd("copy:"),      QAction::TextHeuristicRole));
+    editMenu->addAction(makeAction("Paste", QKeySequence(Qt::CTRL | Qt::Key_V), fwd("paste:"),     QAction::TextHeuristicRole));
+    editMenu->addAction(makeAction("Select All", QKeySequence(Qt::CTRL | Qt::Key_A), fwd("selectAll:"), QAction::TextHeuristicRole));
+    editMenu->addSeparator();
+    editMenu->addAction(makeAction("Copy Current URL", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C),
+                                   [this] {
+                                       if (auto *v = currentView())
+                                           QApplication::clipboard()->setText(v->url().toString());
+                                   }));
+
+    // ── View ────────────────────────────────────────────────────────────
+    auto *viewMenu = mb->addMenu("View");
+    viewMenu->addAction(makeAction("Reload", QKeySequence(Qt::CTRL | Qt::Key_R),
+                                   [this] { if (auto *v = currentView()) v->reload(); }));
+    viewMenu->addAction(makeAction("Force Reload", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R),
+                                   [this] { if (auto *v = currentView()) v->reload(); }));
+    viewMenu->addSeparator();
+    auto *toggleSidebarAction = makeAction("Toggle Sidebar", QKeySequence(Qt::CTRL | Qt::Key_B), toggleSidebar);
     toggleSidebarAction->setShortcutContext(Qt::ApplicationShortcut);
-    toggleSidebarAction->setMenuRole(QAction::NoRole);
-    connect(toggleSidebarAction, &QAction::triggered, this, toggleSidebar);
     addAction(toggleSidebarAction);
-    mb->addMenu("View")->addAction(toggleSidebarAction);
+    viewMenu->addAction(toggleSidebarAction);
+    viewMenu->addSeparator();
+    viewMenu->addAction(makeAction("Enter Full Screen",
+                                   QKeySequence(Qt::CTRL | Qt::META | Qt::Key_F),
+                                   [this] {
+                                       if (isFullScreen()) showNormal();
+                                       else showFullScreen();
+                                   }));
+
+    // ── Tabs ────────────────────────────────────────────────────────────
+    auto *tabsMenu = mb->addMenu("Tabs");
+    tabsMenu->addAction(makeAction("New Tab", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_T),
+                                   openBlankTabWithOmnibox));
+    tabsMenu->addAction(makeAction("Close Tab", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_K),
+                                   [this] { m_tabTree->closeCurrent(); }));
+    tabsMenu->addSeparator();
+    auto navTab = [this](int dir) {
+        auto *tree = m_tabTree->widget();
+        if (!tree) return;
+        auto *cur = m_tabTree->currentItem();
+        if (!cur) return;
+        QTreeWidgetItem *next = (dir > 0) ? tree->itemBelow(cur) : tree->itemAbove(cur);
+        if (!next) {
+            const int n = tree->topLevelItemCount();
+            if (n == 0) return;
+            next = tree->topLevelItem(dir > 0 ? 0 : n - 1);
+        }
+        if (next) tree->setCurrentItem(next);
+    };
+    tabsMenu->addAction(makeAction("Select Next Tab",
+                                   QKeySequence(Qt::CTRL | Qt::Key_Tab),
+                                   [navTab] { navTab(+1); }));
+    tabsMenu->addAction(makeAction("Select Previous Tab",
+                                   QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Tab),
+                                   [navTab] { navTab(-1); }));
+
+    // ── Bookmarks (placeholders — bookmark store not yet implemented) ──
+    auto *bookmarksMenu = mb->addMenu("Bookmarks");
+    auto *bookmarkPage = makeAction("Bookmark This Page…", QKeySequence(Qt::CTRL | Qt::Key_D), nullptr);
+    bookmarkPage->setEnabled(false);
+    bookmarksMenu->addAction(bookmarkPage);
+    auto *showBookmarks = makeAction("Show All Bookmarks",
+                                     QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_B), nullptr);
+    showBookmarks->setEnabled(false);
+    bookmarksMenu->addAction(showBookmarks);
+
+    // ── History ────────────────────────────────────────────────────────
+    auto *historyMenu = mb->addMenu("History");
+    historyMenu->addAction(makeAction("Back", QKeySequence(Qt::CTRL | Qt::Key_BracketLeft),
+                                      [this] { if (auto *v = currentView()) v->back(); }));
+    historyMenu->addAction(makeAction("Forward", QKeySequence(Qt::CTRL | Qt::Key_BracketRight),
+                                      [this] { if (auto *v = currentView()) v->forward(); }));
+    historyMenu->addSeparator();
+    historyMenu->addAction(makeAction("Home", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_H),
+                                      [this] { if (auto *v = currentView()) v->load(QUrl(m_homePage)); }));
+    historyMenu->addSeparator();
+    auto *showHistory = makeAction("Show All History",
+                                   QKeySequence(Qt::CTRL | Qt::Key_Y), nullptr);
+    showHistory->setEnabled(false);
+    historyMenu->addAction(showHistory);
+
+    // ── Profiles ───────────────────────────────────────────────────────
+    auto *profilesMenu = mb->addMenu("Profiles");
+    auto rebuildProfilesMenu = [this, profilesMenu] {
+        profilesMenu->clear();
+        const QStringList list = m_profiles.profiles();
+        for (const QString &name : list) {
+            auto *a = profilesMenu->addAction(name);
+            a->setCheckable(true);
+            connect(a, &QAction::triggered, this, [this, name] { m_profiles.setCurrentProfile(name); });
+        }
+        if (!list.isEmpty()) profilesMenu->addSeparator();
+        auto *manage = profilesMenu->addAction("Manage Profiles…");
+        manage->setMenuRole(QAction::NoRole);
+        connect(manage, &QAction::triggered, this, &BrowserWindow::showSettings);
+    };
+    rebuildProfilesMenu();
+    connect(&m_profiles, &ProfileStore::currentProfileChanged, this, [rebuildProfilesMenu] {
+        rebuildProfilesMenu();
+    });
+
+    // ── Window ─────────────────────────────────────────────────────────
+    auto *windowMenu = mb->addMenu("Window");
+    windowMenu->addAction(makeAction("Minimize", QKeySequence(Qt::CTRL | Qt::Key_M),
+                                     [this] { showMinimized(); }));
+    windowMenu->addAction(makeAction("Zoom", {}, [this] {
+        if (isMaximized()) showNormal(); else showMaximized();
+    }));
+    windowMenu->addSeparator();
+    windowMenu->addAction(makeAction("Bring All to Front", {}, [] {
+        const auto windows = QApplication::topLevelWidgets();
+        for (auto *w : windows) if (w->isWindow() && w->isVisible()) w->raise();
+    }));
+
+    // ── Help ───────────────────────────────────────────────────────────
+    auto *helpMenu = mb->addMenu("Help");
+    helpMenu->addAction(makeAction("pocb Help", {}, [] {
+        QDesktopServices::openUrl(QUrl("https://github.com/plyght/pocb"));
+    }));
+
+    // App-menu items (Qt re-homes these via menuRole on macOS).
+    helpMenu->addAction(aboutAction);
+    fileMenu->addAction(prefsAction);
+    fileMenu->addAction(quitAction);
 }
 
 
