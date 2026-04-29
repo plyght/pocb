@@ -15,7 +15,6 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/nicojaffer/pocb/src/mac/LayerCorners.mm" "CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o" "gcc" "CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o.d"
   "/Users/nicojaffer/pocb/src/mac/MacInternal.mm" "CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o" "gcc" "CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o.d"
   "/Users/nicojaffer/pocb/src/mac/SfSymbols.mm" "CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o" "gcc" "CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o.d"
-  "/Users/nicojaffer/pocb/src/mac/TrafficLights.mm" "CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o" "gcc" "CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o.d"
   "/Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm" "CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o" "gcc" "CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o.d"
   "/Users/nicojaffer/pocb/src/mac/Vibrancy.mm" "CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o" "gcc" "CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o.d"
   "/Users/nicojaffer/pocb/src/main.cpp" "CMakeFiles/pocb.dir/src/main.cpp.o" "gcc" "CMakeFiles/pocb.dir/src/main.cpp.o.d"

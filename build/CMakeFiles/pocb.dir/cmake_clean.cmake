@@ -16,8 +16,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o.d"
   "CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o"
   "CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o.d"
-  "CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o"
-  "CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o.d"
   "CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o"
   "CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o.d"
   "CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o"

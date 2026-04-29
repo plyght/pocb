@@ -11,316 +11,396 @@
 #include <QWidget>
 
 // =============================================================================
-// Traffic-light positioning + sizing.
+// Traffic-light positioning + sizing — iTerm2-style reparent approach.
 //
-// Strategy: override private button-origin getters on _NSThemeFrame so AppKit
-// places the buttons where we want during its own layout pass — no flicker,
-// no fight loop, no after-the-fact correction. Hover (_mouseInGroup:) and
-// per-cell sizing are handled the same way.
+// Why this path: on macOS 26 (Tahoe) the live traffic-light buttons in the
+// theme frame are governed by AppKit private layout that hardcodes
+// mini.x = close.x + 23 and resists external setFrame calls. The only way
+// to get arbitrary spacing AND arbitrary size with a non-flickery, native-
+// looking result is the iTerm2 / Chrome / Brave path:
 //
-// Key safety constraint discovered the hard way: do NOT use object_setClass
-// to per-instance subclass _NSThemeFrame. AppKit's NSDerivedProperty
-// machinery (used heavily by WKWebView's corner-radii KVO and by titlebar
-// internals) caches values keyed by Class identity and asserts when it sees
-// a class it doesn't recognise. Per-instance subclassing the theme frame
-// crashes inside _NSDP_getComputedPropertyValue → __assert_rtn → SIGABRT.
+//   1. Use +[NSWindow standardWindowButton:forStyleMask:] (the CLASS method)
+//      to create FRESH NSButton instances with the same cell classes the
+//      system uses (_NSThemeCloseWidgetCell, _NSThemeWidgetCell,
+//      _NSThemeZoomWidgetCell). These are not the live theme-frame buttons,
+//      so AppKit's titlebar layout doesn't touch them.
+//   2. Add the fresh buttons to a custom container view we own, positioned
+//      where we want.
+//   3. Hide the originals via -[NSWindow standardWindowButton:].hidden = YES.
+//   4. Wire close/min/zoom targets back to the window. Zoom needs special
+//      handling because option-click-zoom checks _lastLeftHit against the
+//      *original* zoom button — so option+click triggers toggleFullScreen
+//      explicitly to avoid the broken path. (Same as iTerm2.)
+//   5. Tracking area + _mouseInGroup: + the Tahoe mouseEnteredOrExited /
+//      startMonitoringFlagsChanged pokes — so glyphs appear/disappear and
+//      Option-key swap (zoom→maximize) works.
 //
-// Instead: swizzle methods directly on the real class via
-// method_setImplementation. Class identity is preserved, NSDP is happy.
-// Each override gates on an associated-object marker so we only affect our
-// windows; other windows in the process see the original behaviour.
+// Safety: NO method swizzles. NO class swaps. NO theme-frame interference.
+// We only touch the fresh buttons we created, plus hide the originals.
 // =============================================================================
 
-static char kPocbWindowEnabledKey;
-static char kPocbCellEnabledKey;
-static char kPocbTrackerKey;
+static char kPocbContainerKey;
+static char kPocbQMainWindowKey;
 
-@interface PocbHoverTracker : NSObject {
-@public
-    __weak NSWindow *window;
-    NSTrackingArea  *area;
-}
-@end
-@implementation PocbHoverTracker
-// macOS 26 (Tahoe) requires poking these private _NSThemeWidget methods on
-// each traffic-light button when the mouse enters/exits the group rect.
-// Otherwise glyphs get stuck on / refuse to appear. (iTerm2 commit 9af0242,
-// Nov 2025.)
-- (void)pokeButtons:(BOOL)entered {
-    NSWindow *w = window;
-    if (!w) return;
-    NSWindowButton kinds[3] = { NSWindowCloseButton, NSWindowMiniaturizeButton, NSWindowZoomButton };
-    SEL sMouse = sel_registerName("mouseEnteredOrExited");
-    SEL sStart = sel_registerName("startMonitoringFlagsChanged");
-    SEL sStop  = sel_registerName("stopMonitoringFlagsChanged");
-    for (int i = 0; i < 3; ++i) {
-        NSButton *b = [w standardWindowButton:kinds[i]];
-        if (!b) continue;
-        if ([b respondsToSelector:sMouse]) {
-            ((void (*)(id, SEL))objc_msgSend)(b, sMouse);
-        }
-        SEL flag = entered ? sStart : sStop;
-        if ([b respondsToSelector:flag]) {
-            ((void (*)(id, SEL))objc_msgSend)(b, flag);
-        }
-        [b setNeedsDisplay:YES];
-    }
-}
-- (void)mouseEntered:(NSEvent *)e { (void)e; [self pokeButtons:YES]; }
-- (void)mouseExited:(NSEvent *)e  { (void)e; [self pokeButtons:NO];  }
-
-// iTerm2 pattern: force a redraw of the button cells when app/window focus
-// state changes, so the buttons properly grey-out on resign and re-colour on
-// become-key. Without this, AppKit's stock path can miss the redraw when
-// the cells live behind our swizzles.
-- (void)focusChanged {
-    NSWindow *w = window;
-    if (!w) return;
-    NSWindowButton kinds[3] = { NSWindowCloseButton, NSWindowMiniaturizeButton, NSWindowZoomButton };
-    for (int i = 0; i < 3; ++i) {
-        [[w standardWindowButton:kinds[i]] setNeedsDisplay:YES];
-    }
-}
-@end
-
-// Tunables — read by the swizzled methods.
-static CGFloat g_originX        = 20.0;
-static CGFloat g_originY_topPad = 18.0;
-static CGFloat g_spacing        = 26.0;
-static CGFloat g_buttonW        = 16.0;
-static CGFloat g_buttonH        = 16.0;
-
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
-
-static BOOL pocb_themeframe_enabled(NSView *tf) {
-    return tf && tf.window &&
-           objc_getAssociatedObject(tf.window, &kPocbWindowEnabledKey) != nil;
-}
-
-static NSPoint pocb_button_origin(NSView *tf, NSInteger idx) {
-    const CGFloat fh = NSHeight(tf.frame);
-    const CGFloat x  = g_originX + (CGFloat)idx * g_spacing;
-    const CGFloat y  = tf.isFlipped
-                           ? g_originY_topPad
-                           : (fh - g_originY_topPad - g_buttonH);
-    return NSMakePoint(x, y);
-}
-
-static NSRect pocb_button_group_rect(NSView *tf) {
-    const CGFloat fh = NSHeight(tf.frame);
-    // Group rect = exactly the buttons' total span, no padding (matches
-    // iTerm2's iTermStandardWindowButtonsView.bounds — native feel).
-    const CGFloat groupW = 2.0 * g_spacing + g_buttonW;
-    const CGFloat x = g_originX;
-    const CGFloat y = tf.isFlipped
-                          ? g_originY_topPad
-                          : (fh - g_originY_topPad - g_buttonH);
-    return NSMakeRect(x, y, groupW, g_buttonH);
-}
-
-// -----------------------------------------------------------------------------
-// Theme-frame method swizzles (class-level, gated per-window)
-// -----------------------------------------------------------------------------
-
-typedef NSPoint (*PocbPointIMP)(id, SEL);
-typedef BOOL    (*PocbMouseInGroupIMP)(id, SEL, NSButton *);
-
-struct OriginHook {
-    SEL          sel;
-    NSInteger    btnIdx;
-    PocbPointIMP orig;
-    IMP          replacement;
-};
-
-static OriginHook g_origin_hooks[12];   // up to 12 candidate selectors
-static int        g_origin_hook_count = 0;
-static PocbMouseInGroupIMP g_orig_mouseInGroup = NULL;
-static BOOL g_themeframe_swizzled = NO;
-
-// Generic dispatcher: looks up which slot we are by SEL, runs ours if
-// enabled, otherwise calls cached original.
-static NSPoint pocb_origin_dispatch(id self, SEL _cmd, NSInteger idx) {
-    NSView *tf = (NSView *)self;
-    if (pocb_themeframe_enabled(tf)) {
-        return pocb_button_origin(tf, idx);
-    }
-    for (int i = 0; i < g_origin_hook_count; ++i) {
-        if (g_origin_hooks[i].sel == _cmd && g_origin_hooks[i].orig) {
-            return g_origin_hooks[i].orig(self, _cmd);
-        }
-    }
-    return NSZeroPoint;
-}
-
-static NSPoint pocb_origin_close(id self, SEL _cmd) { return pocb_origin_dispatch(self, _cmd, 0); }
-static NSPoint pocb_origin_min  (id self, SEL _cmd) { return pocb_origin_dispatch(self, _cmd, 1); }
-static NSPoint pocb_origin_zoom (id self, SEL _cmd) { return pocb_origin_dispatch(self, _cmd, 2); }
-
-static BOOL pocb_themeframe_mouseInGroup(id self, SEL _cmd, NSButton *button) {
-    NSView *tf = (NSView *)self;
-    if (pocb_themeframe_enabled(tf)) {
-        NSPoint mouseInWindow = [tf.window mouseLocationOutsideOfEventStream];
-        NSPoint local = [tf convertPoint:mouseInWindow fromView:nil];
-        if (NSPointInRect(local, pocb_button_group_rect(tf))) return YES;
-    }
-    if (g_orig_mouseInGroup) return g_orig_mouseInGroup(self, _cmd, button);
-    return NO;
-}
-
-static void swizzleThemeFrameOnce(NSView *themeFrame) {
-    if (g_themeframe_swizzled) return;
-    Class cls = object_getClass(themeFrame);
-    NSLog(@"[pocb-tl] themeFrame class: %@", NSStringFromClass(cls));
-
-    struct { const char *name; NSInteger idx; IMP repl; } cands[] = {
-        { "_closeButtonOrigin",          0, (IMP)pocb_origin_close },
-        { "_minimizeButtonOrigin",       1, (IMP)pocb_origin_min   },
-        { "_zoomButtonOrigin",           2, (IMP)pocb_origin_zoom  },
-        { "_closeButtonOriginInRect:",   0, (IMP)pocb_origin_close },
-        { "_minimizeButtonOriginInRect:",1, (IMP)pocb_origin_min   },
-        { "_zoomButtonOriginInRect:",    2, (IMP)pocb_origin_zoom  },
-    };
-    for (size_t i = 0; i < sizeof(cands)/sizeof(cands[0]); ++i) {
-        SEL s = sel_registerName(cands[i].name);
-        Method m = class_getInstanceMethod(cls, s);
-        if (!m) continue;
-        IMP orig = method_setImplementation(m, cands[i].repl);
-        g_origin_hooks[g_origin_hook_count++] = (OriginHook){
-            s, cands[i].idx, (PocbPointIMP)orig, cands[i].repl
-        };
-        NSLog(@"[pocb-tl] swizzled %s on %@", cands[i].name, NSStringFromClass(cls));
-    }
-
-    SEL mig = @selector(_mouseInGroup:);
-    Method mm = class_getInstanceMethod(cls, mig);
-    if (mm) {
-        g_orig_mouseInGroup = (PocbMouseInGroupIMP)method_setImplementation(mm, (IMP)pocb_themeframe_mouseInGroup);
-        NSLog(@"[pocb-tl] swizzled _mouseInGroup: on %@", NSStringFromClass(cls));
-    }
-
-    NSLog(@"[pocb-tl] themeFrame swizzle: %d origin getters hooked", g_origin_hook_count);
-    g_themeframe_swizzled = YES;
-}
-
-// -----------------------------------------------------------------------------
-// Cell size swizzle (class-level, gated per-cell)
-// -----------------------------------------------------------------------------
-
+// Cell-size swizzle: _NSThemeCloseWidgetCell inherits -cellSize from
+// _NSThemeWidgetCell, so class_getInstanceMethod(closeCell, cellSize) and
+// class_getInstanceMethod(widgetCell, cellSize) return the *same* Method*.
+// Swizzling twice with method_setImplementation stores our IMP as "orig" the
+// second time → infinite recursion (seen when miniaturize: allocates a new
+// widget and calls -sizeToFit → -cellSize). Fix: swizzle each unique Method*
+// exactly once and always forward to the IMP we captured on first install.
 typedef NSSize (*PocbCellSizeIMP)(id, SEL);
-struct CellHook {
-    Class           cls;
-    PocbCellSizeIMP orig;
-};
-static CellHook g_cell_hooks[8];
-static int      g_cell_hook_count = 0;
+static char kPocbCellOnKey;
 
-static PocbCellSizeIMP pocb_find_cell_orig(Class c) {
-    for (int i = 0; i < g_cell_hook_count; ++i) {
-        if (g_cell_hooks[i].cls == c) return g_cell_hooks[i].orig;
-    }
-    return NULL;
-}
+// Key: Method* as opaque pointer. Value: NSNumber wrapping uint64_t of orig IMP.
+static NSMutableDictionary<NSValue *, NSValue *> *g_cellSizeOrigIMPByMethod;
+
+extern CGFloat g_buttonWH;
 
 static NSSize pocb_cell_size(id self, SEL _cmd) {
     NSCell *cell = (NSCell *)self;
-    if (objc_getAssociatedObject(cell, &kPocbCellEnabledKey) != nil) {
-        return NSMakeSize(g_buttonW, g_buttonH);
+    if (objc_getAssociatedObject(cell, &kPocbCellOnKey)) {
+        return NSMakeSize(g_buttonWH, g_buttonWH);
     }
-    PocbCellSizeIMP orig = pocb_find_cell_orig(object_getClass(cell));
-    if (orig) return orig(self, _cmd);
-    return NSMakeSize(14, 14);
+    Method m = class_getInstanceMethod(object_getClass((id)cell), _cmd);
+    if (!m) return NSMakeSize(14, 14);
+    NSValue *mKey = [NSValue valueWithPointer:m];
+    NSValue *origBox = g_cellSizeOrigIMPByMethod[mKey];
+    if (!origBox) {
+        PocbCellSizeIMP imp = (PocbCellSizeIMP)method_getImplementation(m);
+        return imp(cell, _cmd);
+    }
+    PocbCellSizeIMP orig = (PocbCellSizeIMP)origBox.pointerValue;
+    return orig(cell, _cmd);
 }
 
-static void swizzleCellClassOnce(Class cls) {
+static void pocb_swizzle_cell_size_if_needed(Class cls) {
     if (!cls) return;
-    for (int i = 0; i < g_cell_hook_count; ++i) {
-        if (g_cell_hooks[i].cls == cls) return;
-    }
     Method m = class_getInstanceMethod(cls, @selector(cellSize));
     if (!m) return;
-    IMP orig = method_setImplementation(m, (IMP)pocb_cell_size);
-    g_cell_hooks[g_cell_hook_count++] = (CellHook){ cls, (PocbCellSizeIMP)orig };
-    NSLog(@"[pocb-tl] swizzled -cellSize on %@", NSStringFromClass(cls));
+    NSValue *mKey = [NSValue valueWithPointer:m];
+    if (g_cellSizeOrigIMPByMethod[mKey]) return;
+
+    if (!g_cellSizeOrigIMPByMethod)
+        g_cellSizeOrigIMPByMethod = [NSMutableDictionary dictionary];
+    IMP realOrig = method_getImplementation(m);
+    g_cellSizeOrigIMPByMethod[mKey] = [NSValue valueWithPointer:(void *)realOrig];
+    method_setImplementation(m, (IMP)pocb_cell_size);
+    NSLog(@"[pocb-tl] swizzled cellSize once for Method %p (class query %@)",
+          m, NSStringFromClass(cls));
 }
 
-static void enableCell(NSButton *btn) {
+static void pocb_enable_cell(NSButton *btn) {
     if (!btn) return;
-    NSCell *cell = btn.cell;
-    if (!cell) return;
-    swizzleCellClassOnce(object_getClass(cell));
-    objc_setAssociatedObject(cell, &kPocbCellEnabledKey, @YES, OBJC_ASSOCIATION_RETAIN);
+    NSCell *c = btn.cell;
+    if (!c) return;
+    pocb_swizzle_cell_size_if_needed(object_getClass(c));
+    objc_setAssociatedObject(c, &kPocbCellOnKey, @YES, OBJC_ASSOCIATION_RETAIN);
 }
 
-// -----------------------------------------------------------------------------
+// AppKit restores the live titlebar buttons after fullscreen transitions;
+// keep them visually hidden (alpha only — see comment in apply()).
+static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
+    if (!nsw) return;
+    [[nsw standardWindowButton:NSWindowCloseButton]       setAlphaValue:0.0];
+    [[nsw standardWindowButton:NSWindowMiniaturizeButton] setAlphaValue:0.0];
+    [[nsw standardWindowButton:NSWindowZoomButton]        setAlphaValue:0.0];
+}
+
+@interface PocbWindowButtonsView : NSView
+- (instancetype)initWithButtons:(NSArray<NSButton *> *)buttons
+                         window:(NSWindow *)window
+                       buttonWH:(CGFloat)wh
+                        spacing:(CGFloat)spacing;
+- (void)layoutButtons;
+@end
+
+@implementation PocbWindowButtonsView {
+    NSArray<NSButton *> *_buttons;
+    __weak NSWindow     *_window;
+    NSTrackingArea      *_trackingArea;
+    BOOL                 _mouseInGroup;
+    CGFloat              _buttonWH;
+    CGFloat              _spacing;
+}
+
+- (instancetype)initWithButtons:(NSArray<NSButton *> *)buttons
+                         window:(NSWindow *)window
+                       buttonWH:(CGFloat)wh
+                        spacing:(CGFloat)spacing {
+    const CGFloat w = (CGFloat)(buttons.count > 0 ? buttons.count - 1 : 0) * spacing + wh;
+    self = [super initWithFrame:NSMakeRect(0, 0, w, wh)];
+    if (!self) return nil;
+    _buttons = buttons;
+    _window  = window;
+    _buttonWH = wh;
+    _spacing = spacing;
+    // No wantsLayer — can interfere with AppKit hit-testing in edge cases.
+    for (NSButton *b in buttons) {
+        [self addSubview:b];
+    }
+    [self layoutButtons];
+
+    // Factory actions are private (_close:, _setNeedsZoom:) and on Tahoe they
+    // often verify sender == [window standardWindowButton:…]. Our fresh
+    // buttons fail that check, so clicks are swallowed. iTerm2 routes zoom
+    // through the container; we route all three through public NSWindow APIs.
+    if (buttons.count >= 3) {
+        NSButton *close = buttons[0];
+        NSButton *mini  = buttons[1];
+        NSButton *zoom  = buttons[2];
+        close.target = self; close.action = @selector(pocbClose:);
+        mini.target  = self; mini.action  = @selector(pocbMini:);
+        zoom.target  = self; zoom.action  = @selector(pocbZoom:);
+    }
+
+    NSNotificationCenter *nc = NSNotificationCenter.defaultCenter;
+    for (NSNotificationName n in @[ NSApplicationDidBecomeActiveNotification,
+                                    NSApplicationDidResignActiveNotification,
+                                    NSWindowDidBecomeKeyNotification,
+                                    NSWindowDidResignKeyNotification ]) {
+        [nc addObserver:self selector:@selector(redraw) name:n object:nil];
+    }
+    [nc addObserver:self selector:@selector(windowResized:)
+               name:NSWindowDidResizeNotification object:window];
+    for (NSNotificationName n in @[ NSWindowDidExitFullScreenNotification,
+                                    NSWindowDidEnterFullScreenNotification ]) {
+        [nc addObserver:self selector:@selector(windowFullScreenTransition:)
+                   name:n object:window];
+    }
+    return self;
+}
+
+- (void)dealloc {
+    [NSNotificationCenter.defaultCenter removeObserver:self];
+}
+
+- (void)layoutButtons {
+    NSInteger i = 0;
+    for (NSButton *b in _buttons) {
+        b.frame = NSMakeRect((CGFloat)i * _spacing, 0, _buttonWH, _buttonWH);
+        i++;
+    }
+}
+
+- (void)redraw {
+    for (NSView *sub in self.subviews) [sub setNeedsDisplay:YES];
+}
+
+- (void)windowResized:(NSNotification *)n {
+    (void)n;
+    NSWindow *w = _window;
+    if (!w) return;
+    NSView *cv = w.contentView;
+    extern CGFloat g_originY_topPad;
+    NSRect f = self.frame;
+    f.origin.y = cv.isFlipped ? g_originY_topPad
+                              : (NSHeight(cv.frame) - g_originY_topPad - _buttonWH);
+    self.frame = f;
+}
+
+- (void)windowFullScreenTransition:(NSNotification *)n {
+    (void)n;
+    NSWindow *w = _window;
+    if (!w) return;
+    pocb_hide_native_traffic_lights(w);
+    NSView *cv = w.contentView;
+    if (!cv) return;
+    [cv addSubview:self positioned:NSWindowAbove relativeTo:nil];
+    extern CGFloat g_originY_topPad;
+    NSRect f = self.frame;
+    f.origin.y = cv.isFlipped ? g_originY_topPad
+                              : (NSHeight(cv.frame) - g_originY_topPad - _buttonWH);
+    self.frame = f;
+}
+
+// AppKit asks the buttons' superview whether the mouse is in the button
+// group, to decide whether to draw the colored glyphs.
+- (BOOL)_mouseInGroup:(NSButton *)button {
+    (void)button;
+    return _mouseInGroup;
+}
+
+- (NSView *)hitTest:(NSPoint)point {
+    if (self.alphaValue == 0) return nil;
+    NSView *v = [super hitTest:point];
+    return (v == self) ? nil : v;  // pass-through outside buttons
+}
+
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+    if (_trackingArea) {
+        [self removeTrackingArea:_trackingArea];
+        _trackingArea = nil;
+    }
+    // Match iTerm2 iTermStandardWindowButtonsView — no InVisibleRect.
+    _trackingArea = [[NSTrackingArea alloc]
+                         initWithRect:self.bounds
+                              options:(NSTrackingMouseEnteredAndExited |
+                                       NSTrackingActiveAlways)
+                                owner:self
+                             userInfo:nil];
+    [self addTrackingArea:_trackingArea];
+}
+
+- (void)setShowIcons:(BOOL)v {
+    if (_mouseInGroup == v) return;
+    _mouseInGroup = v;
+    [self redraw];
+}
+
+- (void)pokeTahoe:(BOOL)entered {
+    SEL sMouse = sel_registerName("mouseEnteredOrExited");
+    SEL sStart = sel_registerName("startMonitoringFlagsChanged");
+    SEL sStop  = sel_registerName("stopMonitoringFlagsChanged");
+    for (NSButton *b in _buttons) {
+        if ([b respondsToSelector:sMouse]) ((void(*)(id,SEL))objc_msgSend)(b, sMouse);
+        SEL flag = entered ? sStart : sStop;
+        if ([b respondsToSelector:flag]) ((void(*)(id,SEL))objc_msgSend)(b, flag);
+    }
+}
+
+- (void)mouseEntered:(NSEvent *)e {
+    [super mouseEntered:e];
+    [self setShowIcons:YES];
+    [self pokeTahoe:YES];
+}
+
+- (void)mouseExited:(NSEvent *)e {
+    [super mouseExited:e];
+    [self setShowIcons:NO];
+    [self pokeTahoe:NO];
+}
+
+- (void)pocbClose:(id)sender {
+    NSWindow *w = self.window;
+    if (!w) return;
+    // QNSWindow's performClose: often never reaches Qt — route through the
+    // QMainWindow so closeEvent / geometry save run.
+    NSValue *qv = objc_getAssociatedObject(w, &kPocbQMainWindowKey);
+    if (qv) {
+        QMainWindow *qm = static_cast<QMainWindow *>(qv.pointerValue);
+        if (qm) {
+            qm->close();
+            return;
+        }
+    }
+    [w performClose:sender];
+}
+
+- (void)pocbMini:(id)sender {
+    [self.window miniaturize:sender];
+}
+
+- (void)pocbZoom:(id)sender {
+    NSWindow *w = self.window;
+    if (!w) return;
+    // Match iTerm2: green = native fullscreen; Option+green = classic zoom
+    // (maximize / zoom rect), not the other way around.
+    if (([NSEvent modifierFlags] & NSEventModifierFlagOption) != 0) {
+        [w zoom:sender];
+    } else {
+        [w toggleFullScreen:sender];
+    }
+}
+
+@end
+
+// =============================================================================
 // Apply
-// -----------------------------------------------------------------------------
+// =============================================================================
+
+CGFloat g_originX        = 20.0;
+CGFloat g_originY_topPad = 14.0;
+CGFloat g_spacing        = 21.0;
+CGFloat g_buttonWH       = 24.0;
 
 static void apply(QMainWindow *win) {
     NSWindow *nsw = mac::internal::nsWindowOf(win);
     if (!nsw) return;
+
+    objc_setAssociatedObject(nsw, &kPocbQMainWindowKey,
+                             [NSValue valueWithPointer:(void *)win],
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
     nsw.titleVisibility = NSWindowTitleHidden;
     nsw.titlebarAppearsTransparent = YES;
     if (nsw.toolbar) nsw.toolbar = nil;
     nsw.styleMask |= NSWindowStyleMaskFullSizeContentView;
 
-    NSView *themeFrame = nsw.contentView.superview;
-    if (themeFrame) swizzleThemeFrameOnce(themeFrame);
+    // Hide the live traffic-light buttons in the theme frame. Their public
+    // accessors continue to function; only the visuals are suppressed.
+    // setHidden:YES on the live close/mini buttons propagates to our fresh
+    // copies on Tahoe (some shared state we can't see). Use alphaValue=0
+    // instead — purely visual, doesn't propagate. Buttons remain in their
+    // theme-frame hierarchy so AppKit's internal layout is undisturbed.
+    pocb_hide_native_traffic_lights(nsw);
 
-    objc_setAssociatedObject(nsw, &kPocbWindowEnabledKey, @YES, OBJC_ASSOCIATION_RETAIN);
+    PocbWindowButtonsView *container = objc_getAssociatedObject(nsw, &kPocbContainerKey);
+    if (!container) {
+        const NSUInteger sm = nsw.styleMask;
+        NSButton *close = [NSWindow standardWindowButton:NSWindowCloseButton       forStyleMask:sm];
+        NSButton *mini  = [NSWindow standardWindowButton:NSWindowMiniaturizeButton forStyleMask:sm];
+        NSButton *zoom  = [NSWindow standardWindowButton:NSWindowZoomButton        forStyleMask:sm];
+        NSLog(@"[pocb-tl] fresh: close=%@ mini=%@ zoom=%@", close, mini, zoom);
+        if (!close || !mini || !zoom) {
+            NSLog(@"[pocb-tl] standardWindowButton:forStyleMask: returned nil");
+            return;
+        }
+        // If the factory returned the LIVE (already-onscreen) buttons rather
+        // than fresh copies, hiding the natives later would also hide ours.
+        // Detect that and bail out so the user sees the originals instead of
+        // ghost-hidden ones.
+        NSButton *liveClose = [nsw standardWindowButton:NSWindowCloseButton];
+        NSLog(@"[pocb-tl] live close=%p, fresh close=%p (same? %d)",
+              (__bridge void *)liveClose, (__bridge void *)close, liveClose == close);
 
-    // Install / refresh a tracking area on the theme frame for the button
-    // group rect. On enter/exit we invalidate the buttons so AppKit re-runs
-    // the cell draw path (which calls our _mouseInGroup:), which fixes the
-    // "glyphs stuck on after mouse leaves" bug.
-    if (themeFrame) {
-        PocbHoverTracker *t = objc_getAssociatedObject(themeFrame, &kPocbTrackerKey);
-        if (!t) {
-            t = [[PocbHoverTracker alloc] init];
-            t->window = nsw;
-            objc_setAssociatedObject(themeFrame, &kPocbTrackerKey, t, OBJC_ASSOCIATION_RETAIN);
-            NSNotificationCenter *nc = NSNotificationCenter.defaultCenter;
-            for (NSNotificationName n in @[ NSApplicationDidBecomeActiveNotification,
-                                            NSApplicationDidResignActiveNotification,
-                                            NSWindowDidBecomeKeyNotification,
-                                            NSWindowDidResignKeyNotification ]) {
-                [nc addObserver:t selector:@selector(focusChanged) name:n object:nil];
-            }
-        }
-        if (t->area) {
-            [themeFrame removeTrackingArea:t->area];
-            t->area = nil;
-        }
-        NSRect r = pocb_button_group_rect(themeFrame);
-        t->area = [[NSTrackingArea alloc]
-                       initWithRect:r
-                            options:(NSTrackingMouseEnteredAndExited |
-                                     NSTrackingActiveAlways)
-                              owner:t
-                           userInfo:nil];
-        [themeFrame addTrackingArea:t->area];
+        pocb_enable_cell(close);
+        pocb_enable_cell(mini);
+        pocb_enable_cell(zoom);
+
+        container = [[PocbWindowButtonsView alloc]
+                         initWithButtons:@[ close, mini, zoom ]
+                                  window:nsw
+                                buttonWH:g_buttonWH
+                                 spacing:g_spacing];
+        // Anchor to top-left of the window's content view.
+        container.autoresizingMask = NSViewMaxXMargin | NSViewMinYMargin;
+        objc_setAssociatedObject(nsw, &kPocbContainerKey, container, OBJC_ASSOCIATION_RETAIN);
+
+        // Add as the topmost subview of the contentView. Because we use
+        // NSWindowStyleMaskFullSizeContentView, the contentView spans the
+        // entire window including the titlebar region.
+        [nsw.contentView addSubview:container
+                          positioned:NSWindowAbove
+                          relativeTo:nil];
     }
 
-    NSButton *close = [nsw standardWindowButton:NSWindowCloseButton];
-    NSButton *mini  = [nsw standardWindowButton:NSWindowMiniaturizeButton];
-    NSButton *zoom  = [nsw standardWindowButton:NSWindowZoomButton];
-    for (NSButton *b in @[ close ?: NSNull.null, mini ?: NSNull.null, zoom ?: NSNull.null ]) {
-        if (![b isKindOfClass:[NSButton class]]) continue;
-        enableCell(b);
-        NSRect f = b.frame;
-        f.size.width = g_buttonW; f.size.height = g_buttonH;
-        [b setFrame:f];
+    // Position the container in contentView coordinates: titlebar region
+    // is at the top of the contentView (full-size content view).
+    NSView *cv = nsw.contentView;
+    const CGFloat cvH = NSHeight(cv.frame);
+    const CGFloat w   = (CGFloat)container.subviews.count > 0
+                        ? (((CGFloat)container.subviews.count - 1.0) * g_spacing + g_buttonWH)
+                        : g_buttonWH;
+    NSRect cf;
+    cf.origin.x    = g_originX;
+    cf.origin.y    = cv.isFlipped ? g_originY_topPad
+                                  : (cvH - g_originY_topPad - g_buttonWH);
+    cf.size.width  = w;
+    cf.size.height = g_buttonWH;
+    container.frame = cf;
+    [container layoutButtons];
+    [container updateTrackingAreas];
+    // Qt may reorder contentView subviews during layout; stay above WebKit/Qt.
+    [cv addSubview:container positioned:NSWindowAbove relativeTo:nil];
+
+    NSLog(@"[pocb-tl] apply: container=%@ subviews=%lu",
+          NSStringFromRect(container.frame), (unsigned long)container.subviews.count);
+    for (NSView *s in container.subviews) {
+        NSLog(@"[pocb-tl]   sub: %@ frame=%@ hidden=%d alpha=%f",
+              NSStringFromClass([s class]), NSStringFromRect(s.frame), s.isHidden, s.alphaValue);
     }
-
-    [themeFrame setNeedsLayout:YES];
-    [themeFrame setNeedsDisplay:YES];
-
-    NSLog(@"[pocb-tl] apply: close=%@ mini=%@ zoom=%@",
-          NSStringFromRect(close.frame),
-          NSStringFromRect(mini.frame),
-          NSStringFromRect(zoom.frame));
 }
 
 #endif
@@ -334,14 +414,13 @@ void integrateUnifiedToolbar(QMainWindow *win, QWidget *toolbarRow, bool compact
 
     g_originX        = 20.0;
     g_originY_topPad = 14.0;
-    g_spacing        = 23.0;
-    g_buttonW        = 17.0;
-    g_buttonH        = 17.0;
+    g_spacing        = 21.0;
+    g_buttonWH       = 24.0;
 
     auto run = [win] { apply(win); };
     run();
-    QTimer::singleShot(0,   win, run);
-    QTimer::singleShot(50,  win, run);
+    QTimer::singleShot(0,  win, run);
+    QTimer::singleShot(50, win, run);
 #else
     (void)win; (void)toolbarRow; (void)compact;
 #endif
@@ -352,11 +431,37 @@ void refreshUnifiedToolbar(QWidget *window) {
     if (!window) return;
     NSWindow *nsw = mac::internal::nsWindowOf(window);
     if (!nsw) return;
-    NSView *themeFrame = nsw.contentView.superview;
-    [themeFrame setNeedsLayout:YES];
-    [themeFrame setNeedsDisplay:YES];
+    PocbWindowButtonsView *c = objc_getAssociatedObject(nsw, &kPocbContainerKey);
+    if (c) {
+        NSView *cv = nsw.contentView;
+        NSRect f = c.frame;
+        f.origin.y = cv.isFlipped ? g_originY_topPad
+                                  : (NSHeight(cv.frame) - g_originY_topPad - g_buttonWH);
+        c.frame = f;
+        [c setNeedsDisplay:YES];
+    }
 #else
     (void)window;
+#endif
+}
+
+void setTrafficLightsHidden(QWidget *window, bool hidden) {
+#ifdef __APPLE__
+    if (!window) return;
+    NSWindow *nsw = mac::internal::nsWindowOf(window);
+    if (!nsw) return;
+    // The visible controls live in PocbWindowButtonsView, not
+    // standardWindowButton: — toggling only the latter missed sidebar
+    // collapse. Never setHidden:YES on the live buttons (Tahoe propagates
+    // that to our copies); keep them alpha-hidden only.
+    pocb_hide_native_traffic_lights(nsw);
+    PocbWindowButtonsView *container =
+        objc_getAssociatedObject(nsw, &kPocbContainerKey);
+    if (container)
+        container.hidden = hidden;
+#else
+    (void)window;
+    (void)hidden;
 #endif
 }
 

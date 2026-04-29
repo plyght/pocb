@@ -18,8 +18,6 @@ CXX_FLAGS = -std=gnu++20 -arch arm64
 
 # Custom flags: CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o_FLAGS = -fobjc-arc
 
-# Custom flags: CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o_FLAGS = -fobjc-arc
-
 # Custom flags: CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o_FLAGS = -fobjc-arc
 
 # Custom flags: CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o_FLAGS = -fobjc-arc

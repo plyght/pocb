@@ -55,7 +55,6 @@ if(APPLE)
         src/mac/SfSymbols.mm
         src/mac/LayerCorners.mm
         src/mac/Vibrancy.mm
-        src/mac/TrafficLights.mm
         src/mac/HighRefresh.mm
         src/mac/UnifiedToolbar.mm
         src/web/WebView.mm

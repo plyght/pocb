@@ -323,30 +323,6 @@ src/mac/SfSymbols.mm.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.s
 .PHONY : src/mac/SfSymbols.mm.s
 
-src/mac/TrafficLights.o: src/mac/TrafficLights.mm.o
-.PHONY : src/mac/TrafficLights.o
-
-# target to build an object file
-src/mac/TrafficLights.mm.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o
-.PHONY : src/mac/TrafficLights.mm.o
-
-src/mac/TrafficLights.i: src/mac/TrafficLights.mm.i
-.PHONY : src/mac/TrafficLights.i
-
-# target to preprocess a source file
-src/mac/TrafficLights.mm.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.i
-.PHONY : src/mac/TrafficLights.mm.i
-
-src/mac/TrafficLights.s: src/mac/TrafficLights.mm.s
-.PHONY : src/mac/TrafficLights.s
-
-# target to generate assembly for a file
-src/mac/TrafficLights.mm.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.s
-.PHONY : src/mac/TrafficLights.mm.s
-
 src/mac/UnifiedToolbar.o: src/mac/UnifiedToolbar.mm.o
 .PHONY : src/mac/UnifiedToolbar.o
 
@@ -715,9 +691,6 @@ help:
 	@echo "... src/mac/SfSymbols.o"
 	@echo "... src/mac/SfSymbols.i"
 	@echo "... src/mac/SfSymbols.s"
-	@echo "... src/mac/TrafficLights.o"
-	@echo "... src/mac/TrafficLights.i"
-	@echo "... src/mac/TrafficLights.s"
 	@echo "... src/mac/UnifiedToolbar.o"
 	@echo "... src/mac/UnifiedToolbar.i"
 	@echo "... src/mac/UnifiedToolbar.s"
