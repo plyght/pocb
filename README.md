@@ -2,7 +2,7 @@
     <h3>pocb</h3>
     <p><code>/ˈpɑːk.biː/</code></p>
     <p>plyght's own C++ browser for macOS</p>
-    <br/>
+    <img width="504.5" height="395.5" alt="image" src="https://github.com/user-attachments/assets/d5e095d7-aabf-4e2f-9c51-ba6696d2b854" />
     <br/>
 </div>
 
