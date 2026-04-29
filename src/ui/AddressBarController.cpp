@@ -120,7 +120,6 @@ AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, con
         m_pendingQuery = t.trimmed();
         m_statusText.clear();
         if (m_pendingQuery.isEmpty()) { hidePopup(); return; }
-        mac::keepMouseCursorVisible();
         m_debounce->start();
     });
     connect(m_bar, &QLineEdit::returnPressed, this, &AddressBarController::commit);
@@ -565,9 +564,7 @@ void AddressBarController::positionPopup() {
 
 void AddressBarController::showPopup() {
     if (!m_popup) return;
-    mac::keepMouseCursorVisible();
     positionPopup();
-    if (m_bar && !m_bar->hasFocus()) m_bar->setFocus(Qt::OtherFocusReason);
     if (!m_popup->isVisible()) m_popup->show();
     mac::makeFloatingVibrantPanel(m_popup, mac::VibrancyMaterial::Popover, 12.0);
     mac::preventWindowActivation(m_popup);
@@ -579,12 +576,6 @@ void AddressBarController::showPopup() {
         m_popupList->viewport()->raise();
     }
     m_popup->raise();
-    if (m_bar) {
-        m_bar->activateWindow();
-        m_bar->setFocus(Qt::OtherFocusReason);
-        m_bar->update();
-    }
-    mac::keepMouseCursorVisible();
 }
 
 void AddressBarController::hidePopup() {

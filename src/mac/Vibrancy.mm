@@ -104,15 +104,9 @@ void preventWindowActivation(QWidget *window) {
     nsw.level = NSFloatingWindowLevel;
     nsw.collectionBehavior |= NSWindowCollectionBehaviorFullScreenAuxiliary;
     nsw.ignoresMouseEvents = NO;
+    [nsw setCanHide:NO];
 #else
     (void)window;
-#endif
-}
-
-void keepMouseCursorVisible() {
-#ifdef __APPLE__
-    [NSCursor setHiddenUntilMouseMoves:NO];
-#else
 #endif
 }
 

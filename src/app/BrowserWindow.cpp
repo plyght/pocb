@@ -151,6 +151,34 @@ void BrowserWindow::extensionCloseView(WebView *view) {
     if (m_tabTree->currentView() == view) m_tabTree->closeCurrent();
 }
 
+void BrowserWindow::extensionSetAction(const QString &key, const QString &label, std::function<void()> handler) {
+    if (!m_topbar) return;
+    QToolButton *button = m_extensionActionButtons.value(key, nullptr);
+    if (!button) {
+        button = new QToolButton(m_topbar);
+        button->setAutoRaise(true);
+        button->setFocusPolicy(Qt::NoFocus);
+        button->setCursor(Qt::PointingHandCursor);
+        button->setIconSize(QSize(16, 16));
+        button->setFixedSize(28, 28);
+        button->setStyleSheet(QString(
+            "QToolButton { background: transparent; border: none; border-radius: 6px; padding: 0px; color: %1; }"
+            "QToolButton:hover { background: %2; }"
+            "QToolButton:pressed { background: %3; }")
+            .arg(m_theme.foreground.name(), m_theme.hover.name(), m_theme.raised.name()));
+        if (auto *layout = qobject_cast<QHBoxLayout *>(m_topbar->layout())) {
+            const int index = m_settingsBtn ? layout->indexOf(m_settingsBtn) : layout->count();
+            layout->insertWidget(qMax(0, index), button);
+        }
+        m_extensionActionButtons.insert(key, button);
+    }
+    button->setText(label.left(1).toUpper());
+    button->setToolTip(label);
+    button->disconnect();
+    connect(button, &QToolButton::clicked, this, [handler = std::move(handler)] { handler(); });
+    button->show();
+}
+
 void BrowserWindow::loadFromOmnibox() {
     if (auto *view = currentView()) view->load(urlFromInput(m_omnibox->text()));
 }

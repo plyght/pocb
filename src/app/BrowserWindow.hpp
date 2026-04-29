@@ -39,6 +39,7 @@ public:
     WebView *extensionCreateTab(const QUrl &url, bool background);
     void extensionSelectView(WebView *view);
     void extensionCloseView(WebView *view);
+    void extensionSetAction(const QString &key, const QString &label, std::function<void()> handler);
 
 protected:
     void showEvent(QShowEvent *e) override;
@@ -78,6 +79,7 @@ private:
     QToolButton *m_reloadBtn = nullptr;
     QToolButton *m_settingsBtn = nullptr;
     QToolButton *m_newTabBtn = nullptr;
+    QHash<QString, QToolButton *> m_extensionActionButtons;
     QLineEdit *m_addressBar = nullptr;
     QLabel *m_lockIcon = nullptr;
     QLabel *m_searchIcon = nullptr;
