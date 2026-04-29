@@ -270,9 +270,10 @@ void FloatingOmnibox::onTextEdited(const QString &text) {
 void FloatingOmnibox::fetchSuggestions() {
     if (m_pendingQuery.isEmpty()) return;
     if (m_inflight) {
-        m_inflight->abort();
-        m_inflight->deleteLater();
-        m_inflight = nullptr;
+        QNetworkReply *oldReply = m_inflight.data();
+        m_inflight.clear();
+        oldReply->abort();
+        oldReply->deleteLater();
     }
     const auto eng = engineFor(m_engineHost);
     QUrl url;
@@ -295,8 +296,8 @@ void FloatingOmnibox::fetchSuggestions() {
 
 void FloatingOmnibox::onSuggestionsReceived(QNetworkReply *reply) {
     reply->deleteLater();
-    if (reply != m_inflight) return;
-    m_inflight = nullptr;
+    if (reply != m_inflight.data()) return;
+    m_inflight.clear();
     if (reply->error() != QNetworkReply::NoError) return;
     if (reply->property("query").toString() != m_input->text().trimmed()) return;
 

@@ -18,7 +18,6 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
-#include <QGuiApplication>
 #include <QListWidget>
 #include <QListWidgetItem>
 #include <QNetworkAccessManager>
@@ -26,7 +25,6 @@
 #include <QNetworkRequest>
 #include <QTimer>
 #include <QUrl>
-#include <QScreen>
 #include <QUrlQuery>
 #include <QStyle>
 
@@ -433,13 +431,12 @@ void AddressBarController::populatePopup(const QStringList &items) {
         // widget itself sits inside as a transparent child, so its rows
         // can be painted/styled independently of the panel chrome.
         QColor fill = m_theme.panel;
-        fill.setAlphaF(0.52);
+        fill.setAlphaF(0.08);
         QColor border = m_theme.border;
-        border.setAlpha(150);
+        border.setAlpha(120);
         m_popup = new AddrPopupFrame(fill, border);
-        m_popup->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint | Qt::WindowStaysOnTopHint);
-        m_popup->setAttribute(Qt::WA_ShowWithoutActivating);
-        m_popup->setAttribute(Qt::WA_MacAlwaysShowToolWindow);
+        m_popup->setParent(m_bar ? m_bar->window() : nullptr);
+        m_popup->setWindowFlags(Qt::Widget);
         m_popup->setAttribute(Qt::WA_TranslucentBackground);
         m_popup->setAttribute(Qt::WA_NoSystemBackground);
         m_popup->setAutoFillBackground(false);
@@ -514,17 +511,19 @@ void AddressBarController::positionPopup() {
                           && anchor->window()->findChild<QWidget *>("WebTopbar")->isAncestorOf(anchor);
 
     const QPoint anchorBottom = anchor->mapToGlobal(QPoint(0, anchor->height()));
-    QRect available;
-    if (QScreen *screen = QGuiApplication::screenAt(anchorBottom)) {
-        available = screen->availableGeometry();
-    }
+    const QPoint parentBottom = m_popup->parentWidget()
+                                ? m_popup->parentWidget()->mapFromGlobal(anchorBottom)
+                                : anchorBottom;
+    const QRect available = m_popup->parentWidget()
+                            ? m_popup->parentWidget()->rect()
+                            : QRect();
 
     const int rows = qMin(m_popupList ? m_popupList->count() : 0, 9);
     const int height = qMax(1, rows) * 30 + 12;
     int width = inTopbar ? qBound(420, anchor->width(), 720)
                          : qMax(anchor->width(), 320);
-    int x = anchorBottom.x() + (anchor->width() - width) / 2;
-    int y = anchorBottom.y() + (inTopbar ? 8 : 6);
+    int x = parentBottom.x() + (anchor->width() - width) / 2;
+    int y = parentBottom.y() + (inTopbar ? 8 : 6);
 
     if (available.isValid()) {
         width = qMin(width, available.width() - 24);
@@ -539,7 +538,10 @@ void AddressBarController::positionPopup() {
 void AddressBarController::showPopup() {
     if (!m_popup) return;
     positionPopup();
-    if (!m_popup->isVisible()) m_popup->show();
+    if (!m_popup->isVisible()) {
+        m_popup->show();
+        mac::applyVibrancyBehind(m_popup, mac::VibrancyMaterial::Popover);
+    }
     m_popup->raise();
     if (m_bar && !m_bar->hasFocus()) m_bar->setFocus(Qt::OtherFocusReason);
 }

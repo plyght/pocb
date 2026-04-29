@@ -2,6 +2,7 @@
 
 #include "Theme.hpp"
 
+#include <QPointer>
 #include <QWidget>
 
 class QLineEdit;
@@ -48,7 +49,7 @@ private:
     QListWidget *m_list = nullptr;
     QWidget *m_divider = nullptr;
     QNetworkAccessManager *m_net = nullptr;
-    QNetworkReply *m_inflight = nullptr;
+    QPointer<QNetworkReply> m_inflight;
     QTimer *m_debounce = nullptr;
     QString m_pendingQuery;
     QString m_engineHost;  // e.g. "duckduckgo.com"

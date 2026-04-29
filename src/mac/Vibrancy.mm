@@ -18,10 +18,11 @@ NSVisualEffectMaterial materialFor(mac::VibrancyMaterial m) {
         default:              return NSVisualEffectMaterialWindowBackground;
     }
 }
-NSVisualEffectView *makeVev(NSRect frame, mac::VibrancyMaterial m) {
+NSVisualEffectView *makeVev(NSRect frame, mac::VibrancyMaterial m,
+                            NSVisualEffectBlendingMode blendingMode = NSVisualEffectBlendingModeBehindWindow) {
     NSVisualEffectView *v = [[NSVisualEffectView alloc] initWithFrame:frame];
     v.material = materialFor(m);
-    v.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+    v.blendingMode = blendingMode;
     v.state = NSVisualEffectStateFollowsWindowActiveState;
     v.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     return v;
@@ -101,11 +102,26 @@ void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material) {
     widget->winId();
     NSView *view = (__bridge NSView *)reinterpret_cast<void *>(widget->winId());
     if (!view) return;
+    view.wantsLayer = YES;
+    view.layer.backgroundColor = NSColor.clearColor.CGColor;
+    view.layer.cornerRadius = 12.0;
+    view.layer.masksToBounds = YES;
+    if (@available(macOS 10.15, *)) {
+        [view.layer setValue:@"continuous" forKey:@"cornerCurve"];
+    }
     for (NSView *sub in view.subviews) {
         if ([sub isKindOfClass:[NSVisualEffectView class]] &&
-            [sub.identifier isEqualToString:@"PocbBehindVibrancy"]) return;
+            [sub.identifier isEqualToString:@"PocbBehindVibrancy"]) {
+            [view sortSubviewsUsingFunction:[](NSView *a, NSView *b, void *) -> NSComparisonResult {
+                const BOOL av = [a isKindOfClass:[NSVisualEffectView class]] && [a.identifier isEqualToString:@"PocbBehindVibrancy"];
+                const BOOL bv = [b isKindOfClass:[NSVisualEffectView class]] && [b.identifier isEqualToString:@"PocbBehindVibrancy"];
+                if (av == bv) return NSOrderedSame;
+                return av ? NSOrderedAscending : NSOrderedDescending;
+            } context:nullptr];
+            return;
+        }
     }
-    NSVisualEffectView *vev = makeVev(view.bounds, material);
+    NSVisualEffectView *vev = makeVev(view.bounds, material, NSVisualEffectBlendingModeWithinWindow);
     vev.identifier = @"PocbBehindVibrancy";
     [view addSubview:vev positioned:NSWindowBelow relativeTo:nil];
 #else
