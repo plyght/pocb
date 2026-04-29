@@ -192,6 +192,15 @@ jobs:
       - name: Configure CMake
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=26.0
 
+      - name: Print linker inputs
+        run: |
+          if [ -f build/CMakeFiles/pocb.dir/link.txt ]; then
+            cat build/CMakeFiles/pocb.dir/link.txt
+            if grep -n "AGL" build/CMakeFiles/pocb.dir/link.txt; then
+              exit 1
+            fi
+          fi
+
       - name: Build app bundle
         run: cmake --build build --config Release --parallel
 
