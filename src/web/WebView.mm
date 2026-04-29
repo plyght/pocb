@@ -1,6 +1,7 @@
 #include "WebView.hpp"
 
 #include "WebKitProfile.hpp"
+#include "ChromeExtensionManager.hpp"
 
 #import <AppKit/AppKit.h>
 #import <WebKit/WKWebView.h>
@@ -13,6 +14,9 @@
 #import <WebKit/WKNavigationAction.h>
 #import <WebKit/WKWindowFeatures.h>
 #import <WebKit/WKPreferences.h>
+#import <WebKit/WKWebExtensionController.h>
+#import <WebKit/WKUserContentController.h>
+#import <WebKit/WKUserScript.h>
 
 static void disableWebKit60FpsCap(WKPreferences *preferences) {
     if (!preferences) return;
@@ -210,6 +214,21 @@ WebView::WebView(WebKitProfile *profile, QWidget *parent)
         if (profile->dataStore()) {
             cfg.websiteDataStore = (__bridge WKWebsiteDataStore *)profile->dataStore();
         }
+        if (@available(macOS 15.4, *)) {
+            if (void *controller = ChromeExtensionManager::nativeController()) {
+                cfg.webExtensionController = (__bridge WKWebExtensionController *)controller;
+            }
+        } else {
+            const QString extensionBootstrap = ChromeExtensionManager::bootstrapScript();
+            if (!extensionBootstrap.trimmed().isEmpty()) {
+                WKUserContentController *content = [[WKUserContentController alloc] init];
+                WKUserScript *script = [[WKUserScript alloc] initWithSource:extensionBootstrap.toNSString()
+                                                              injectionTime:WKUserScriptInjectionTimeAtDocumentStart
+                                                           forMainFrameOnly:NO];
+                [content addUserScript:script];
+                cfg.userContentController = content;
+            }
+        }
         WKWebView *wk = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:cfg];
         if (@available(macOS 13.3, *)) {
             wk.inspectable = YES;
@@ -304,6 +323,10 @@ QUrl WebView::url() const {
 QString WebView::title() const {
     if (!m_impl->wk || !m_impl->wk.title) return QString();
     return QString::fromNSString(m_impl->wk.title);
+}
+
+void *WebView::nativeWebView() const {
+    return (__bridge void *)m_impl->wk;
 }
 
 QColor WebView::cachedThemeColor() const {

@@ -1,11 +1,13 @@
 #include "SettingsDialog.hpp"
 
 #include "MacIntegration.hpp"
+#include "ChromeExtensionManager.hpp"
 #include "ProfileStore.hpp"
 #include "Theme.hpp"
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QFrame>
 #include <QHBoxLayout>
@@ -158,6 +160,30 @@ SettingsDialog::SettingsDialog(ProfileStore &profiles, QWidget *parent) : QDialo
         theme, browseCard));
     root->addWidget(browseCard);
 
+    root->addWidget(makeSectionHeader("Extensions", theme, this));
+    auto *extensionsCard = makeCard(theme, this);
+    auto *extensionsCol = new QVBoxLayout(extensionsCard);
+    extensionsCol->setContentsMargins(16, 14, 16, 14);
+    extensionsCol->setSpacing(10);
+
+    auto *extensionRow = new QWidget(extensionsCard);
+    auto *extensionLayout = new QHBoxLayout(extensionRow);
+    extensionLayout->setContentsMargins(0, 0, 0, 0);
+    extensionLayout->setSpacing(8);
+    m_extensionPaths = new QLineEdit(ChromeExtensionManager::configuredPaths().join(";"), extensionRow);
+    m_extensionPaths->setPlaceholderText("/path/to/unpacked-extension;/path/to/another-extension");
+    auto *addExtension = new QPushButton("Add folder", extensionRow);
+    addExtension->setIcon(mac::sfSymbolIcon("folder", 12.0, theme.foreground));
+    addExtension->setIconSize(QSize(13, 13));
+    addExtension->setCursor(Qt::PointingHandCursor);
+    extensionLayout->addWidget(m_extensionPaths, 1);
+    extensionLayout->addWidget(addExtension);
+    extensionsCol->addWidget(extensionRow);
+    extensionsCol->addWidget(makeHelp(
+        "Loads unpacked Chrome extension content scripts into new tabs. WebKit cannot run Chrome background workers, popups, or privileged Chrome APIs.",
+        theme, extensionsCard));
+    root->addWidget(extensionsCard);
+
     root->addStretch(1);
 
     // ---- Footer buttons ---------------------------------------------------
@@ -190,6 +216,13 @@ SettingsDialog::SettingsDialog(ProfileStore &profiles, QWidget *parent) : QDialo
         refreshProfiles();
     });
     connect(m_profileBox, &QComboBox::currentTextChanged, &m_profiles, &ProfileStore::setCurrentProfile);
+    connect(addExtension, &QPushButton::clicked, this, [this] {
+        const QString dir = QFileDialog::getExistingDirectory(this, "Choose unpacked Chrome extension");
+        if (dir.isEmpty()) return;
+        QStringList paths = m_extensionPaths->text().split(';', Qt::SkipEmptyParts);
+        if (!paths.contains(dir)) paths << dir;
+        m_extensionPaths->setText(paths.join(';'));
+    });
     connect(save, &QPushButton::clicked, this, [this] {
         emit homePageChanged(m_homePage->text());
         emit searchEngineChanged(m_searchEngine->text());
@@ -197,6 +230,7 @@ SettingsDialog::SettingsDialog(ProfileStore &profiles, QWidget *parent) : QDialo
         QSettings().setValue("ui/showFullUrl", full);
         emit showFullUrlChanged(full);
         QSettings().setValue("ui/addressBarInSidebar", m_addrInSidebar->isChecked());
+        ChromeExtensionManager::setConfiguredPaths(m_extensionPaths->text().split(';', Qt::SkipEmptyParts));
         accept();
     });
     connect(cancel, &QPushButton::clicked, this, &QDialog::reject);

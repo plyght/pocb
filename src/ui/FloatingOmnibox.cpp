@@ -31,7 +31,20 @@ constexpr int kPanelRadius  = 14;
 constexpr int kInputPadX    = 16;   // SearchBar.qml leftMargin/rightMargin
 constexpr int kListPadV     = 4;    // GenericListView topMargin/bottomMargin
 constexpr int kItemMarginX  = 6;    // SelectableDelegate left/rightMargin
-constexpr float kFillAlpha  = 0.62f;  // Config.windowOpacity-ish, tuned for vibrancy
+constexpr float kFillAlpha  = 0.42f;  // Config.windowOpacity-ish, tuned for vibrancy
+constexpr float kDividerAlpha = 0.48f;
+constexpr float kHoverAlpha = 0.46f;
+constexpr float kSelectedAlpha = 0.64f;
+constexpr float kScrollbarAlpha = 0.58f;
+
+QString colorWithAlpha(QColor color, float alpha) {
+    color.setAlphaF(alpha);
+    return QString("rgba(%1, %2, %3, %4)")
+        .arg(color.red())
+        .arg(color.green())
+        .arg(color.blue())
+        .arg(QString::number(color.alphaF(), 'f', 3));
+}
 
 struct EngineSuggest {
     QString host;
@@ -104,7 +117,7 @@ FloatingOmnibox::FloatingOmnibox(const Theme &theme, QWidget *parent)
     // 1px hairline divider (only when suggestions are present).
     m_divider = new QWidget(this);
     m_divider->setFixedHeight(1);
-    m_divider->setStyleSheet(QString("background: %1;").arg(theme.borderSoft.name()));
+    m_divider->setStyleSheet(QString("background: %1;").arg(colorWithAlpha(theme.borderSoft, kDividerAlpha)));
     m_divider->hide();
     col->addWidget(m_divider);
 
@@ -158,9 +171,9 @@ FloatingOmnibox::FloatingOmnibox(const Theme &theme, QWidget *parent)
         .arg(QString::number(kListPadV),
              theme.foreground.name(),
              QString::number(kItemMarginX),
-             theme.raised.name(),
-             theme.hover.name(),
-             theme.border.name()));
+             colorWithAlpha(theme.raised, kSelectedAlpha),
+             colorWithAlpha(theme.hover, kHoverAlpha),
+             colorWithAlpha(theme.border, kScrollbarAlpha)));
     m_list->hide();
     col->addWidget(m_list);
 
@@ -210,11 +223,11 @@ void FloatingOmnibox::showFor(QWidget *anchor, const QString &initialText) {
 
 void FloatingOmnibox::showEvent(QShowEvent *e) {
     QWidget::showEvent(e);
-    // Real translucency: NSVisualEffectView (Popover material) behind our
-    // painted fill, with the NSView layer corner-radius'd so the blur
-    // clips to the rounded shape. No-op off macOS.
-    mac::applyVibrancyBehind(this, mac::VibrancyMaterial::Popover);
-    mac::roundWidgetCorners(this, kPanelRadius);
+    // Real translucency: make the popup's native NSWindow non-opaque and
+    // clip the AppKit vibrancy view to the same rounded content shape.
+    // No-op off macOS.
+    mac::makeFloatingVibrantPanel(this, mac::VibrancyMaterial::Popover, kPanelRadius);
+    mac::roundWidgetCorners(this, kPanelRadius, false);
     m_input->setFocus(Qt::ShortcutFocusReason);
 }
 

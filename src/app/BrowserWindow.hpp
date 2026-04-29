@@ -5,6 +5,7 @@
 #include "Theme.hpp"
 
 #include <QHash>
+#include <QList>
 #include <QMainWindow>
 #include <QUrl>
 #include <functional>
@@ -33,6 +34,11 @@ class BrowserWindow final : public QMainWindow {
     Q_OBJECT
 public:
     explicit BrowserWindow(QWidget *parent = nullptr);
+    WebView *extensionCurrentView() const;
+    QList<WebView *> extensionViews() const;
+    WebView *extensionCreateTab(const QUrl &url, bool background);
+    void extensionSelectView(WebView *view);
+    void extensionCloseView(WebView *view);
 
 protected:
     void showEvent(QShowEvent *e) override;

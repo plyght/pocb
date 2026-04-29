@@ -50,6 +50,12 @@ void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material = VibrancyMa
 // NSWindow shadow is enabled so the shadow tracks the rounded silhouette.
 void makeFloatingVibrantPanel(QWidget *window, VibrancyMaterial material, double cornerRadius);
 
+// Configure a top-level QWidget as a transparent rounded floating panel
+// without adding AppKit vibrancy. Qt's own translucent painting remains
+// visible, so content behind the popup shows through instead of the macOS
+// material tint.
+void makeTransparentFloatingPanel(QWidget *window, double cornerRadius);
+
 // Make the NSWindow's titlebar transparent and hide its title text, so the
 // behind-window vibrancy reads through the titlebar area as well. The
 // content view is expanded to full size so Qt widgets can paint into the

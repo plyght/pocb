@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(pocb VERSION 0.1.0 LANGUAGES CXX)
+project(pocb VERSION 0.1.0 LANGUAGES CXX OBJCXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +22,8 @@ qt_add_executable(pocb MACOSX_BUNDLE
     src/services/Theme.hpp
     src/services/FaviconService.cpp
     src/services/FaviconService.hpp
+    src/services/ChromeExtensionManager.cpp
+    src/services/ChromeExtensionManager.hpp
     src/ui/FloatingOmnibox.cpp
     src/ui/FloatingOmnibox.hpp
     src/ui/AddressBarController.cpp
@@ -65,6 +67,7 @@ if(APPLE)
     foreach(_src IN LISTS POCB_OBJC_SOURCES)
         set_source_files_properties(${_src} PROPERTIES COMPILE_FLAGS "-fobjc-arc")
     endforeach()
+    set_source_files_properties(src/services/ChromeExtensionManager.cpp PROPERTIES LANGUAGE OBJCXX COMPILE_FLAGS "-fobjc-arc")
     target_link_libraries(pocb PRIVATE
         "-framework AppKit"
         "-framework WebKit"

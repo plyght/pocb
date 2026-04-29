@@ -38,6 +38,7 @@ private:
     QLineEdit *m_newProfile = nullptr;
     QLineEdit *m_homePage = nullptr;
     QLineEdit *m_searchEngine = nullptr;
+    QLineEdit *m_extensionPaths = nullptr;
     QCheckBox *m_showFullUrl = nullptr;
     QCheckBox *m_addrInSidebar = nullptr;
 };

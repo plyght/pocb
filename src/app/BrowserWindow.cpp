@@ -4,6 +4,7 @@
 #include "AddressBarController.hpp"
 #include "FloatingOmnibox.hpp"
 #include "ChromeWidgets.hpp"
+#include "ChromeExtensionManager.hpp"
 #include "LayoutMetrics.hpp"
 #include "MacIntegration.hpp"
 #include "SettingsDialog.hpp"
@@ -71,6 +72,7 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
 #endif
     setupUi();
     setupActions();
+    ChromeExtensionManager::setBrowserWindow(this);
     setWindowTitle("pocb");
     {
         QSettings settings;
@@ -125,6 +127,28 @@ void BrowserWindow::showEvent(QShowEvent *e) {
             mac::applyVibrancyBehind(host, mac::VibrancyMaterial::Sidebar);
         }
     });
+}
+
+WebView *BrowserWindow::extensionCurrentView() const {
+    return currentView();
+}
+
+QList<WebView *> BrowserWindow::extensionViews() const {
+    return m_tabTree ? m_tabTree->views() : QList<WebView *>();
+}
+
+WebView *BrowserWindow::extensionCreateTab(const QUrl &url, bool background) {
+    return m_tabTree ? m_tabTree->newTabForExtension(url, background) : nullptr;
+}
+
+void BrowserWindow::extensionSelectView(WebView *view) {
+    if (m_tabTree) m_tabTree->selectView(view);
+}
+
+void BrowserWindow::extensionCloseView(WebView *view) {
+    if (!m_tabTree || !view) return;
+    m_tabTree->selectView(view);
+    if (m_tabTree->currentView() == view) m_tabTree->closeCurrent();
 }
 
 void BrowserWindow::loadFromOmnibox() {

@@ -21,6 +21,7 @@ public:
     void reload();
     QUrl url() const;
     QString title() const;
+    void *nativeWebView() const;
 
     // Internal: install an externally-created WKWebView (used by the
     // WKUIDelegate's createWebViewWithConfiguration: path so popups stay

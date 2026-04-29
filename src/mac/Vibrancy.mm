@@ -23,7 +23,7 @@ NSVisualEffectView *makeVev(NSRect frame, mac::VibrancyMaterial m,
     NSVisualEffectView *v = [[NSVisualEffectView alloc] initWithFrame:frame];
     v.material = materialFor(m);
     v.blendingMode = blendingMode;
-    v.state = NSVisualEffectStateFollowsWindowActiveState;
+    v.state = NSVisualEffectStateActive;
     v.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     return v;
 }
@@ -71,15 +71,49 @@ void makeFloatingVibrantPanel(QWidget *window, VibrancyMaterial material, double
     if (@available(macOS 10.15, *)) {
         [content.layer setValue:@"continuous" forKey:@"cornerCurve"];
     }
-    for (NSView *sub in content.subviews) {
-        if ([sub isKindOfClass:[NSVisualEffectView class]] &&
-            [sub.identifier isEqualToString:@"PocbFloatingVibrancy"]) return;
+    NSView *target = content.superview ?: content;
+    target.wantsLayer = YES;
+    target.layer.cornerRadius = cornerRadius;
+    target.layer.masksToBounds = YES;
+    target.layer.backgroundColor = NSColor.clearColor.CGColor;
+    if (@available(macOS 10.15, *)) {
+        [target.layer setValue:@"continuous" forKey:@"cornerCurve"];
     }
-    NSVisualEffectView *vev = makeVev(content.bounds, material);
+    for (NSView *sub in target.subviews) {
+        if ([sub isKindOfClass:[NSVisualEffectView class]] &&
+            [sub.identifier isEqualToString:@"PocbFloatingVibrancy"]) {
+            sub.frame = target.bounds;
+            return;
+        }
+    }
+    NSVisualEffectView *vev = makeVev(target.bounds, material);
     vev.identifier = @"PocbFloatingVibrancy";
-    [content addSubview:vev positioned:NSWindowBelow relativeTo:nil];
+    [target addSubview:vev positioned:NSWindowBelow relativeTo:nil];
 #else
     (void)window; (void)material; (void)cornerRadius;
+#endif
+}
+
+void makeTransparentFloatingPanel(QWidget *window, double cornerRadius) {
+#ifdef __APPLE__
+    if (!window) return;
+    window->winId();
+    NSWindow *nsw = internal::nsWindowOf(window);
+    if (!nsw) return;
+    nsw.opaque = NO;
+    nsw.backgroundColor = NSColor.clearColor;
+    nsw.hasShadow = YES;
+    NSView *content = nsw.contentView;
+    if (!content) return;
+    content.wantsLayer = YES;
+    content.layer.cornerRadius = cornerRadius;
+    content.layer.masksToBounds = YES;
+    content.layer.backgroundColor = NSColor.clearColor.CGColor;
+    if (@available(macOS 10.15, *)) {
+        [content.layer setValue:@"continuous" forKey:@"cornerCurve"];
+    }
+#else
+    (void)window; (void)cornerRadius;
 #endif
 }
 

@@ -4,6 +4,7 @@
 
 #include <QColor>
 #include <QHash>
+#include <QList>
 #include <QObject>
 #include <QString>
 #include <QUrl>
@@ -24,7 +25,11 @@ public:
     QTreeWidget *widget() const { return m_tabs; }
     WebView *currentView() const;
     QTreeWidgetItem *currentItem() const;
+    QList<WebView *> views() const;
+    void selectView(WebView *view);
 
+    WebView *newTabForExtension(const QUrl &url = QUrl(), bool background = false,
+                                QTreeWidgetItem *parentItem = nullptr);
     void newTab(const QUrl &url = QUrl(), bool background = false,
                 QTreeWidgetItem *parentItem = nullptr);
     void closeCurrent();
