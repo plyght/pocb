@@ -30,6 +30,8 @@ qt_add_executable(pocb MACOSX_BUNDLE
     src/ui/SidebarController.hpp
     src/ui/Topbar.cpp
     src/ui/Topbar.hpp
+    src/ui/ChromeWidgets.cpp
+    src/ui/ChromeWidgets.hpp
     src/tabs/TabTree.cpp
     src/tabs/TabTree.hpp
     src/mac/MacIntegration.hpp

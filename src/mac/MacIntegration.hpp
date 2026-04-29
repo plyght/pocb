@@ -40,6 +40,14 @@ void enableWindowVibrancy(QWidget *window, VibrancyMaterial material = VibrancyM
 // (Qt::WA_TranslucentBackground + transparent stylesheet) so the blur is visible.
 void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material = VibrancyMaterial::Sidebar);
 
+// Configure a top-level QWidget as a translucent rounded floating panel:
+// flips the underlying NSWindow to non-opaque/clearColor, rounds the
+// contentView's CALayer to `cornerRadius` with masksToBounds, and adds a
+// behind-window NSVisualEffectView clipped to that rounded contentView so
+// the vibrancy follows the rounded shape (not the square frame). Native
+// NSWindow shadow is enabled so the shadow tracks the rounded silhouette.
+void makeFloatingVibrantPanel(QWidget *window, VibrancyMaterial material, double cornerRadius);
+
 // Hide or show the three standard window buttons (close/min/zoom) on the
 // QMainWindow's NSWindow. Useful for collapsing them with a sidebar.
 void setTrafficLightsHidden(QWidget *window, bool hidden);

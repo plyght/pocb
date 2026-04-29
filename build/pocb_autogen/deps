@@ -1040,6 +1040,8 @@ pocb_autogen/timestamp: \
 	/Users/nicojaffer/pocb/src/tabs/TabTree.hpp \
 	/Users/nicojaffer/pocb/src/ui/AddressBarController.cpp \
 	/Users/nicojaffer/pocb/src/ui/AddressBarController.hpp \
+	/Users/nicojaffer/pocb/src/ui/ChromeWidgets.cpp \
+	/Users/nicojaffer/pocb/src/ui/ChromeWidgets.hpp \
 	/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp \
 	/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp \
 	/Users/nicojaffer/pocb/src/ui/SidebarController.cpp \

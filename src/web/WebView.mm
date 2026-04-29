@@ -26,6 +26,8 @@ static NSView *qtNSView(QWidget *w) {
 struct WebView::Impl {
     WKWebView *wk = nil;
     PocbWKBridge *bridge = nil;
+    NSView *observedHost = nil;
+    QColor cachedTopColor;
 };
 
 // Objective-C bridge: forwards WKNavigationDelegate / WKUIDelegate /
@@ -34,6 +36,7 @@ struct WebView::Impl {
 @property(nonatomic, assign) WebView *owner;
 - (void)attachKVO:(WKWebView *)wk;
 - (void)detachKVO:(WKWebView *)wk;
+- (void)hostFrameDidChange:(NSNotification *)note;
 @end
 
 @implementation PocbWKBridge
@@ -70,68 +73,11 @@ struct WebView::Impl {
 #pragma mark - WKNavigationDelegate
 
 - (void)webView:(WKWebView *)wk didFinishNavigation:(WKNavigation *)nav {
-    (void)nav;
+    (void)wk; (void)nav;
     WebView *o = self.owner;
     if (!o) return;
     emit o->loadFinished(true);
-
-    // Sniff the page's preferred chrome colour (theme-color meta first,
-    // then the computed body background). One short async JS call per
-    // navigation — cheap.
-    // Try, in order:
-    //   1. <meta name="theme-color"> (with media-query awareness for dark mode)
-    //   2. computed background of <html>
-    //   3. computed background of <body>
-    //   4. background of any large fixed-position banner near the top
-    // Skip transparent / fully-clear values so we always emit something
-    // useful when the page actually has a colour.
-    static NSString *const kSniff =
-        @"(function(){"
-        @"  function ok(c){ if(!c) return false; c=c.trim(); if(!c) return false; "
-        @"    if(c==='transparent') return false; "
-        @"    var m=c.match(/rgba?\\(([^)]+)\\)/); if(m){ var p=m[1].split(','); if(p.length>=4 && parseFloat(p[3])<0.05) return false; } "
-        @"    return true; }"
-        @"  try {"
-        @"    var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;"
-        @"    var metas = document.querySelectorAll('meta[name=\"theme-color\"]');"
-        @"    var fallbackMeta = null;"
-        @"    for (var i=0; i<metas.length; ++i) {"
-        @"      var mm = metas[i]; var media = mm.getAttribute('media') || '';"
-        @"      if (!media) { fallbackMeta = mm; continue; }"
-        @"      if (dark && /dark/i.test(media)) return mm.content;"
-        @"      if (!dark && /light/i.test(media)) return mm.content;"
-        @"    }"
-        @"    if (fallbackMeta && ok(fallbackMeta.content)) return fallbackMeta.content;"
-        @"    var html = document.documentElement;"
-        @"    if (html) { var hc = getComputedStyle(html).backgroundColor; if (ok(hc)) return hc; }"
-        @"    var body = document.body;"
-        @"    if (body) { var bc = getComputedStyle(body).backgroundColor; if (ok(bc)) return bc; }"
-        @"  } catch(e) {}"
-        @"  return '';"
-        @"})()";
-    [wk evaluateJavaScript:kSniff completionHandler:^(id result, NSError *error) {
-        if (!o) return;
-        if (error && !result) return;
-        NSString *s = [result isKindOfClass:[NSString class]] ? (NSString *)result : nil;
-        QColor color;
-        if (s && s.length > 0) {
-            QString qs = QString::fromNSString(s).trimmed();
-            // QColor parses CSS named colours, "#rrggbb", "#rgb", and most
-            // "rgb(r,g,b)"/"rgba(r,g,b,a)" forms via setNamedColor.
-            color.setNamedColor(qs);
-            if (!color.isValid()) {
-                // Fallback: parse "rgb(r, g, b[, a])" by hand.
-                static const QRegularExpression re(
-                    "rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*(?:,\\s*([0-9.]+)\\s*)?\\)");
-                QRegularExpressionMatch m = re.match(qs);
-                if (m.hasMatch()) {
-                    color.setRgb(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt());
-                    if (!m.captured(4).isEmpty()) color.setAlphaF(m.captured(4).toDouble());
-                }
-            }
-        }
-        emit o->themeColorChanged(color);
-    }];
+    o->sniffTopColor();
 }
 
 - (void)webView:(WKWebView *)wk didFailNavigation:(WKNavigation *)nav withError:(NSError *)err {
@@ -175,12 +121,38 @@ struct WebView::Impl {
     if (self.owner) emit self.owner->closeRequested();
 }
 
+- (void)hostFrameDidChange:(NSNotification *)note {
+    NSView *host = (NSView *)note.object;
+    if (!host || !self.owner) return;
+    // Resync the WKWebView frame whenever the Qt host NSView's frame
+    // changes. NSView autoresize only handles size deltas from addSubview
+    // time, so on the very first show of a tab — when the host has been
+    // resized while hidden — the WK content can be drawn at a stale (smaller)
+    // size, leaving a gray L-shape along the top/left until the next manual
+    // resize. Subscribing to NSViewFrameDidChangeNotification on the host
+    // closes that gap.
+    for (NSView *sub in host.subviews) {
+        if ([sub isKindOfClass:[WKWebView class]]) {
+            sub.frame = host.bounds;
+        }
+    }
+}
+
 @end
 
 WebView::WebView(WebKitProfile *profile, QWidget *parent)
     : QWidget(parent), m_impl(new Impl) {
     setAttribute(Qt::WA_NativeWindow);
-    setAttribute(Qt::WA_DontCreateNativeAncestors);
+    // Intentionally DO promote ancestors to native widgets. With
+    // WA_DontCreateNativeAncestors set, this widget's NSView gets reparented
+    // to the top-level NSWindow content view and Qt manually translates its
+    // frame into window coordinates on every layout pass. On first show
+    // that translation can lag the Qt layout for a frame, leaving the
+    // WKWebView inset relative to its logical parent — which exposes the
+    // WebContainer's #1A1A1A background as a gray L along the top/left
+    // until the user resizes the window. Letting the ancestors be native
+    // makes the WKWebView a true subview of the stack's NSView, so the
+    // macOS autoresize chain (not Qt's translation) drives geometry.
     winId();
 
     if (profile) {
@@ -197,6 +169,12 @@ WebView::WebView(WebKitProfile *profile, QWidget *parent)
 }
 
 WebView::~WebView() {
+    if (m_impl->observedHost) {
+        [[NSNotificationCenter defaultCenter] removeObserver:m_impl->bridge
+                                                        name:NSViewFrameDidChangeNotification
+                                                      object:m_impl->observedHost];
+        m_impl->observedHost = nil;
+    }
     if (m_impl->wk) {
         [m_impl->bridge detachKVO:m_impl->wk];
         m_impl->wk.navigationDelegate = nil;
@@ -225,9 +203,25 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
 
     NSView *host = qtNSView(this);
     if (host) {
+        host.autoresizesSubviews = YES;
         wk.frame = host.bounds;
         wk.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
         [host addSubview:wk];
+
+        if (m_impl->observedHost && m_impl->observedHost != host) {
+            [[NSNotificationCenter defaultCenter] removeObserver:m_impl->bridge
+                                                            name:NSViewFrameDidChangeNotification
+                                                          object:m_impl->observedHost];
+            m_impl->observedHost = nil;
+        }
+        if (!m_impl->observedHost) {
+            host.postsFrameChangedNotifications = YES;
+            [[NSNotificationCenter defaultCenter] addObserver:m_impl->bridge
+                                                     selector:@selector(hostFrameDidChange:)
+                                                         name:NSViewFrameDidChangeNotification
+                                                       object:host];
+            m_impl->observedHost = host;
+        }
     }
 }
 
@@ -258,6 +252,72 @@ QString WebView::title() const {
     return QString::fromNSString(m_impl->wk.title);
 }
 
+QColor WebView::cachedThemeColor() const {
+    return m_impl->cachedTopColor;
+}
+
+void WebView::sniffTopColor() {
+    if (!m_impl->wk) return;
+    // Walk DOM ancestors starting at the element under the very top of the
+    // viewport (top-center pixel). The first opaque background we hit is
+    // the chrome colour to use — this matches what the user sees at the
+    // page's top edge, even when <body> itself is transparent or the page
+    // uses a fixed header.
+    static NSString *const kSniff =
+        @"(function(){"
+        @"  function ok(c){ if(!c) return false; c=c.trim(); if(!c||c==='transparent') return false;"
+        @"    var m=c.match(/rgba?\\(([^)]+)\\)/); if(m){ var p=m[1].split(','); if(p.length>=4 && parseFloat(p[3])<0.05) return false; }"
+        @"    return true; }"
+        @"  try {"
+        @"    var w = window.innerWidth || document.documentElement.clientWidth;"
+        @"    var x = Math.max(1, Math.floor(w/2));"
+        @"    var el = document.elementFromPoint(x, 1) || document.elementFromPoint(x, 0);"
+        @"    var cur = el;"
+        @"    while (cur) {"
+        @"      try { var bg = getComputedStyle(cur).backgroundColor; if (ok(bg)) return bg; } catch(e){}"
+        @"      cur = cur.parentElement;"
+        @"    }"
+        @"    var html = document.documentElement;"
+        @"    if (html) { var hc = getComputedStyle(html).backgroundColor; if (ok(hc)) return hc; }"
+        @"    var body = document.body;"
+        @"    if (body) { var bc = getComputedStyle(body).backgroundColor; if (ok(bc)) return bc; }"
+        @"    var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;"
+        @"    var metas = document.querySelectorAll('meta[name=\"theme-color\"]');"
+        @"    for (var i=0; i<metas.length; ++i) {"
+        @"      var mm = metas[i]; var media = mm.getAttribute('media') || '';"
+        @"      if (!media) continue;"
+        @"      if (dark && /dark/i.test(media)) return mm.content;"
+        @"      if (!dark && /light/i.test(media)) return mm.content;"
+        @"    }"
+        @"    if (metas.length) return metas[0].content;"
+        @"  } catch(e) {}"
+        @"  return '';"
+        @"})()";
+    Impl *impl = m_impl;
+    WebView *self = this;
+    [m_impl->wk evaluateJavaScript:kSniff completionHandler:^(id result, NSError *error) {
+        (void)error;
+        if (!self || !impl) return;
+        NSString *s = [result isKindOfClass:[NSString class]] ? (NSString *)result : nil;
+        QColor color;
+        if (s && s.length > 0) {
+            QString qs = QString::fromNSString(s).trimmed();
+            color.setNamedColor(qs);
+            if (!color.isValid()) {
+                static const QRegularExpression re(
+                    "rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*(?:,\\s*([0-9.]+)\\s*)?\\)");
+                QRegularExpressionMatch m = re.match(qs);
+                if (m.hasMatch()) {
+                    color.setRgb(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt());
+                    if (!m.captured(4).isEmpty()) color.setAlphaF(m.captured(4).toDouble());
+                }
+            }
+        }
+        impl->cachedTopColor = color;
+        emit self->themeColorChanged(color);
+    }];
+}
+
 void WebView::resizeEvent(QResizeEvent *e) {
     QWidget::resizeEvent(e);
     if (m_impl->wk) {
@@ -270,10 +330,32 @@ void WebView::showEvent(QShowEvent *e) {
     QWidget::showEvent(e);
     if (m_impl->wk) {
         NSView *host = qtNSView(this);
-        if (host && m_impl->wk.superview != host) {
+        if (host) {
+            host.autoresizesSubviews = YES;
+            if (m_impl->wk.superview != host) {
+                m_impl->wk.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+                [host addSubview:m_impl->wk];
+            }
+            // Always resync the frame on show: when a tab is first activated
+            // the host QWidget may have been resized while hidden, and the
+            // NSView autoresize chain doesn't always pick that up — leaving
+            // a gray strip along the top/left until the next resize.
             m_impl->wk.frame = host.bounds;
-            m_impl->wk.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-            [host addSubview:m_impl->wk];
+            [m_impl->wk setNeedsDisplay:YES];
+
+            if (m_impl->observedHost != host) {
+                if (m_impl->observedHost) {
+                    [[NSNotificationCenter defaultCenter] removeObserver:m_impl->bridge
+                                                                    name:NSViewFrameDidChangeNotification
+                                                                  object:m_impl->observedHost];
+                }
+                host.postsFrameChangedNotifications = YES;
+                [[NSNotificationCenter defaultCenter] addObserver:m_impl->bridge
+                                                         selector:@selector(hostFrameDidChange:)
+                                                             name:NSViewFrameDidChangeNotification
+                                                           object:host];
+                m_impl->observedHost = host;
+            }
         }
     }
 }

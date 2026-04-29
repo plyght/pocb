@@ -403,6 +403,12 @@
 			null
 		],
 		[
+			"/Users/nicojaffer/pocb/src/ui/ChromeWidgets.hpp",
+			"MU",
+			"YPKJ5OE7LN/moc_ChromeWidgets.cpp",
+			null
+		],
+		[
 			"/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp",
 			"MU",
 			"YPKJ5OE7LN/moc_FloatingOmnibox.cpp",
@@ -524,6 +530,7 @@
 		[ "/Users/nicojaffer/pocb/src/services/Theme.cpp", "MU", null ],
 		[ "/Users/nicojaffer/pocb/src/tabs/TabTree.cpp", "MU", null ],
 		[ "/Users/nicojaffer/pocb/src/ui/AddressBarController.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/ui/ChromeWidgets.cpp", "MU", null ],
 		[ "/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp", "MU", null ],
 		[ "/Users/nicojaffer/pocb/src/ui/SidebarController.cpp", "MU", null ],
 		[ "/Users/nicojaffer/pocb/src/ui/Topbar.cpp", "MU", null ],

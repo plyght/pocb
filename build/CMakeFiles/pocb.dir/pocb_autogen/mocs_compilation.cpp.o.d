@@ -1296,9 +1296,11 @@ CMakeFiles/pocb.dir/pocb_autogen/mocs_compilation.cpp.o: \
   /Users/nicojaffer/pocb/build/pocb_autogen/BUWON6PSIR/../../../src/tabs/TabTree.hpp \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/moc_AddressBarController.cpp \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/../../../src/ui/AddressBarController.hpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/moc_ChromeWidgets.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/../../../src/ui/ChromeWidgets.hpp \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QWidget \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/moc_FloatingOmnibox.cpp \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/../../../src/ui/FloatingOmnibox.hpp \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QWidget \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/moc_SidebarController.cpp \
   /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/../../../src/ui/SidebarController.hpp \
   /Users/nicojaffer/pocb/build/pocb_autogen/B2MV3FDSZF/moc_WebKitProfile.cpp \

@@ -41,6 +41,16 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
 
     connect(m_tabs, &QTreeWidget::currentItemChanged, this, [this] {
         emit currentTabChanged();
+        // Replay the active tab's last known theme colour immediately for a
+        // snappy chrome update, then kick off a fresh sniff in case the
+        // page has changed since (scrolled, dynamically restyled, etc.).
+        if (auto *v = currentView()) {
+            const QColor cached = v->cachedThemeColor();
+            if (cached.isValid()) emit themeColorChanged(cached);
+            v->sniffTopColor();
+        } else {
+            emit themeColorChanged(QColor());
+        }
     });
 
     if (m_favicons) {

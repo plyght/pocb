@@ -24,6 +24,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/nicojaffer/pocb/src/services/Theme.cpp" "CMakeFiles/pocb.dir/src/services/Theme.cpp.o" "gcc" "CMakeFiles/pocb.dir/src/services/Theme.cpp.o.d"
   "/Users/nicojaffer/pocb/src/tabs/TabTree.cpp" "CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o" "gcc" "CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o.d"
   "/Users/nicojaffer/pocb/src/ui/AddressBarController.cpp" "CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o" "gcc" "CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o.d"
+  "/Users/nicojaffer/pocb/src/ui/ChromeWidgets.cpp" "CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o" "gcc" "CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o.d"
   "/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp" "CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o" "gcc" "CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o.d"
   "/Users/nicojaffer/pocb/src/ui/SidebarController.cpp" "CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o" "gcc" "CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o.d"
   "/Users/nicojaffer/pocb/src/ui/Topbar.cpp" "CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o" "gcc" "CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o.d"

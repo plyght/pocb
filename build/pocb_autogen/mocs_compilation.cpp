@@ -5,6 +5,7 @@
 #include "GQ6NBGVJMG/moc_ProfileStore.cpp"
 #include "BUWON6PSIR/moc_TabTree.cpp"
 #include "YPKJ5OE7LN/moc_AddressBarController.cpp"
+#include "YPKJ5OE7LN/moc_ChromeWidgets.cpp"
 #include "YPKJ5OE7LN/moc_FloatingOmnibox.cpp"
 #include "YPKJ5OE7LN/moc_SidebarController.cpp"
 #include "B2MV3FDSZF/moc_WebKitProfile.cpp"

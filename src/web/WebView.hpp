@@ -27,6 +27,11 @@ public:
     // wired to their opener's session). Takes ownership of the NSView.
     void adoptNativeWebView(void *wkWebView);
 
+    // Last colour reported by sniffTopColor() (or invalid if never sniffed).
+    QColor cachedThemeColor() const;
+    // Re-runs the sniff JS and (asynchronously) emits themeColorChanged.
+    void sniffTopColor();
+
 signals:
     void urlChanged(const QUrl &url);
     void titleChanged(const QString &title);

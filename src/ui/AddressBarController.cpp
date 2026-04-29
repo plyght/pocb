@@ -1,6 +1,9 @@
 #include "AddressBarController.hpp"
 
+#include "MacIntegration.hpp"
+
 #include <QApplication>
+#include <QSettings>
 #include <QEvent>
 #include <QFocusEvent>
 #include <QFont>
@@ -43,6 +46,13 @@ AddrEngine engineForHost(const QString &host) {
 AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, const Theme &theme, QObject *parent)
     : QObject(parent), m_bar(bar), m_lockIcon(lockIcon), m_theme(theme) {
     m_bar->installEventFilter(this);
+    // Click-only focus: don't let the address bar grab initial / tab focus on
+    // launch (which would put the controller into editing mode before any
+    // URL was set, suppressing all subsequent setDisplayUrl updates).
+    m_bar->setFocusPolicy(Qt::ClickFocus);
+    m_iconColor = m_theme.muted;
+    m_showFull = QSettings().value("ui/showFullUrl", false).toBool();
+    if (m_lockIcon) m_lockIcon->setVisible(false);
 
     m_net = new QNetworkAccessManager(this);
     m_debounce = new QTimer(this);
@@ -58,17 +68,71 @@ AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, con
 }
 
 void AddressBarController::setDisplayUrl(const QString &urlString, bool isHttps) {
-    if (m_editing) return;
-    m_bar->setText(urlString == "about:blank" ? QString() : urlString);
-    if (m_lockIcon) m_lockIcon->setVisible(isHttps);
+    m_currentUrl = urlString;
+    m_isHttps = isHttps;
+    renderLock();
+    if (!m_editing) applyDisplay();
+}
+
+void AddressBarController::setIconColor(const QColor &color) {
+    if (color.isValid()) m_iconColor = color;
+    renderLock();
+}
+
+void AddressBarController::setShowFullUrl(bool full) {
+    if (m_showFull == full) return;
+    m_showFull = full;
+    if (!m_editing) applyDisplay();
+}
+
+void AddressBarController::renderLock() {
+    if (!m_lockIcon) return;
+    // Hidden for blank/data URLs; shown for any real navigation.
+    const bool real = !m_currentUrl.isEmpty()
+                       && m_currentUrl != QStringLiteral("about:blank")
+                       && !m_currentUrl.startsWith("data:");
+    m_lockIcon->setVisible(real);
+    if (!real) return;
+
+    if (m_isHttps) {
+        QColor c = m_iconColor;
+        c.setAlpha(170);
+        m_lockIcon->setPixmap(mac::sfSymbolIcon("lock.fill", 11.0, c).pixmap(14, 14));
+    } else {
+        // System red for the unlocked / insecure state.
+        const QColor red(255, 69, 58);
+        m_lockIcon->setPixmap(mac::sfSymbolIcon("lock.slash.fill", 11.0, red).pixmap(14, 14));
+    }
+}
+
+QString AddressBarController::prettify(const QString &fullUrl) const {
+    if (fullUrl.isEmpty() || fullUrl == QStringLiteral("about:blank")) return QString();
+    QUrl u = QUrl::fromUserInput(fullUrl);
+    if (!u.isValid() || u.host().isEmpty()) return fullUrl;
+    QString host = u.host();
+    if (host.startsWith("www.")) host = host.mid(4);
+    QString path = u.path();
+    if (path == "/" || path.isEmpty()) return host;
+    // Drop trailing slash for visual cleanliness; keep query/fragment off.
+    while (path.endsWith('/')) path.chop(1);
+    return host + path;
+}
+
+void AddressBarController::applyDisplay() {
+    if (!m_bar) return;
+    if (m_currentUrl.isEmpty() || m_currentUrl == QStringLiteral("about:blank")) {
+        m_bar->setText(QString());
+        return;
+    }
+    m_bar->setText(m_showFull ? m_currentUrl : prettify(m_currentUrl));
+    m_bar->setCursorPosition(0);
 }
 
 void AddressBarController::endEditing(bool restoreUrl, const QString &currentUrl) {
     hidePopup();
     m_editing = false;
-    if (restoreUrl && m_bar) {
-        m_bar->setText(currentUrl == "about:blank" ? QString() : currentUrl);
-    }
+    if (!currentUrl.isEmpty()) m_currentUrl = currentUrl;
+    if (restoreUrl && m_bar) applyDisplay();
 }
 
 bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
@@ -105,7 +169,12 @@ bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
 void AddressBarController::beginEditing() {
     if (m_editing) return;
     m_editing = true;
-    m_savedUrl = m_bar->text();
+    m_savedUrl = m_currentUrl;
+    // Swap to the full URL for editing — never the prettified form, since
+    // editing a domain-only string would mangle paths and queries on commit.
+    if (m_bar && !m_currentUrl.isEmpty() && m_currentUrl != QStringLiteral("about:blank")) {
+        m_bar->setText(m_currentUrl);
+    }
     QTimer::singleShot(0, this, [this] {
         if (m_bar->hasFocus()) m_bar->selectAll();
     });

@@ -226,10 +226,24 @@ CMakeFiles/pocb.dir/src/ui/Topbar.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/ui/Topbar.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/ui/Topbar.cpp -o CMakeFiles/pocb.dir/src/ui/Topbar.cpp.s
 
+CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o: /Users/nicojaffer/pocb/src/ui/ChromeWidgets.cpp
+CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o -MF CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o.d -o CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o -c /Users/nicojaffer/pocb/src/ui/ChromeWidgets.cpp
+
+CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/ui/ChromeWidgets.cpp > CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.i
+
+CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/ui/ChromeWidgets.cpp -o CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.s
+
 CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o: /Users/nicojaffer/pocb/src/tabs/TabTree.cpp
 CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o -MF CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o.d -o CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o -c /Users/nicojaffer/pocb/src/tabs/TabTree.cpp
 
 CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.i: cmake_force
@@ -243,7 +257,7 @@ CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.s: cmake_force
 CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o: /Users/nicojaffer/pocb/src/mac/MacInternal.mm
 CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o -MF CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o.d -o CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o -c /Users/nicojaffer/pocb/src/mac/MacInternal.mm
 
 CMakeFiles/pocb.dir/src/mac/MacInternal.mm.i: cmake_force
@@ -257,7 +271,7 @@ CMakeFiles/pocb.dir/src/mac/MacInternal.mm.s: cmake_force
 CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o: /Users/nicojaffer/pocb/src/mac/SfSymbols.mm
 CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o -MF CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o.d -o CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o -c /Users/nicojaffer/pocb/src/mac/SfSymbols.mm
 
 CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.i: cmake_force
@@ -271,7 +285,7 @@ CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.s: cmake_force
 CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o: /Users/nicojaffer/pocb/src/mac/LayerCorners.mm
 CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o -MF CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o.d -o CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o -c /Users/nicojaffer/pocb/src/mac/LayerCorners.mm
 
 CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.i: cmake_force
@@ -285,7 +299,7 @@ CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.s: cmake_force
 CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o: /Users/nicojaffer/pocb/src/mac/Vibrancy.mm
 CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o -MF CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o.d -o CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o -c /Users/nicojaffer/pocb/src/mac/Vibrancy.mm
 
 CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.i: cmake_force
@@ -299,7 +313,7 @@ CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.s: cmake_force
 CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o: /Users/nicojaffer/pocb/src/mac/TrafficLights.mm
 CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o -MF CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o.d -o CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o -c /Users/nicojaffer/pocb/src/mac/TrafficLights.mm
 
 CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.i: cmake_force
@@ -313,7 +327,7 @@ CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.s: cmake_force
 CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o: /Users/nicojaffer/pocb/src/mac/HighRefresh.mm
 CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o -MF CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o.d -o CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o -c /Users/nicojaffer/pocb/src/mac/HighRefresh.mm
 
 CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.i: cmake_force
@@ -327,7 +341,7 @@ CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.s: cmake_force
 CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o: /Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm
 CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o -MF CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o.d -o CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o -c /Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm
 
 CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.i: cmake_force
@@ -341,7 +355,7 @@ CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.s: cmake_force
 CMakeFiles/pocb.dir/src/web/WebView.mm.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/web/WebView.mm.o: /Users/nicojaffer/pocb/src/web/WebView.mm
 CMakeFiles/pocb.dir/src/web/WebView.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/pocb.dir/src/web/WebView.mm.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/pocb.dir/src/web/WebView.mm.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/web/WebView.mm.o -MF CMakeFiles/pocb.dir/src/web/WebView.mm.o.d -o CMakeFiles/pocb.dir/src/web/WebView.mm.o -c /Users/nicojaffer/pocb/src/web/WebView.mm
 
 CMakeFiles/pocb.dir/src/web/WebView.mm.i: cmake_force
@@ -355,7 +369,7 @@ CMakeFiles/pocb.dir/src/web/WebView.mm.s: cmake_force
 CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o: CMakeFiles/pocb.dir/flags.make
 CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o: /Users/nicojaffer/pocb/src/web/WebKitProfile.mm
 CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o -MF CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o.d -o CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o -c /Users/nicojaffer/pocb/src/web/WebKitProfile.mm
 
 CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.i: cmake_force
@@ -379,6 +393,7 @@ pocb_OBJECTS = \
 "CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o" \
 "CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o" \
 "CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o" \
+"CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o" \
 "CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o" \
 "CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o" \
 "CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o" \
@@ -404,6 +419,7 @@ pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o
@@ -420,7 +436,7 @@ pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.f
 pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/QtGui
 pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/QtCore
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Linking CXX executable pocb.app/Contents/MacOS/pocb"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Linking CXX executable pocb.app/Contents/MacOS/pocb"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/pocb.dir/link.txt --verbose=$(VERBOSE)
 	/opt/homebrew/bin/cmake -E make_directory /Users/nicojaffer/pocb/build/pocb.app/Contents/PlugIns/platforms
 	/opt/homebrew/bin/cmake -E copy_if_different /opt/homebrew/Cellar/qtbase/6.10.2/share/qt/plugins/platforms/libqcocoa.dylib /Users/nicojaffer/pocb/build/pocb.app/Contents/PlugIns/platforms/libqcocoa.dylib

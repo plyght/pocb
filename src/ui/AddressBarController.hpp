@@ -2,6 +2,7 @@
 
 #include "Theme.hpp"
 
+#include <QColor>
 #include <QObject>
 #include <QString>
 
@@ -23,6 +24,14 @@ public:
 
     // Update address bar text when not editing (called on tab url changes).
     void setDisplayUrl(const QString &urlString, bool isHttps);
+
+    // Foreground tone used for the lock-secure pixmap. The insecure pixmap
+    // always uses the system "red" colour regardless of theme.
+    void setIconColor(const QColor &color);
+
+    // True = always render full URL in the address bar; false = collapse
+    // scheme/www and trailing trivia when not editing.
+    void setShowFullUrl(bool full);
 
     // Cancel editing and hide popup; if restoreUrl is true, the bar's text is
     // overwritten by the supplied current url string.
@@ -58,5 +67,13 @@ private:
     QListWidget *m_popup = nullptr;
     QString m_pendingQuery;
     QString m_savedUrl;
+    QString m_currentUrl;       // Full URL of the active page (for editing).
+    bool m_isHttps = false;
+    bool m_showFull = false;
+    QColor m_iconColor;
     bool m_editing = false;
+
+    void renderLock();
+    QString prettify(const QString &fullUrl) const;
+    void applyDisplay();
 };

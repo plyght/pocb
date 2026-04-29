@@ -3,6 +3,7 @@
 
 #include "AddressBarController.hpp"
 #include "FloatingOmnibox.hpp"
+#include "ChromeWidgets.hpp"
 #include "MacIntegration.hpp"
 #include "SettingsDialog.hpp"
 #include "SidebarController.hpp"
@@ -65,7 +66,15 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     setupUi();
     setupActions();
     setWindowTitle("pocb");
-    resize(1280, 820);
+    {
+        QSettings settings;
+        const QByteArray geom = settings.value("ui/windowGeometry").toByteArray();
+        if (!geom.isEmpty()) {
+            restoreGeometry(geom);
+        } else {
+            resize(1280, 820);
+        }
+    }
     // Force NSWindow creation so we can position the traffic lights before
     // the window is visible (no one-frame flash at the default position).
     winId();
@@ -75,12 +84,23 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
 
 void BrowserWindow::moveEvent(QMoveEvent *e) {
     QMainWindow::moveEvent(e);
-    if (m_sidebar && m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
+    if (m_sidebar) {
+        if (m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
+        if (m_sidebar->floatingVisible()) m_sidebar->positionFloating();
+    }
 }
 
 void BrowserWindow::resizeEvent(QResizeEvent *e) {
     QMainWindow::resizeEvent(e);
-    if (m_sidebar && m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
+    if (m_sidebar) {
+        if (m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
+        if (m_sidebar->floatingVisible()) m_sidebar->positionFloating();
+    }
+}
+
+void BrowserWindow::closeEvent(QCloseEvent *e) {
+    QSettings().setValue("ui/windowGeometry", saveGeometry());
+    QMainWindow::closeEvent(e);
 }
 
 void BrowserWindow::showEvent(QShowEvent *e) {
@@ -116,6 +136,9 @@ void BrowserWindow::showSettings() {
         m_searchEngine = url;
         if (m_floatingOmnibox) m_floatingOmnibox->setSearchEngineUrl(url);
     });
+    connect(&dialog, &SettingsDialog::showFullUrlChanged, this, [this](bool full) {
+        if (m_addressBarCtl) m_addressBarCtl->setShowFullUrl(full);
+    });
     dialog.exec();
 }
 
@@ -139,6 +162,7 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     m_settingsBtn = w.settings;
     m_addressBar = w.addressBar;
     m_lockIcon = w.lockIcon;
+    m_addrWrap = w.addrWrap;
 
     m_addressBarCtl = new AddressBarController(m_addressBar, m_lockIcon, m_theme, this);
     m_addressBarCtl->setSearchEngineUrl(m_searchEngine);
@@ -205,21 +229,11 @@ void BrowserWindow::setupUi() {
         if (auto *view = currentView()) view->load(urlFromInput(text));
     });
 
+    // The load progress is now painted inside the address pill (see
+    // ui::AddrPill::setLoadProgress). m_progress remains as an off-screen
+    // sink for any code that still pokes it.
     m_progress = new QProgressBar(this);
-    m_progress->setObjectName("LoadProgress");
-    m_progress->setMaximumHeight(2);
-    m_progress->setMinimumHeight(2);
-    m_progress->setTextVisible(false);
-    m_progress->setVisible(false);
-    m_progress->setStyleSheet(QString(
-        "QProgressBar#LoadProgress {"
-        "  background: transparent;"
-        "  border: none;"
-        "}"
-        "QProgressBar#LoadProgress::chunk {"
-        "  background: %1;"
-        "}")
-        .arg(m_theme.accent.name()));
+    m_progress->hide();
 
     m_splitter = new QSplitter(this);
     m_splitter->setOrientation(Qt::Horizontal);
@@ -274,15 +288,14 @@ void BrowserWindow::setupUi() {
 
     m_topbar = buildTopbar(m_webContainer);
     containerLayout->addWidget(m_topbar);
-    containerLayout->addWidget(m_progress);
 
-    // Fixed thin hairline between toolbar/progress strip and the page.
+    // Fixed thin hairline between toolbar and the page.
     m_topSeparator = new QWidget(m_webContainer);
     m_topSeparator->setObjectName("WebTopSeparator");
     m_topSeparator->setFixedHeight(1);
     m_topSeparator->setAttribute(Qt::WA_TransparentForMouseEvents);
     m_topSeparator->setStyleSheet(
-        "QWidget#WebTopSeparator { background: #191919; }");
+        "QWidget#WebTopSeparator { background: rgba(255,255,255,0.08); }");
     containerLayout->addWidget(m_topSeparator);
 
     m_stack = new QWidget(m_webContainer);
@@ -314,6 +327,7 @@ void BrowserWindow::setupUi() {
         hostLayout->setContentsMargins(sidebarVisible ? 0 : 6, 6, 6, 6);
     };
     m_sidebar = new SidebarController(this, m_splitter, applyStackHostInset, this);
+    m_sidebar->setSidebarContent(m_tabTree->widget(), sideLayout);
 
     connect(m_splitter, &QSplitter::splitterMoved, this, [this, sidebar](int pos, int) {
         if (!m_splitter) return;
@@ -343,23 +357,12 @@ void BrowserWindow::setupUi() {
     connect(m_omnibox, &QLineEdit::returnPressed, this, &BrowserWindow::loadFromOmnibox);
     connect(m_tabTree, &TabTree::currentTabChanged, this, &BrowserWindow::updateForCurrentTab);
     connect(m_tabTree, &TabTree::loadProgress, this, [this](int progress) {
-        m_progress->setValue(progress);
-        m_progress->setVisible(progress > 0 && progress < 100);
+        if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
+            pill->setLoadProgress(progress);
+        }
     });
-    connect(m_tabTree, &TabTree::themeColorChanged, this, [this](const QColor &c) {
-        if (!m_topbar) return;
-        // Adapt the toolbar background to the page's theme colour. We darken
-        // light pages slightly so the toolbar reads as chrome rather than
-        // page, and keep dark pages essentially as-is. Fall back to the
-        // default translucent dark when the page exposes nothing useful.
-        QColor bg = (c.isValid() && c.alpha() >= 16) ? c : QColor(28, 28, 30, 235);
-        m_topbar->setStyleSheet(QString(
-            "QWidget#WebTopbar {"
-            "  background: rgba(%1,%2,%3,%4);"
-            "  border-bottom: none;"
-            "}")
-            .arg(bg.red()).arg(bg.green()).arg(bg.blue()).arg(bg.alpha()));
-    });
+    connect(m_tabTree, &TabTree::themeColorChanged, this,
+            &BrowserWindow::applyChromeForPageColor);
     connect(&m_profiles, &ProfileStore::currentProfileChanged, this, [this] {
         m_tabTree->rebuildForProfile();
     });
@@ -446,5 +449,92 @@ void BrowserWindow::setupActions() {
 
 bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
     return QMainWindow::eventFilter(obj, ev);
+}
+
+void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
+    if (!m_topbar) return;
+
+    const bool hasColor = pageColor.isValid() && pageColor.alpha() >= 16;
+    const QColor bg = hasColor ? pageColor : QColor(28, 28, 30, 235);
+
+    // Skip the (relatively expensive) re-rasterise of 6 SF Symbols + 5
+    // button stylesheet resets when nothing actually changed — common on
+    // tab switch where the cached colour gets replayed first and then the
+    // fresh sniff returns the identical value.
+    if (bg == m_lastAppliedChrome) return;
+    m_lastAppliedChrome = bg;
+
+    // Decide a foreground tone that contrasts with `bg`. We use perceived
+    // luminance (Rec. 601) to classify dark vs light pages.
+    const int luma = (bg.red() * 299 + bg.green() * 587 + bg.blue() * 114) / 1000;
+    const bool dark = luma < 140;
+    const QColor fg = dark ? QColor(245, 245, 247) : QColor(28, 28, 30);
+
+    // Hover shade: lighten dark pages, darken light ones — same logic for
+    // toolbar buttons and the address bar wrap.
+    QColor hover = bg;
+    hover = dark ? hover.lighter(125) : hover.darker(108);
+    hover.setAlpha(qMax(220, bg.alpha()));
+
+    QColor pressed = bg;
+    pressed = dark ? pressed.lighter(140) : pressed.darker(115);
+    pressed.setAlpha(qMax(230, bg.alpha()));
+
+    auto rgba = [](const QColor &c) {
+        return QString("rgba(%1,%2,%3,%4)")
+            .arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alpha());
+    };
+
+    if (auto *cb = qobject_cast<ui::ChromeBar *>(m_topbar)) {
+        cb->setBackgroundColor(bg, /*animate=*/true);
+    }
+
+    // Re-render every SF Symbol in the new foreground tone.
+    const double symPt = 14.0;
+    auto reSymbol = [&](QToolButton *btn, const QString &name) {
+        if (!btn) return;
+        btn->setIcon(mac::sfSymbolIcon(name, symPt, fg));
+    };
+    reSymbol(m_backBtn,    "chevron.backward");
+    reSymbol(m_fwdBtn,     "chevron.forward");
+    reSymbol(m_reloadBtn,  "arrow.clockwise");
+    reSymbol(m_newTabBtn,  "plus");
+    reSymbol(m_settingsBtn,"gearshape");
+
+    if (m_addressBarCtl) m_addressBarCtl->setIconColor(fg);
+
+    const QString btnQss = QString(
+        "QToolButton {"
+        "  background: transparent;"
+        "  border: none;"
+        "  border-radius: 6px;"
+        "  padding: 0px;"
+        "}"
+        "QToolButton:hover { background: %1; }"
+        "QToolButton:pressed { background: %2; }")
+        .arg(rgba(hover), rgba(pressed));
+    for (QToolButton *btn : {m_backBtn, m_fwdBtn, m_reloadBtn, m_newTabBtn, m_settingsBtn}) {
+        if (btn) btn->setStyleSheet(btnQss);
+    }
+
+    if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
+        pill->setHoverColor(hover);
+        QColor loadTint = fg;
+        loadTint.setAlpha(220);
+        pill->setLoadColor(loadTint);
+    }
+
+    if (m_addressBar) {
+        m_addressBar->setStyleSheet(QString(
+            "QLineEdit {"
+            "  background: transparent;"
+            "  border: none;"
+            "  color: %1;"
+            "  font-family: '%2';"
+            "  font-size: %3px;"
+            "  padding: 0px;"
+            "}")
+            .arg(fg.name(), m_theme.fontFamily, QString::number(m_theme.regularSize)));
+    }
 }
 

@@ -38,6 +38,7 @@ protected:
     void showEvent(QShowEvent *e) override;
     void moveEvent(QMoveEvent *e) override;
     void resizeEvent(QResizeEvent *e) override;
+    void closeEvent(QCloseEvent *e) override;
     bool eventFilter(QObject *obj, QEvent *ev) override;
 
 private slots:
@@ -72,6 +73,9 @@ private:
     QToolButton *m_newTabBtn = nullptr;
     QLineEdit *m_addressBar = nullptr;
     QLabel *m_lockIcon = nullptr;
+    QWidget *m_addrWrap = nullptr;
+    QColor m_lastAppliedChrome;
+    void applyChromeForPageColor(const QColor &pageColor);
     AddressBarController *m_addressBarCtl = nullptr;
     QAction *m_omniAction = nullptr;
     FaviconService *m_favicons = nullptr;

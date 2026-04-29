@@ -34,6 +34,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o.d"
   "CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o"
   "CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o.d"
+  "CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o"
+  "CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o.d"
   "CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o"
   "CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o.d"
   "CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o"

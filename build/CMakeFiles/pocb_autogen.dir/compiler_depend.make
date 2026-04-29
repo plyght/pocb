@@ -1042,6 +1042,8 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
   /Users/nicojaffer/pocb/src/tabs/TabTree.hpp \
   /Users/nicojaffer/pocb/src/ui/AddressBarController.cpp \
   /Users/nicojaffer/pocb/src/ui/AddressBarController.hpp \
+  /Users/nicojaffer/pocb/src/ui/ChromeWidgets.cpp \
+  /Users/nicojaffer/pocb/src/ui/ChromeWidgets.hpp \
   /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp \
   /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp \
   /Users/nicojaffer/pocb/src/ui/SidebarController.cpp \
@@ -1942,6 +1944,8 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
 /Users/nicojaffer/pocb/src/web/WebKitProfile.hpp:
 
 /Users/nicojaffer/pocb/src/ui/SidebarController.cpp:
+
+/Users/nicojaffer/pocb/src/ui/ChromeWidgets.cpp:
 
 /Users/nicojaffer/pocb/src/ui/AddressBarController.hpp:
 
@@ -3034,6 +3038,8 @@ CMakeFiles/4.2.3/CMakeSystem.cmake:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__iterator/access.h:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Gui/Qt6QOffscreenIntegrationPluginTargets.cmake:
+
+/Users/nicojaffer/pocb/src/ui/ChromeWidgets.hpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__ios/fpos.h:
 

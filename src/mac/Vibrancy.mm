@@ -53,6 +53,35 @@ void enableWindowVibrancy(QWidget *window, VibrancyMaterial material) {
 #endif
 }
 
+void makeFloatingVibrantPanel(QWidget *window, VibrancyMaterial material, double cornerRadius) {
+#ifdef __APPLE__
+    if (!window) return;
+    NSWindow *nsw = internal::nsWindowOf(window);
+    if (!nsw) return;
+    nsw.opaque = NO;
+    nsw.backgroundColor = NSColor.clearColor;
+    nsw.hasShadow = YES;
+    NSView *content = nsw.contentView;
+    if (!content) return;
+    content.wantsLayer = YES;
+    content.layer.cornerRadius = cornerRadius;
+    content.layer.masksToBounds = YES;
+    content.layer.backgroundColor = NSColor.clearColor.CGColor;
+    if (@available(macOS 10.15, *)) {
+        [content.layer setValue:@"continuous" forKey:@"cornerCurve"];
+    }
+    for (NSView *sub in content.subviews) {
+        if ([sub isKindOfClass:[NSVisualEffectView class]] &&
+            [sub.identifier isEqualToString:@"PocbFloatingVibrancy"]) return;
+    }
+    NSVisualEffectView *vev = makeVev(content.bounds, material);
+    vev.identifier = @"PocbFloatingVibrancy";
+    [content addSubview:vev positioned:NSWindowBelow relativeTo:nil];
+#else
+    (void)window; (void)material; (void)cornerRadius;
+#endif
+}
+
 void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material) {
 #ifdef __APPLE__
     if (!widget) return;

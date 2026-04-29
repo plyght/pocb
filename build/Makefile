@@ -539,6 +539,30 @@ src/ui/AddressBarController.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.s
 .PHONY : src/ui/AddressBarController.cpp.s
 
+src/ui/ChromeWidgets.o: src/ui/ChromeWidgets.cpp.o
+.PHONY : src/ui/ChromeWidgets.o
+
+# target to build an object file
+src/ui/ChromeWidgets.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.o
+.PHONY : src/ui/ChromeWidgets.cpp.o
+
+src/ui/ChromeWidgets.i: src/ui/ChromeWidgets.cpp.i
+.PHONY : src/ui/ChromeWidgets.i
+
+# target to preprocess a source file
+src/ui/ChromeWidgets.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.i
+.PHONY : src/ui/ChromeWidgets.cpp.i
+
+src/ui/ChromeWidgets.s: src/ui/ChromeWidgets.cpp.s
+.PHONY : src/ui/ChromeWidgets.s
+
+# target to generate assembly for a file
+src/ui/ChromeWidgets.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/ChromeWidgets.cpp.s
+.PHONY : src/ui/ChromeWidgets.cpp.s
+
 src/ui/FloatingOmnibox.o: src/ui/FloatingOmnibox.cpp.o
 .PHONY : src/ui/FloatingOmnibox.o
 
@@ -718,6 +742,9 @@ help:
 	@echo "... src/ui/AddressBarController.o"
 	@echo "... src/ui/AddressBarController.i"
 	@echo "... src/ui/AddressBarController.s"
+	@echo "... src/ui/ChromeWidgets.o"
+	@echo "... src/ui/ChromeWidgets.i"
+	@echo "... src/ui/ChromeWidgets.s"
 	@echo "... src/ui/FloatingOmnibox.o"
 	@echo "... src/ui/FloatingOmnibox.i"
 	@echo "... src/ui/FloatingOmnibox.s"

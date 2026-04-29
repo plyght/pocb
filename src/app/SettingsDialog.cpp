@@ -2,8 +2,10 @@
 
 #include "ProfileStore.hpp"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QSettings>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -33,9 +35,13 @@ SettingsDialog::SettingsDialog(ProfileStore &profiles, QWidget *parent) : QDialo
     m_homePage = new QLineEdit("https://search.brave.com", this);
     m_searchEngine = new QLineEdit("https://search.brave.com/search?q=%1", this);
 
+    m_showFullUrl = new QCheckBox("Show full URL in address bar", this);
+    m_showFullUrl->setChecked(QSettings().value("ui/showFullUrl", false).toBool());
+
     form->addRow("Profile", profileRow);
     form->addRow("Home page", m_homePage);
     form->addRow("Search URL", m_searchEngine);
+    form->addRow("Address bar", m_showFullUrl);
     layout->addWidget(new QLabel("Search URL must contain %1 where the query goes.", this));
     layout->addLayout(form);
 
@@ -54,6 +60,9 @@ SettingsDialog::SettingsDialog(ProfileStore &profiles, QWidget *parent) : QDialo
     connect(buttons, &QDialogButtonBox::accepted, this, [this] {
         emit homePageChanged(m_homePage->text());
         emit searchEngineChanged(m_searchEngine->text());
+        const bool full = m_showFullUrl->isChecked();
+        QSettings().setValue("ui/showFullUrl", full);
+        emit showFullUrlChanged(full);
         accept();
     });
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);

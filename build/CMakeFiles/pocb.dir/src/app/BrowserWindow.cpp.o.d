@@ -1283,6 +1283,7 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /Users/nicojaffer/pocb/src/ui/AddressBarController.hpp \
   /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QWidget \
+  /Users/nicojaffer/pocb/src/ui/ChromeWidgets.hpp \
   /Users/nicojaffer/pocb/src/mac/MacIntegration.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QIcon \
   /Users/nicojaffer/pocb/src/app/SettingsDialog.hpp \

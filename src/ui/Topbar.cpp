@@ -1,5 +1,6 @@
 #include "Topbar.hpp"
 
+#include "ChromeWidgets.hpp"
 #include "MacIntegration.hpp"
 
 #include <QHBoxLayout>
@@ -14,15 +15,10 @@ namespace ui {
 TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
     TopbarWidgets w;
 
-    auto *bar = new QWidget(parent);
+    auto *bar = new ChromeBar(parent);
     bar->setObjectName("WebTopbar");
     bar->setFixedHeight(40);
-    bar->setStyleSheet(QString(
-        "QWidget#WebTopbar {"
-        "  background: rgba(28,28,30,0.92);"
-        "  border-bottom: 1px solid %1;"
-        "}")
-        .arg(theme.borderSoft.name()));
+    bar->setBackgroundColor(QColor(28, 28, 30, 235), /*animate=*/false);
     w.bar = bar;
 
     auto *row = new QHBoxLayout(bar);
@@ -70,22 +66,11 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
 
     // Address bar — clickable read-only display that opens the floating
     // omnibox for editing.
-    auto *addrWrap = new QWidget(bar);
+    auto *addrWrap = new AddrPill(bar);
     w.addrWrap = addrWrap;
     addrWrap->setObjectName("AddressWrap");
     addrWrap->setFixedHeight(28);
-    addrWrap->setStyleSheet(QString(
-        "QWidget#AddressWrap {"
-        "  background: %1;"
-        "  border: 1px solid %2;"
-        "  border-radius: 7px;"
-        "}"
-        "QWidget#AddressWrap:hover {"
-        "  background: %3;"
-        "}")
-        .arg(theme.raised.name(),
-             theme.borderSoft.name(),
-             theme.hover.name()));
+    addrWrap->setRadius(7);
     auto *addrRow = new QHBoxLayout(addrWrap);
     addrRow->setContentsMargins(8, 0, 8, 0);
     addrRow->setSpacing(6);
