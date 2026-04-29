@@ -94,6 +94,28 @@ void makeFloatingVibrantPanel(QWidget *window, VibrancyMaterial material, double
 #endif
 }
 
+void preventWindowActivation(QWidget *window) {
+#ifdef __APPLE__
+    if (!window) return;
+    window->winId();
+    NSWindow *nsw = internal::nsWindowOf(window);
+    if (!nsw) return;
+    nsw.hidesOnDeactivate = NO;
+    nsw.level = NSFloatingWindowLevel;
+    nsw.collectionBehavior |= NSWindowCollectionBehaviorFullScreenAuxiliary;
+    nsw.ignoresMouseEvents = NO;
+#else
+    (void)window;
+#endif
+}
+
+void keepMouseCursorVisible() {
+#ifdef __APPLE__
+    [NSCursor setHiddenUntilMouseMoves:NO];
+#else
+#endif
+}
+
 void makeTransparentFloatingPanel(QWidget *window, double cornerRadius) {
 #ifdef __APPLE__
     if (!window) return;

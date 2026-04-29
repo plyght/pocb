@@ -73,6 +73,7 @@ struct WebView::Impl {
     WKWebView *wk = nil;
     PocbWKBridge *bridge = nil;
     NSView *observedHost = nil;
+    NSArray<NSLayoutConstraint *> *edgeConstraints = nil;
     QColor cachedTopColor;
 };
 
@@ -184,9 +185,12 @@ struct WebView::Impl {
     // size, leaving a gray L-shape along the top/left until the next manual
     // resize. Subscribing to NSViewFrameDidChangeNotification on the host
     // closes that gap.
+    if (host.inLiveResize) return;
     for (NSView *sub in host.subviews) {
         if ([sub isKindOfClass:[WKWebView class]]) {
-            sub.frame = host.bounds;
+            [host setNeedsLayout:YES];
+            [host layoutSubtreeIfNeeded];
+            if (!NSEqualRects(sub.frame, host.bounds)) sub.frame = host.bounds;
         }
     }
 }
@@ -248,6 +252,10 @@ WebView::~WebView() {
         [m_impl->bridge detachKVO:m_impl->wk];
         m_impl->wk.navigationDelegate = nil;
         m_impl->wk.UIDelegate = nil;
+        if (m_impl->edgeConstraints) {
+            [NSLayoutConstraint deactivateConstraints:m_impl->edgeConstraints];
+            m_impl->edgeConstraints = nil;
+        }
         [m_impl->wk removeFromSuperview];
         m_impl->wk = nil;
     }
@@ -259,6 +267,10 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
     WKWebView *wk = (__bridge_transfer WKWebView *)wkWebViewPtr;
     if (m_impl->wk) {
         [m_impl->bridge detachKVO:m_impl->wk];
+        if (m_impl->edgeConstraints) {
+            [NSLayoutConstraint deactivateConstraints:m_impl->edgeConstraints];
+            m_impl->edgeConstraints = nil;
+        }
         [m_impl->wk removeFromSuperview];
     }
     disableWebKit60FpsCap(wk.configuration.preferences);
@@ -279,7 +291,16 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
         host.autoresizesSubviews = YES;
         wk.frame = host.bounds;
         wk.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        wk.translatesAutoresizingMaskIntoConstraints = NO;
         [host addSubview:wk];
+        m_impl->edgeConstraints = @[
+            [wk.leadingAnchor constraintEqualToAnchor:host.leadingAnchor],
+            [wk.trailingAnchor constraintEqualToAnchor:host.trailingAnchor],
+            [wk.topAnchor constraintEqualToAnchor:host.topAnchor],
+            [wk.bottomAnchor constraintEqualToAnchor:host.bottomAnchor]
+        ];
+        [NSLayoutConstraint activateConstraints:m_impl->edgeConstraints];
+        [host layoutSubtreeIfNeeded];
 
         if (m_impl->observedHost && m_impl->observedHost != host) {
             [[NSNotificationCenter defaultCenter] removeObserver:m_impl->bridge
@@ -399,7 +420,10 @@ void WebView::resizeEvent(QResizeEvent *e) {
     QWidget::resizeEvent(e);
     if (m_impl->wk) {
         NSView *host = qtNSView(this);
-        if (host) m_impl->wk.frame = host.bounds;
+        if (host && !host.inLiveResize) {
+            [host setNeedsLayout:YES];
+            [host layoutSubtreeIfNeeded];
+        }
     }
 }
 
@@ -410,14 +434,28 @@ void WebView::showEvent(QShowEvent *e) {
         if (host) {
             host.autoresizesSubviews = YES;
             if (m_impl->wk.superview != host) {
+                if (m_impl->edgeConstraints) {
+                    [NSLayoutConstraint deactivateConstraints:m_impl->edgeConstraints];
+                    m_impl->edgeConstraints = nil;
+                }
                 m_impl->wk.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+                m_impl->wk.translatesAutoresizingMaskIntoConstraints = NO;
                 [host addSubview:m_impl->wk];
+                m_impl->edgeConstraints = @[
+                    [m_impl->wk.leadingAnchor constraintEqualToAnchor:host.leadingAnchor],
+                    [m_impl->wk.trailingAnchor constraintEqualToAnchor:host.trailingAnchor],
+                    [m_impl->wk.topAnchor constraintEqualToAnchor:host.topAnchor],
+                    [m_impl->wk.bottomAnchor constraintEqualToAnchor:host.bottomAnchor]
+                ];
+                [NSLayoutConstraint activateConstraints:m_impl->edgeConstraints];
             }
             // Always resync the frame on show: when a tab is first activated
             // the host QWidget may have been resized while hidden, and the
             // NSView autoresize chain doesn't always pick that up — leaving
             // a gray strip along the top/left until the next resize.
-            m_impl->wk.frame = host.bounds;
+            [host setNeedsLayout:YES];
+            [host layoutSubtreeIfNeeded];
+            if (!NSEqualRects(m_impl->wk.frame, host.bounds)) m_impl->wk.frame = host.bounds;
             [m_impl->wk setNeedsDisplay:YES];
 
             if (m_impl->observedHost != host) {

@@ -56,6 +56,16 @@ void makeFloatingVibrantPanel(QWidget *window, VibrancyMaterial material, double
 // material tint.
 void makeTransparentFloatingPanel(QWidget *window, double cornerRadius);
 
+// Prevent a top-level utility/popup QWidget from becoming the key window.
+// Useful for suggestion popups that must not steal the insertion cursor from
+// the text field that spawned them.
+void preventWindowActivation(QWidget *window);
+
+// Ask AppKit to keep the mouse pointer visible after typing. This counters
+// macOS hiding the pointer while a non-activating suggestion popup is being
+// repositioned under a focused text field.
+void keepMouseCursorVisible();
+
 // Make the NSWindow's titlebar transparent and hide its title text, so the
 // behind-window vibrancy reads through the titlebar area as well. The
 // content view is expanded to full size so Qt widgets can paint into the

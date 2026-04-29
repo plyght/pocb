@@ -120,7 +120,7 @@ AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, con
         m_pendingQuery = t.trimmed();
         m_statusText.clear();
         if (m_pendingQuery.isEmpty()) { hidePopup(); return; }
-        populatePopup({});
+        mac::keepMouseCursorVisible();
         m_debounce->start();
     });
     connect(m_bar, &QLineEdit::returnPressed, this, &AddressBarController::commit);
@@ -455,6 +455,7 @@ void AddressBarController::populatePopup(const QStringList &items) {
         m_popup->setParent(m_bar ? m_bar->window() : nullptr);
         m_popup->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint | Qt::WindowDoesNotAcceptFocus);
         m_popup->setAttribute(Qt::WA_TranslucentBackground);
+        m_popup->setAttribute(Qt::WA_ShowWithoutActivating);
         m_popup->setAttribute(Qt::WA_NoSystemBackground);
         m_popup->setAutoFillBackground(false);
         m_popup->setFocusPolicy(Qt::NoFocus);
@@ -564,10 +565,12 @@ void AddressBarController::positionPopup() {
 
 void AddressBarController::showPopup() {
     if (!m_popup) return;
+    mac::keepMouseCursorVisible();
     positionPopup();
     if (m_bar && !m_bar->hasFocus()) m_bar->setFocus(Qt::OtherFocusReason);
     if (!m_popup->isVisible()) m_popup->show();
     mac::makeFloatingVibrantPanel(m_popup, mac::VibrancyMaterial::Popover, 12.0);
+    mac::preventWindowActivation(m_popup);
     mac::roundWidgetCorners(m_popup, 12.0, false);
     if (m_popupList) {
         m_popupList->winId();
@@ -577,9 +580,11 @@ void AddressBarController::showPopup() {
     }
     m_popup->raise();
     if (m_bar) {
+        m_bar->activateWindow();
         m_bar->setFocus(Qt::OtherFocusReason);
         m_bar->update();
     }
+    mac::keepMouseCursorVisible();
 }
 
 void AddressBarController::hidePopup() {
