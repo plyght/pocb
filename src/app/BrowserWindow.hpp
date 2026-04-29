@@ -11,20 +11,14 @@
 
 class FloatingOmnibox;
 class QHBoxLayout;
-class QLabel;
 class QLineEdit;
-class QListWidget;
-class QNetworkAccessManager;
-class QNetworkReply;
 class QProgressBar;
-class QTimer;
 class QSplitter;
 class QToolBar;
 class QToolButton;
 class QAction;
 class QTreeWidget;
 class QTreeWidgetItem;
-class QVariantAnimation;
 class WebView;
 
 class BrowserWindow final : public QMainWindow {
@@ -34,9 +28,6 @@ public:
 
 protected:
     void showEvent(QShowEvent *e) override;
-    void moveEvent(QMoveEvent *e) override;
-    void resizeEvent(QResizeEvent *e) override;
-    bool eventFilter(QObject *obj, QEvent *ev) override;
 
 private slots:
     void newTab(const QUrl &url = QUrl(), bool background = false, QTreeWidgetItem *parentItem = nullptr);
@@ -55,15 +46,6 @@ private:
     void rebuildProfilePages();
     void setupUi();
     void setupActions();
-    QWidget *buildTopbar(QWidget *parent);
-    void addrFetchSuggestions();
-    void addrPopulatePopup(const QStringList &items);
-    void addrShowPopup();
-    void addrHidePopup();
-    void addrCommit();
-    void addrBeginEditing();
-    void addrEndEditing(bool restoreUrl);
-    void addrPosition();
 
     Theme m_theme;
     ProfileStore m_profiles;
@@ -76,35 +58,9 @@ private:
     QSplitter *m_splitter = nullptr;
     QTreeWidget *m_tabs = nullptr;
     QWidget *m_stack = nullptr;
-    QWidget *m_webContainer = nullptr;
-    QWidget *m_topbar = nullptr;
-    QToolButton *m_backBtn = nullptr;
-    QToolButton *m_fwdBtn = nullptr;
-    QToolButton *m_reloadBtn = nullptr;
-    QToolButton *m_settingsBtn = nullptr;
-    QToolButton *m_newTabBtn = nullptr;
-    QLineEdit *m_addressBar = nullptr;
-    QLabel *m_lockIcon = nullptr;
-    QListWidget *m_addrPopup = nullptr;
-    QNetworkAccessManager *m_addrNet = nullptr;
-    QNetworkReply *m_addrInflight = nullptr;
-    QTimer *m_addrDebounce = nullptr;
-    QString m_addrPendingQuery;
-    QString m_addrSavedUrl;
-    bool m_addrEditing = false;
     QHash<QTreeWidgetItem *, WebView *> m_views;
     QAction *m_omniAction = nullptr;
     FaviconService *m_favicons = nullptr;
     QHBoxLayout *m_toolbarLayout = nullptr;
     std::function<void(bool)> m_setStackHostInset;
-    QWidget *m_sidebarHoverZone = nullptr;
-    QVariantAnimation *m_sidebarAnim = nullptr;
-    bool m_sidebarHoverArmed = true;
-    bool m_sidebarOpenedByHover = false;
-    bool m_sidebarCollapsing = false;
-
-    void setSidebarHidden(bool hidden);
-    void expandSidebarAnimated();
-    void collapseSidebarAnimated();
-    void positionSidebarHoverZone();
 };

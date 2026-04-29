@@ -1,16 +1,15 @@
 #include "MacIntegration.hpp"
-
-#include <QMainWindow>
-#include <QTimer>
-#include <QWidget>
+#include "MacInternal.hpp"
 
 #ifdef __APPLE__
 #import <AppKit/AppKit.h>
 #import <QuartzCore/QuartzCore.h>
-#import <QuartzCore/CADisplayLink.h>
-#import <QuartzCore/CAMetalLayer.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
+
+#include <QMainWindow>
+#include <QTimer>
+#include <QWidget>
 
 // Per-instance isa-swizzle: replace the titlebar container view's class
 // with a dynamically-created subclass whose -setFrame: clamps height to
@@ -76,16 +75,8 @@ static void installContainerHeightLock(NSView *container, NSWindow *nsw, CGFloat
     NSButton *mini  = [nsw standardWindowButton:NSWindowMiniaturizeButton];
     NSButton *zoom  = [nsw standardWindowButton:NSWindowZoomButton];
     if (!close || !mini || !zoom) return;
-    // The buttons sit inside _NSThemeCloseWidget → _NSTitlebarContainerView.
-    // Resizing the *container* (two levels up) lets the buttons sit lower
-    // than the default ~28pt titlebar without being clipped — and without
-    // attaching an NSToolbar / titlebar accessory (both of which trigger
-    // macOS 26's larger window-corner treatment).
     NSView *containerView = close.superview.superview;
     if (!containerView) return;
-    // Subscribe to frame-changed notifications on the container so we re-pin
-    // whenever AppKit re-lays it out (which it does on title-bar updates,
-    // theme changes, fullscreen transitions, …).
     if (self.observedContainer != containerView) {
         if (self.observedContainer) {
             [NSNotificationCenter.defaultCenter removeObserver:self
@@ -101,17 +92,11 @@ static void installContainerHeightLock(NSView *container, NSWindow *nsw, CGFloat
     }
 
     const CGFloat buttonHeight = close.frame.size.height;
-    // Tauri's convention: x = leading inset, y = top inset (where x is the
-    // distance from the left window edge to the close button, and the
-    // titlebar container is grown to (buttonHeight + y) so the button
-    // centre ends up at y + buttonHeight/2 from the top of the window).
     const CGFloat x = self.padX;
     const CGFloat y = self.padY;
 
     const CGFloat newH = buttonHeight + y;
     NSRect cf = containerView.frame;
-    // Lock the container's height so AppKit can't shrink it between pins
-    // (per-instance isa-swizzle of -setFrame:).
     installContainerHeightLock(containerView, nsw, newH);
     if (fabs(cf.size.height - newH) > 0.5 ||
         fabs(cf.origin.y - (nsw.frame.size.height - newH)) > 0.5) {
@@ -131,9 +116,6 @@ static void installContainerHeightLock(NSView *container, NSWindow *nsw, CGFloat
             b.layer.anchorPoint = CGPointMake(0.5, 0.5);
             b.layer.affineTransform = CGAffineTransformMakeScale(scale, scale);
         }
-        // Don't touch origin.y — Tauri's trick is to leave buttons at
-        // their original (bottom-of-container) y; resizing the container
-        // upward shifts them visually downward in the window.
         NSPoint o = b.frame.origin;
         o.x = x + (CGFloat)i * spacing;
         [b setFrameOrigin:o];
@@ -150,27 +132,14 @@ static void installContainerHeightLock(NSView *container, NSWindow *nsw, CGFloat
 
 static char kPocbPinnerKey;
 
-#endif
-
-namespace mac {
-
-#ifdef __APPLE__
-static NSWindow *nsWindowOf(QWidget *w) {
-    if (!w) return nil;
-    w->winId();
-    NSView *view = (__bridge NSView *)reinterpret_cast<void *>(w->winId());
-    return view.window;
-}
-
 static void apply(QMainWindow *win, CGFloat padX, CGFloat padY, CGFloat spacing, CGFloat scale) {
-    NSWindow *nsw = nsWindowOf(win);
+    NSWindow *nsw = mac::internal::nsWindowOf(win);
     if (!nsw) return;
 
     nsw.titleVisibility = NSWindowTitleHidden;
     nsw.titlebarAppearsTransparent = YES;
     nsw.movableByWindowBackground = YES;
     if (nsw.toolbar) nsw.toolbar = nil;
-    // Drop any titlebar accessory we previously installed.
     NSArray *accs = [nsw.titlebarAccessoryViewControllers copy];
     NSInteger idx = 0;
     for (NSTitlebarAccessoryViewController *vc in accs) {
@@ -182,10 +151,6 @@ static void apply(QMainWindow *win, CGFloat padX, CGFloat padY, CGFloat spacing,
     }
     [nsw setStyleMask:nsw.styleMask | NSWindowStyleMaskFullSizeContentView];
 
-    // Manually reposition traffic lights, with a tracking-area refresh
-    // (setFrame:display:) so hover states track the new origin. Avoids
-    // attaching an NSToolbar / titlebar accessory, both of which round
-    // the window's corners further on macOS 26+.
     PocbTrafficLightsPinner *pinner = objc_getAssociatedObject(nsw, &kPocbPinnerKey);
     if (!pinner) {
         pinner = [[PocbTrafficLightsPinner alloc] init];
@@ -221,149 +186,17 @@ static void apply(QMainWindow *win, CGFloat padX, CGFloat padY, CGFloat spacing,
 }
 #endif
 
-void roundWidgetCorners(QWidget *widget, double radius) {
-#ifdef __APPLE__
-    if (!widget) return;
-    widget->winId();
-    NSView *view = (__bridge NSView *)reinterpret_cast<void *>(widget->winId());
-    if (!view) return;
-    auto roundView = ^(NSView *v) {
-        v.wantsLayer = YES;
-        v.layer.cornerRadius = radius;
-        v.layer.masksToBounds = YES;
-        v.layer.backgroundColor = NSColor.clearColor.CGColor;
-        if (@available(macOS 10.15, *)) {
-            [v.layer setValue:@"continuous" forKey:@"cornerCurve"];
-        }
-    };
-    roundView(view);
-    for (NSView *sub in view.subviews) roundView(sub);
-#else
-    (void)widget; (void)radius;
-#endif
-}
-
-#ifdef __APPLE__
-static NSVisualEffectMaterial materialFor(VibrancyMaterial m) {
-    switch (m) {
-        case VibrancyMaterial::Sidebar:      return NSVisualEffectMaterialSidebar;
-        case VibrancyMaterial::HeaderView:   return NSVisualEffectMaterialHeaderView;
-        case VibrancyMaterial::HUDWindow:    return NSVisualEffectMaterialHUDWindow;
-        case VibrancyMaterial::FullScreenUI: return NSVisualEffectMaterialFullScreenUI;
-        case VibrancyMaterial::Popover:      return NSVisualEffectMaterialPopover;
-        case VibrancyMaterial::WindowBackground:
-        default:                             return NSVisualEffectMaterialWindowBackground;
-    }
-}
-static NSVisualEffectView *makeVev(NSRect frame, VibrancyMaterial m) {
-    NSVisualEffectView *v = [[NSVisualEffectView alloc] initWithFrame:frame];
-    v.material = materialFor(m);
-    v.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-    v.state = NSVisualEffectStateFollowsWindowActiveState;
-    v.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-    return v;
-}
-#endif
-
-void enableWindowVibrancy(QWidget *window, VibrancyMaterial material) {
-#ifdef __APPLE__
-    if (!window) return;
-    NSWindow *nsw = nsWindowOf(window);
-    if (!nsw) return;
-    nsw.opaque = NO;
-    nsw.backgroundColor = NSColor.clearColor;
-    NSView *content = nsw.contentView;
-    if (!content) return;
-    NSView *frameView = content.superview ?: content;
-    // Avoid duplicate insertion.
-    for (NSView *sub in frameView.subviews) {
-        if ([sub isKindOfClass:[NSVisualEffectView class]] &&
-            [sub.identifier isEqualToString:@"PocbWindowVibrancy"]) return;
-    }
-    NSVisualEffectView *vev = makeVev(frameView.bounds, material);
-    vev.identifier = @"PocbWindowVibrancy";
-    [frameView addSubview:vev positioned:NSWindowBelow relativeTo:nil];
-#else
-    (void)window; (void)material;
-#endif
-}
-
-void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material) {
-#ifdef __APPLE__
-    if (!widget) return;
-    widget->winId();
-    NSView *view = (__bridge NSView *)reinterpret_cast<void *>(widget->winId());
-    if (!view) return;
-    for (NSView *sub in view.subviews) {
-        if ([sub isKindOfClass:[NSVisualEffectView class]] &&
-            [sub.identifier isEqualToString:@"PocbBehindVibrancy"]) return;
-    }
-    NSVisualEffectView *vev = makeVev(view.bounds, material);
-    vev.identifier = @"PocbBehindVibrancy";
-    [view addSubview:vev positioned:NSWindowBelow relativeTo:nil];
-#else
-    (void)widget; (void)material;
-#endif
-}
-
-void setTrafficLightsHidden(QWidget *window, bool hidden) {
-#ifdef __APPLE__
-    if (!window) return;
-    NSWindow *nsw = nsWindowOf(window);
-    if (!nsw) return;
-    NSButton *close = [nsw standardWindowButton:NSWindowCloseButton];
-    NSButton *mini  = [nsw standardWindowButton:NSWindowMiniaturizeButton];
-    NSButton *zoom  = [nsw standardWindowButton:NSWindowZoomButton];
-    auto apply = ^(NSButton *b) {
-        if (!b) return;
-        b.hidden = hidden;
-        b.alphaValue = hidden ? 0.0 : 1.0;
-        b.enabled = !hidden;
-    };
-    apply(close); apply(mini); apply(zoom);
-#else
-    (void)window; (void)hidden;
-#endif
-}
-
-void enableHighRefreshRate(QWidget *window) {
-#ifdef __APPLE__
-    if (!window) return;
-    NSWindow *nsw = nsWindowOf(window);
-    if (!nsw) return;
-    // Walk the view tree and bump every CAMetalLayer / CALayer's preferred
-    // frame rate range to the screen's maximum refresh rate.
-    NSScreen *screen = nsw.screen ?: NSScreen.mainScreen;
-    if (!screen) return;
-    float maxHz = 60.0f;
-    if (@available(macOS 12.0, *)) {
-        maxHz = (float)screen.maximumFramesPerSecond;
-    }
-    if (maxHz <= 60.0f) return;
-
-    if (@available(macOS 14.0, *)) {
-        CADisplayLink *link = [nsw displayLinkWithTarget:[NSNull null] selector:@selector(self)];
-        link.preferredFrameRateRange = (CAFrameRateRange){60.0f, maxHz, maxHz};
-        [link addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
-    }
-
-#else
-    (void)window;
-#endif
-}
+namespace mac {
 
 void integrateUnifiedToolbar(QMainWindow *win, QWidget *toolbarRow, bool compact) {
 #ifdef __APPLE__
-    (void)toolbarRow; (void)compact;
+    (void)toolbarRow;
     if (!win) return;
     const CGFloat padX = 22.0;
     const CGFloat padY = compact ? 30.0 : 36.0;
     const CGFloat spacing = 26.0;
     const CGFloat scale = 1.18;
     auto run = [win, padX, padY, spacing, scale] { apply(win, padX, padY, spacing, scale); };
-    // Apply synchronously to avoid a one-frame flash at the default position
-    // before the timer fires, then re-apply via timers in case Qt re-runs
-    // its window setup after first show.
     run();
     QTimer::singleShot(0, win, run);
     QTimer::singleShot(50, win, run);
