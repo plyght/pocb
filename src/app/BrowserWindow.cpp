@@ -7,7 +7,8 @@
 #include "ChromeExtensionManager.hpp"
 #include "LayoutMetrics.hpp"
 #include "MacIntegration.hpp"
-#include "SettingsDialog.hpp"
+#include "NativeProfilePopover.hpp"
+#include "NativeSettingsWindow.hpp"
 #include "SidebarController.hpp"
 #include "TabTree.hpp"
 #include "Topbar.hpp"
@@ -38,6 +39,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QProgressBar>
+#include <QPropertyAnimation>
 #include <QDir>
 #include <QShortcut>
 #include <QShortcutEvent>
@@ -53,6 +55,7 @@
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QVariantAnimation>
+#include <QWheelEvent>
 #include <QEasingCurve>
 #include <QEvent>
 #include <QVBoxLayout>
@@ -230,20 +233,20 @@ void BrowserWindow::showCopiedLinkPopup() {
 }
 
 void BrowserWindow::showSettings() {
-    SettingsDialog dialog(m_profiles, this);
-    connect(&dialog, &SettingsDialog::homePageChanged, this, [this](const QString &url) {
-        m_homePage = url;
-        if (m_tabTree) m_tabTree->setHomePage(url);
-    });
-    connect(&dialog, &SettingsDialog::searchEngineChanged, this, [this](const QString &url) {
-        if (!url.contains("%1")) return;
-        m_searchEngine = url;
-        if (m_floatingOmnibox) m_floatingOmnibox->setSearchEngineUrl(url);
-    });
-    connect(&dialog, &SettingsDialog::showFullUrlChanged, this, [this](bool full) {
-        if (m_addressBarCtl) m_addressBarCtl->setShowFullUrl(full);
-    });
-    dialog.exec();
+    QString homePage = m_homePage;
+    QString searchEngine = m_searchEngine;
+    bool showFullUrl = QSettings().value("ui/showFullUrl", false).toBool();
+    if (!mac::showNativeSettingsWindow(this, m_profiles, homePage, searchEngine, showFullUrl)) return;
+
+    m_homePage = homePage;
+    if (m_tabTree) m_tabTree->setHomePage(homePage);
+
+    if (searchEngine.contains("%1")) {
+        m_searchEngine = searchEngine;
+        if (m_floatingOmnibox) m_floatingOmnibox->setSearchEngineUrl(searchEngine);
+    }
+
+    if (m_addressBarCtl) m_addressBarCtl->setShowFullUrl(showFullUrl);
 }
 
 void BrowserWindow::updateForCurrentTab() {
@@ -310,11 +313,15 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
                 m_floatingOmnibox->showFor(m_stack, QString());
             };
             auto settings = [this] { showSettings(); };
+            auto bookmark = [this] {
+                if (auto *v = currentView()) m_bookmarks.addBookmark(m_profiles.currentName(), v->title(), v->url());
+            };
             if (mac::showNativePageActionsMenu(m_pillMenuBtn, copyUrl, reload, newTab, settings)) return;
 
             QMenu menu(this);
             menu.addAction("Copy URL", this, copyUrl);
             menu.addAction("Reload", this, reload);
+            menu.addAction("Bookmark This Page", this, bookmark);
             menu.addSeparator();
             menu.addAction("New Tab", this, newTab);
             menu.addAction("Settings…", this, settings);
@@ -352,6 +359,189 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     return w.bar;
 }
 
+QWidget *BrowserWindow::buildProfileSwitcher(QWidget *parent) {
+    auto *wrap = new QWidget(parent);
+    wrap->setObjectName("ProfileSwitcher");
+    wrap->setAttribute(Qt::WA_TranslucentBackground);
+    auto *layout = new QHBoxLayout(wrap);
+    layout->setContentsMargins(0, 8, 0, 0);
+    layout->setSpacing(0);
+
+    m_profileBtn = new QToolButton(wrap);
+    m_profileBtn->setObjectName("ProfileButton");
+    m_profileBtn->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    m_profileBtn->setCursor(Qt::PointingHandCursor);
+    m_profileBtn->setFocusPolicy(Qt::NoFocus);
+    m_profileBtn->setIconSize(QSize(19, 19));
+    m_profileBtn->setMinimumSize(32, 32);
+    m_profileBtn->setMaximumSize(32, 32);
+    m_profileBtn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    m_profileBtn->setStyleSheet(QString(
+        "QToolButton#ProfileButton { background: transparent; border: none; border-radius: 8px; padding: 0px; color: %1; text-align: center; font-family: '%2'; font-size: %3px; }"
+        "QToolButton#ProfileButton:hover { background: rgba(255,255,255,0.08); }"
+        "QToolButton#ProfileButton:pressed { background: rgba(255,255,255,0.12); }")
+        .arg(m_theme.foreground.name(), m_theme.fontFamily, QString::number(m_theme.regularSize)));
+    layout->addWidget(m_profileBtn, 1, Qt::AlignLeft | Qt::AlignBottom);
+    wrap->installEventFilter(this);
+    m_profileBtn->installEventFilter(this);
+    connect(m_profileBtn, &QToolButton::clicked, this, &BrowserWindow::showProfileMenu);
+    updateProfileSwitcher();
+    return wrap;
+}
+
+void BrowserWindow::updateProfileSwitcher() {
+    if (!m_profileBtn) return;
+    const QString name = m_profiles.currentName().isEmpty() ? QStringLiteral("Default") : m_profiles.currentName();
+    m_profileBtn->setText(QString());
+    m_profileBtn->setToolTip(QStringLiteral("Profile: %1").arg(name));
+    m_profileBtn->setIcon(mac::sfSymbolIcon(m_profiles.iconName(name), 15.0, m_theme.foreground));
+}
+
+void BrowserWindow::switchProfileRelative(int direction) {
+    QStringList list = m_profiles.profiles();
+    list.removeDuplicates();
+    const int defaultIndex = list.indexOf("Default");
+    if (defaultIndex > 0) list.move(defaultIndex, 0);
+    const int current = qMax(0, list.indexOf(m_profiles.currentName()));
+    const int next = qBound(0, current + direction, list.size() - 1);
+    if (next == current || next < 0 || next >= list.size()) return;
+    animateProfileSwitcher(direction);
+    m_profiles.setCurrentProfile(list.at(next));
+}
+
+QStringList BrowserWindow::orderedProfiles() const {
+    QStringList list = m_profiles.profiles();
+    list.removeDuplicates();
+    const int defaultIndex = list.indexOf("Default");
+    if (defaultIndex > 0) list.move(defaultIndex, 0);
+    return list;
+}
+
+void BrowserWindow::updateCurrentProfileSnapshot() {
+    if (!m_tabTree || !m_tabTree->widget()) return;
+    QStringList titles;
+    auto *tree = m_tabTree->widget();
+    for (int i = 0; i < tree->topLevelItemCount(); ++i) {
+        if (auto *item = tree->topLevelItem(i)) titles.append(item->text(0).isEmpty() ? QStringLiteral("New tab") : item->text(0));
+    }
+    if (titles.isEmpty()) titles.append(QStringLiteral("New tab"));
+    m_profileTabSnapshots.insert(m_profiles.currentName(), titles);
+}
+
+void BrowserWindow::updateSidebarPreview(int direction) {
+    if (!m_sidebarPreviewTabs || !m_sidebarPreviewIcon) return;
+    const QStringList list = orderedProfiles();
+    const int current = qMax(0, list.indexOf(m_profiles.currentName()));
+    const int next = qBound(0, current + direction, list.size() - 1);
+    if (next == current || next < 0 || next >= list.size()) return;
+    const QString profile = list.at(next);
+    m_sidebarPreviewIcon->setIcon(mac::sfSymbolIcon(m_profiles.iconName(profile), 18.0, m_theme.foreground));
+    m_sidebarPreviewTabs->clear();
+    const QStringList titles = m_profileTabSnapshots.value(profile, QStringList{QStringLiteral("New tab")});
+    for (const QString &title : titles) {
+        auto *item = new QTreeWidgetItem(QStringList() << title);
+        item->setIcon(0, mac::sfSymbolIcon("globe", 12.0, m_theme.muted));
+        m_sidebarPreviewTabs->addTopLevelItem(item);
+    }
+}
+
+void BrowserWindow::setSidebarSwipeOffset(int offset) {
+    if (!m_sidebarPage || !m_sidebarViewport) return;
+    const int width = qMax(1, m_sidebarViewport->width());
+    const QRect bounds = m_sidebarViewport->rect();
+    m_sidebarSwipeOffset = qBound(-width, offset, width);
+    m_sidebarPage->setGeometry(bounds.translated(m_sidebarSwipeOffset, 0));
+    if (m_sidebarPreviewPage) {
+        if (m_sidebarSwipeOffset == 0) {
+            m_sidebarPreviewPage->hide();
+        } else {
+            const int direction = m_sidebarSwipeOffset < 0 ? 1 : -1;
+            updateSidebarPreview(direction);
+            m_sidebarPreviewPage->setGeometry(bounds.translated(direction > 0 ? width + m_sidebarSwipeOffset : -width + m_sidebarSwipeOffset, 0));
+            m_sidebarPreviewPage->show();
+        }
+    }
+}
+
+void BrowserWindow::settleSidebarSwipe(bool commit) {
+    if (m_sidebarSwipeSettleTimer) m_sidebarSwipeSettleTimer->stop();
+    if (m_sidebarSwipeSettling) return;
+    if (m_sidebarSwipeAnim) {
+        m_sidebarSwipeAnim->stop();
+        m_sidebarSwipeAnim->deleteLater();
+        m_sidebarSwipeAnim = nullptr;
+    }
+    const int width = m_sidebarWidget ? qMax(160, m_sidebarWidget->width()) : 240;
+    const int direction = m_sidebarSwipeOffset < 0 ? 1 : -1;
+    const int startOffset = m_sidebarSwipeOffset;
+    const QStringList list = orderedProfiles();
+    const int current = qMax(0, list.indexOf(m_profiles.currentName()));
+    const int next = qBound(0, current + direction, list.size() - 1);
+    if (commit && (next == current || next < 0 || next >= list.size())) commit = false;
+    auto *driver = new QVariantAnimation(this);
+    m_sidebarSwipeAnim = driver;
+    driver->setStartValue(startOffset);
+    driver->setEndValue(commit ? (direction > 0 ? -width : width) : 0);
+    driver->setDuration(commit ? 190 : 150);
+    driver->setEasingCurve(QEasingCurve::OutCubic);
+    m_sidebarSwipeSettling = true;
+    connect(driver, &QVariantAnimation::valueChanged, this, [this](const QVariant &value) {
+        setSidebarSwipeOffset(value.toInt());
+    });
+    connect(driver, &QVariantAnimation::finished, this, [this, driver, commit, list, next] {
+        if (m_sidebarSwipeAnim != driver) return;
+        if (commit && next >= 0 && next < list.size()) {
+            m_profiles.setCurrentProfile(list.at(next));
+        }
+        setSidebarSwipeOffset(0);
+        m_sidebarSwipeActive = false;
+        m_sidebarSwipeSettling = false;
+        m_profileSwipeRemainder = 0;
+        m_sidebarSwipeAnim = nullptr;
+        driver->deleteLater();
+    });
+    driver->start();
+}
+
+void BrowserWindow::animateProfileSwitcher(int direction) {
+    if (!m_profileBtn) return;
+    if (m_profileAnim) {
+        m_profileAnim->stop();
+        m_profileAnim->deleteLater();
+        m_profileAnim = nullptr;
+    }
+    const QRect end = m_profileBtn->geometry();
+    QRect start = end.translated(direction > 0 ? 18 : -18, 0);
+    m_profileBtn->setGeometry(start);
+    m_profileAnim = new QPropertyAnimation(m_profileBtn, "geometry", this);
+    m_profileAnim->setDuration(180);
+    m_profileAnim->setStartValue(start);
+    m_profileAnim->setEndValue(end);
+    m_profileAnim->setEasingCurve(QEasingCurve::OutCubic);
+    QPropertyAnimation *anim = m_profileAnim;
+    connect(anim, &QPropertyAnimation::finished, anim, &QObject::deleteLater);
+    connect(anim, &QObject::destroyed, this, [this, anim] { if (m_profileAnim == anim) m_profileAnim = nullptr; });
+    anim->start();
+}
+
+void BrowserWindow::showProfileMenu() {
+    if (!m_profileBtn) return;
+    if (mac::showNativeProfilePopover(m_profileBtn, m_profiles)) return;
+    QMenu menu(this);
+    QStringList list = m_profiles.profiles();
+    list.removeDuplicates();
+    const int defaultIndex = list.indexOf("Default");
+    if (defaultIndex > 0) list.move(defaultIndex, 0);
+    for (const QString &name : list) {
+        auto *action = menu.addAction(mac::sfSymbolIcon(m_profiles.iconName(name), 13.0, m_theme.foreground), name);
+        action->setCheckable(true);
+        action->setChecked(name == m_profiles.currentName());
+        connect(action, &QAction::triggered, this, [this, name] { m_profiles.setCurrentProfile(name); });
+    }
+    menu.addSeparator();
+    menu.addAction("Manage Profiles…", this, &BrowserWindow::showSettings);
+    menu.exec(m_profileBtn->mapToGlobal(QPoint(0, m_profileBtn->height() + 2)));
+}
 
 QUrl BrowserWindow::urlFromInput(const QString &input) const {
     const QString trimmed = input.trimmed();
@@ -409,6 +599,7 @@ void BrowserWindow::setupUi() {
         "QSplitter::handle:horizontal { background: transparent; }");
 
     auto *sidebar = new QWidget(m_splitter);
+    m_sidebarWidget = sidebar;
     sidebar->setObjectName("Sidebar");
     sidebar->setStyleSheet("QWidget#Sidebar { background: transparent; }");
     sidebar->setAttribute(Qt::WA_TranslucentBackground);
@@ -427,7 +618,9 @@ void BrowserWindow::setupUi() {
     cacheDir.mkpath(".");
     m_favicons = new FaviconService(cacheDir, this);
 
-    sidebar->setMinimumWidth(ui::metrics::SidebarMinimumWidth);
+    m_addrInSidebar = QSettings().value("ui/addressBarInSidebar", false).toBool();
+    sidebar->setMinimumWidth(m_addrInSidebar ? ui::metrics::SidebarHeaderMinimumWidth
+                                             : ui::metrics::SidebarMinimumWidth);
     sidebar->setMaximumWidth(ui::metrics::SidebarMaximumWidth);
 
     auto *stackHost = new QWidget(m_splitter);
@@ -466,11 +659,64 @@ void BrowserWindow::setupUi() {
     stackLayout->setContentsMargins(0, 0, 0, 0);
     containerLayout->addWidget(m_stack, 1);
 
+    m_sidebarViewport = new QWidget(sidebar);
+    m_sidebarViewport->setObjectName("SidebarViewport");
+    m_sidebarViewport->setAttribute(Qt::WA_TranslucentBackground);
+    m_sidebarViewport->setAttribute(Qt::WA_NativeWindow, false);
+    m_sidebarViewport->setStyleSheet("QWidget#SidebarViewport { background: transparent; }");
+    m_sidebarViewport->installEventFilter(this);
+
+    m_sidebarPage = new QWidget(m_sidebarViewport);
+    m_sidebarPage->setObjectName("SidebarPage");
+    m_sidebarPage->setAttribute(Qt::WA_TranslucentBackground);
+    m_sidebarPage->setStyleSheet("QWidget#SidebarPage { background: transparent; }");
+    auto *pageLayout = new QVBoxLayout(m_sidebarPage);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->setSpacing(0);
+
     // TabTree owns the sidebar list + WebView lifetime, but the QStackedLayout
     // host (`m_stack`) and the surrounding sidebar chrome stay here.
-    m_tabTree = new TabTree(m_profiles, m_favicons, m_stack, m_theme, sidebar, this);
+    m_tabTree = new TabTree(m_profiles, m_favicons, m_stack, m_theme, m_sidebarPage, this);
     m_tabTree->setHomePage(m_homePage);
-    sideLayout->addWidget(m_tabTree->widget(), 1);
+    pageLayout->addWidget(m_tabTree->widget(), 1);
+    m_profileSwitcher = buildProfileSwitcher(m_sidebarPage);
+    pageLayout->addWidget(m_profileSwitcher, 0, Qt::AlignLeft | Qt::AlignBottom);
+    sideLayout->addWidget(m_sidebarViewport, 1);
+    m_sidebarPreviewPage = new QWidget(m_sidebarViewport);
+    m_sidebarPreviewPage->setObjectName("SidebarPreviewPage");
+    m_sidebarPreviewPage->setAttribute(Qt::WA_TranslucentBackground);
+    m_sidebarPreviewPage->setStyleSheet("QWidget#SidebarPreviewPage { background: transparent; }");
+    auto *previewLayout = new QVBoxLayout(m_sidebarPreviewPage);
+    previewLayout->setContentsMargins(0, 0, 0, 0);
+    m_sidebarPreviewTabs = new QTreeWidget(m_sidebarPreviewPage);
+    m_sidebarPreviewTabs->setHeaderHidden(true);
+    m_sidebarPreviewTabs->setRootIsDecorated(false);
+    m_sidebarPreviewTabs->setFrameShape(QFrame::NoFrame);
+    m_sidebarPreviewTabs->setFocusPolicy(Qt::NoFocus);
+    m_sidebarPreviewTabs->setSelectionMode(QAbstractItemView::NoSelection);
+    m_sidebarPreviewTabs->setIconSize(QSize(16, 16));
+    m_sidebarPreviewTabs->setUniformRowHeights(true);
+    m_sidebarPreviewTabs->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    m_sidebarPreviewTabs->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_sidebarPreviewTabs->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_sidebarPreviewTabs->setAttribute(Qt::WA_TranslucentBackground);
+    m_sidebarPreviewTabs->viewport()->setAttribute(Qt::WA_TranslucentBackground);
+    m_sidebarPreviewTabs->setStyleSheet(QString(
+        "QTreeWidget { background: transparent; border: none; color: %1; outline: 0; }"
+        "QTreeWidget::item { padding: 4px 28px 4px 6px; border: none; background: transparent; color: %1; selection-background-color: transparent; }")
+        .arg(m_theme.foreground.name()));
+    previewLayout->addWidget(m_sidebarPreviewTabs, 1);
+    m_sidebarPreviewIcon = new QToolButton(m_sidebarPreviewPage);
+    m_sidebarPreviewIcon->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    m_sidebarPreviewIcon->setIconSize(QSize(19, 19));
+    m_sidebarPreviewIcon->setMinimumSize(32, 32);
+    m_sidebarPreviewIcon->setMaximumSize(32, 32);
+    m_sidebarPreviewIcon->setEnabled(false);
+    m_sidebarPreviewIcon->setStyleSheet("QToolButton { background: transparent; border: none; }");
+    previewLayout->addWidget(m_sidebarPreviewIcon, 0, Qt::AlignLeft | Qt::AlignBottom);
+    m_sidebarPreviewPage->hide();
+    m_sidebarPage->setGeometry(m_sidebarViewport->rect());
+    m_sidebarPreviewPage->setGeometry(m_sidebarViewport->rect().translated(m_sidebarViewport->width(), 0));
 
     hostLayout->addWidget(m_webContainer, 1);
     m_splitter->addWidget(sidebar);
@@ -490,9 +736,15 @@ void BrowserWindow::setupUi() {
         hostLayout->setContentsMargins(ui::metrics::stackHostMargins(sidebarVisible));
     };
     m_sidebar = new SidebarController(this, m_splitter, applyStackHostInset, this);
-    m_sidebar->setSidebarContent(m_tabTree->widget(), sideLayout);
+    m_sidebar->setSidebarContent(m_sidebarViewport, sideLayout);
+    m_sidebarSwipeSettleTimer = new QTimer(this);
+    m_sidebarSwipeSettleTimer->setSingleShot(true);
+    m_sidebarSwipeSettleTimer->setInterval(260);
+    connect(m_sidebarSwipeSettleTimer, &QTimer::timeout, this, [this] {
+        if (!m_sidebarSwipeActive) return;
+        settleSidebarSwipe(qAbs(m_profileSwipeRemainder) >= qMax(160, m_sidebarWidget ? m_sidebarWidget->width() : 240) / 3);
+    });
 
-    m_addrInSidebar = QSettings().value("ui/addressBarInSidebar", false).toBool();
     if (m_addrInSidebar) {
         // Drop the toolbar entirely; the address pill + nav buttons live in
         // the sidebar instead.
@@ -510,7 +762,7 @@ void BrowserWindow::setupUi() {
                                        ui::metrics::DockedSidebarRightInset,
                                        ui::metrics::DockedSidebarBottomInset);
 
-        m_sidebarHeader = new QWidget(sidebar);
+        m_sidebarHeader = new QWidget(m_sidebarPage);
         m_sidebarHeader->setObjectName("SidebarHeader");
         m_sidebarHeader->setStyleSheet("QWidget#SidebarHeader { background: transparent; }");
         auto *headerCol = new QVBoxLayout(m_sidebarHeader);
@@ -571,7 +823,7 @@ void BrowserWindow::setupUi() {
             headerCol->addWidget(m_addrWrap);
         }
 
-        sideLayout->insertWidget(0, m_sidebarHeader);
+        pageLayout->insertWidget(0, m_sidebarHeader);
     }
 
     connect(m_splitter, &QSplitter::splitterMoved, this, [this, sidebar](int pos, int) {
@@ -595,12 +847,16 @@ void BrowserWindow::setupUi() {
     central->setStyleSheet("QWidget#CentralRoot { background: transparent; }");
     central->setAttribute(Qt::WA_TranslucentBackground);
     setContentsMargins(0, 0, 0, 0);
+    qApp->installEventFilter(this);
 
     if (auto *sb = statusBar()) sb->hide();
     setStatusBar(nullptr);
 
     connect(m_omnibox, &QLineEdit::returnPressed, this, &BrowserWindow::loadFromOmnibox);
-    connect(m_tabTree, &TabTree::currentTabChanged, this, &BrowserWindow::updateForCurrentTab);
+    connect(m_tabTree, &TabTree::currentTabChanged, this, [this] {
+        updateForCurrentTab();
+        updateCurrentProfileSnapshot();
+    });
     connect(m_tabTree, &TabTree::loadProgress, this, [this](int progress) {
         if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
             pill->setLoadProgress(progress);
@@ -613,6 +869,10 @@ void BrowserWindow::setupUi() {
     });
     connect(&m_profiles, &ProfileStore::currentProfileChanged, this, [this] {
         m_tabTree->rebuildForProfile();
+        updateProfileSwitcher();
+    });
+    connect(&m_profiles, &ProfileStore::profilesChanged, this, [this] {
+        updateProfileSwitcher();
     });
 }
 
@@ -764,13 +1024,47 @@ void BrowserWindow::setupActions() {
 
     // ── Bookmarks (placeholders — bookmark store not yet implemented) ──
     auto *bookmarksMenu = mb->addMenu("Bookmarks");
-    auto *bookmarkPage = makeAction("Bookmark This Page…", QKeySequence(Qt::CTRL | Qt::Key_D), nullptr);
-    bookmarkPage->setEnabled(false);
-    bookmarksMenu->addAction(bookmarkPage);
-    auto *showBookmarks = makeAction("Show All Bookmarks",
-                                     QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_B), nullptr);
-    showBookmarks->setEnabled(false);
-    bookmarksMenu->addAction(showBookmarks);
+    auto addCurrentBookmark = [this] {
+        if (auto *v = currentView()) m_bookmarks.addBookmark(m_profiles.currentName(), v->title(), v->url());
+    };
+    auto rebuildBookmarksMenu = [this, bookmarksMenu, addCurrentBookmark] {
+        bookmarksMenu->clear();
+        auto *bookmarkPage = bookmarksMenu->addAction("Bookmark This Page");
+        bookmarkPage->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_D));
+        connect(bookmarkPage, &QAction::triggered, this, addCurrentBookmark);
+        if (auto *v = currentView()) {
+            bookmarkPage->setEnabled(v->url().isValid() && !v->url().isEmpty() && v->url().scheme() != "about" && v->url().scheme() != "data");
+        } else {
+            bookmarkPage->setEnabled(false);
+        }
+        bookmarksMenu->addSeparator();
+        const QVector<Bookmark> items = m_bookmarks.bookmarks(m_profiles.currentName());
+        if (items.isEmpty()) {
+            auto *empty = bookmarksMenu->addAction("No Bookmarks");
+            empty->setEnabled(false);
+        } else {
+            for (const Bookmark &bookmark : items) {
+                auto *open = bookmarksMenu->addAction(bookmark.title);
+                open->setToolTip(bookmark.url.toString());
+                connect(open, &QAction::triggered, this, [this, url = bookmark.url] {
+                    if (auto *v = currentView()) v->load(url);
+                });
+                auto *remove = bookmarksMenu->addAction(QString("Remove “%1”").arg(bookmark.title));
+                connect(remove, &QAction::triggered, this, [this, url = bookmark.url] {
+                    m_bookmarks.removeBookmark(m_profiles.currentName(), url);
+                });
+            }
+        }
+    };
+    connect(bookmarksMenu, &QMenu::aboutToShow, this, rebuildBookmarksMenu);
+    connect(&m_bookmarks, &BookmarkStore::bookmarksChanged, this, [this, rebuildBookmarksMenu](const QString &profileName) {
+        if (profileName == m_profiles.currentName()) rebuildBookmarksMenu();
+    });
+    connect(&m_profiles, &ProfileStore::currentProfileChanged, this, rebuildBookmarksMenu);
+    rebuildBookmarksMenu();
+    auto *bookmarkPageShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_D), this);
+    bookmarkPageShortcut->setContext(Qt::ApplicationShortcut);
+    connect(bookmarkPageShortcut, &QShortcut::activated, this, addCurrentBookmark);
 
     // ── History ────────────────────────────────────────────────────────
     auto *historyMenu = mb->addMenu("History");
@@ -834,6 +1128,56 @@ void BrowserWindow::setupActions() {
 
 
 bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
+    if (obj == m_sidebarViewport && ev->type() == QEvent::Resize) {
+        setSidebarSwipeOffset(0);
+        if (m_sidebarPreviewTabs) m_sidebarPreviewTabs->setColumnWidth(0, m_sidebarViewport->width());
+    }
+    if (ev->type() == QEvent::Wheel && m_sidebarWidget && m_sidebarWidget->isVisible() && !m_sidebarSwipeSettling) {
+        const QPoint global = QCursor::pos();
+        const QRect sidebarRect(m_sidebarWidget->mapToGlobal(QPoint(0, 0)), m_sidebarWidget->size());
+        if (sidebarRect.contains(global)) {
+            auto *wheel = static_cast<QWheelEvent *>(ev);
+            const QPoint pixel = wheel->pixelDelta();
+            const QPoint angle = wheel->angleDelta();
+            const int horizontal = pixel.x() != 0 ? pixel.x() : angle.x() / 2;
+            const int vertical = pixel.y() != 0 ? pixel.y() : angle.y() / 2;
+            if (qAbs(horizontal) > qAbs(vertical) && horizontal != 0) {
+                if (m_sidebarSwipeSettleTimer) m_sidebarSwipeSettleTimer->stop();
+                const int width = qMax(160, m_sidebarWidget->width());
+                const int intended = m_profileSwipeRemainder + horizontal;
+                const int intendedDirection = intended < 0 ? 1 : -1;
+                const QStringList list = orderedProfiles();
+                const int profileIndex = qMax(0, list.indexOf(m_profiles.currentName()));
+                const int targetIndex = profileIndex + intendedDirection;
+                if (targetIndex < 0 || targetIndex >= list.size()) {
+                    m_profileSwipeRemainder = 0;
+                    setSidebarSwipeOffset(0);
+                    m_sidebarSwipeActive = false;
+                    return true;
+                }
+                m_profileSwipeRemainder = qBound(-width, intended, width);
+                const int sign = m_profileSwipeRemainder < 0 ? -1 : 1;
+                const int magnitude = qAbs(m_profileSwipeRemainder);
+                const int displayed = magnitude <= width * 2 / 3
+                    ? magnitude
+                    : width * 2 / 3 + (magnitude - width * 2 / 3) / 4;
+                setSidebarSwipeOffset(sign * displayed);
+                m_sidebarSwipeActive = true;
+                if (magnitude >= width * 3 / 4) {
+                    settleSidebarSwipe(true);
+                } else if (wheel->phase() == Qt::ScrollEnd) {
+                    settleSidebarSwipe(magnitude >= width / 4);
+                } else if (wheel->phase() == Qt::NoScrollPhase && m_sidebarSwipeSettleTimer) {
+                    m_sidebarSwipeSettleTimer->start();
+                }
+                return true;
+            }
+            if (m_sidebarSwipeActive && wheel->phase() == Qt::ScrollEnd) {
+                settleSidebarSwipe(qAbs(m_profileSwipeRemainder) >= qMax(160, m_sidebarWidget->width()) / 3);
+                return true;
+            }
+        }
+    }
     return QMainWindow::eventFilter(obj, ev);
 }
 

@@ -1,11 +1,13 @@
 #pragma once
 
+#include "BookmarkStore.hpp"
 #include "FaviconService.hpp"
 #include "ProfileStore.hpp"
 #include "Theme.hpp"
 
 #include <QHash>
 #include <QList>
+#include <QStringList>
 #include <QMainWindow>
 #include <QUrl>
 #include <functional>
@@ -21,11 +23,14 @@ class QListWidget;
 class QNetworkAccessManager;
 class QNetworkReply;
 class QProgressBar;
+class QPropertyAnimation;
 class QTimer;
+class QVariantAnimation;
 class QSplitter;
 class QToolBar;
 class QToolButton;
 class QAction;
+class QTreeWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
 class WebView;
@@ -59,9 +64,20 @@ private:
     void setupUi();
     void setupActions();
     QWidget *buildTopbar(QWidget *parent);
+    QWidget *buildProfileSwitcher(QWidget *parent);
+    void updateProfileSwitcher();
+    void switchProfileRelative(int direction);
+    void animateProfileSwitcher(int direction);
+    void setSidebarSwipeOffset(int offset);
+    void settleSidebarSwipe(bool commit);
+    QStringList orderedProfiles() const;
+    void updateCurrentProfileSnapshot();
+    void updateSidebarPreview(int direction);
+    void showProfileMenu();
     void showCopiedLinkPopup();
     Theme m_theme;
     ProfileStore m_profiles;
+    BookmarkStore m_bookmarks;
     QString m_homePage = "https://search.brave.com";
     QString m_searchEngine = "https://search.brave.com/search?q=%1";
 
@@ -79,12 +95,28 @@ private:
     QToolButton *m_reloadBtn = nullptr;
     QToolButton *m_settingsBtn = nullptr;
     QToolButton *m_newTabBtn = nullptr;
+    QToolButton *m_profileBtn = nullptr;
+    QWidget *m_profileSwitcher = nullptr;
+    QPropertyAnimation *m_profileAnim = nullptr;
+    QVariantAnimation *m_sidebarSwipeAnim = nullptr;
+    QTimer *m_sidebarSwipeSettleTimer = nullptr;
+    int m_profileSwipeRemainder = 0;
+    int m_sidebarSwipeOffset = 0;
+    bool m_sidebarSwipeActive = false;
+    bool m_sidebarSwipeSettling = false;
+    QHash<QString, QStringList> m_profileTabSnapshots;
     QHash<QString, QToolButton *> m_extensionActionButtons;
     QLineEdit *m_addressBar = nullptr;
     QLabel *m_lockIcon = nullptr;
     QLabel *m_searchIcon = nullptr;
     QToolButton *m_pillMenuBtn = nullptr;
     QWidget *m_addrWrap = nullptr;
+    QWidget *m_sidebarWidget = nullptr;
+    QWidget *m_sidebarViewport = nullptr;
+    QWidget *m_sidebarPage = nullptr;
+    QWidget *m_sidebarPreviewPage = nullptr;
+    QTreeWidget *m_sidebarPreviewTabs = nullptr;
+    QToolButton *m_sidebarPreviewIcon = nullptr;
     QWidget *m_sidebarHeader = nullptr;
     bool m_addrInSidebar = false;
     QColor m_lastAppliedChrome;

@@ -14,11 +14,14 @@ public:
 
     QStringList profiles() const;
     QString currentName() const;
+    QString iconName(const QString &name) const;
     WebKitProfile *currentProfile() const;
 
 public slots:
     void setCurrentProfile(const QString &name);
     void createProfile(const QString &name);
+    void renameProfile(const QString &oldName, const QString &newName);
+    void setIconName(const QString &name, const QString &iconName);
 
 signals:
     void currentProfileChanged(WebKitProfile *profile);

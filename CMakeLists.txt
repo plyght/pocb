@@ -68,6 +68,8 @@ qt_add_executable(pocb MACOSX_BUNDLE
     src/services/Theme.hpp
     src/services/FaviconService.cpp
     src/services/FaviconService.hpp
+    src/services/BookmarkStore.cpp
+    src/services/BookmarkStore.hpp
     src/services/ChromeExtensionManager.cpp
     src/services/ChromeExtensionManager.hpp
     src/ui/FloatingOmnibox.cpp
@@ -84,6 +86,8 @@ qt_add_executable(pocb MACOSX_BUNDLE
     src/tabs/TabTree.cpp
     src/tabs/TabTree.hpp
     src/mac/MacIntegration.hpp
+    src/mac/NativeSettingsWindow.hpp
+    src/mac/NativeProfilePopover.hpp
     src/web/WebView.hpp
     src/web/WebKitProfile.hpp
 )
@@ -106,6 +110,8 @@ if(APPLE)
         src/mac/Vibrancy.mm
         src/mac/HighRefresh.mm
         src/mac/UnifiedToolbar.mm
+        src/mac/NativeSettingsWindow.mm
+        src/mac/NativeProfilePopover.mm
         src/web/WebView.mm
         src/web/WebKitProfile.mm
     )

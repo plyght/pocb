@@ -3,6 +3,7 @@
 #include "WebKitProfile.hpp"
 
 #include <QFileInfo>
+#include <QSettings>
 #include <QStandardPaths>
 
 ProfileStore::ProfileStore(QObject *parent) : QObject(parent) {
@@ -23,6 +24,13 @@ QString ProfileStore::currentName() const {
     return m_currentName;
 }
 
+QString ProfileStore::iconName(const QString &name) const {
+    const QString clean = sanitize(name);
+    if (clean.isEmpty()) return QStringLiteral("person.crop.circle.fill");
+    QSettings settings(root().filePath(clean + "/profile.ini"), QSettings::IniFormat);
+    return settings.value("profile/icon", QStringLiteral("person.crop.circle.fill")).toString();
+}
+
 WebKitProfile *ProfileStore::currentProfile() const {
     return m_currentProfile;
 }
@@ -40,6 +48,34 @@ void ProfileStore::createProfile(const QString &name) {
     const QString clean = sanitize(name);
     if (clean.isEmpty()) return;
     root().mkpath(clean);
+    emit profilesChanged();
+}
+
+void ProfileStore::renameProfile(const QString &oldName, const QString &newName) {
+    const QString oldClean = sanitize(oldName);
+    const QString newClean = sanitize(newName);
+    if (oldClean.isEmpty() || newClean.isEmpty() || oldClean == newClean) return;
+    QDir dir = root();
+    if (dir.exists(newClean)) return;
+    if (!dir.rename(oldClean, newClean)) return;
+    if (auto *cached = m_cache.take(oldClean)) {
+        cached->deleteLater();
+    }
+    if (m_currentName == oldClean) {
+        m_currentName = newClean;
+        m_currentProfile = loadProfile(newClean);
+        emit currentProfileChanged(m_currentProfile);
+    }
+    emit profilesChanged();
+}
+
+void ProfileStore::setIconName(const QString &name, const QString &iconName) {
+    const QString clean = sanitize(name);
+    const QString icon = iconName.trimmed();
+    if (clean.isEmpty() || icon.isEmpty()) return;
+    root().mkpath(clean);
+    QSettings settings(root().filePath(clean + "/profile.ini"), QSettings::IniFormat);
+    settings.setValue("profile/icon", icon);
     emit profilesChanged();
 }
 

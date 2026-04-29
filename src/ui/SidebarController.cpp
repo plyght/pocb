@@ -188,7 +188,9 @@ void SidebarController::positionHoverZone() {
 void SidebarController::positionFloating() {
     if (!m_floating || !m_window) return;
     const int saved = QSettings().value("ui/sidebarWidth", ui::metrics::SidebarDefaultWidth).toInt();
-    const int width = qBound(ui::metrics::SidebarMinimumWidth, saved, ui::metrics::SidebarMaximumWidth);
+    const QWidget *side = m_splitter ? m_splitter->widget(0) : nullptr;
+    const int minimum = side ? side->minimumWidth() : ui::metrics::SidebarMinimumWidth;
+    const int width = qBound(minimum, saved, ui::metrics::SidebarMaximumWidth);
     const QRect geometry = ui::metrics::floatingSidebarRect(m_window, width);
     m_floating->setGeometry(geometry);
     if (m_floatingInner) {
@@ -304,7 +306,8 @@ void SidebarController::hideFloatingImmediate() {
 
 void SidebarController::dockContent() {
     if (m_content && m_dockedLayout) {
-        m_dockedLayout->addWidget(m_content, 1);
+        const int insertAt = qMax(0, m_dockedLayout->count() - 1);
+        m_dockedLayout->insertWidget(insertAt, m_content, 1);
     }
 }
 
