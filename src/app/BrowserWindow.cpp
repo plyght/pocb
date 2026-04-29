@@ -61,7 +61,7 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_NoSystemBackground);
     setAutoFillBackground(false);
-#ifdef Q_OS_MACOS
+#if defined(Q_OS_MACOS) && QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
     // Qt 6.9+ flags: extend the client area under the titlebar and stop Qt
     // from reserving safe-area margins for the titlebar in the central
     // widget. Without these, QMainWindow leaves a band of empty space at the
