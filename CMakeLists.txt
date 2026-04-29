@@ -10,6 +10,31 @@ set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network)
 
+if(APPLE AND TARGET WrapOpenGL::WrapOpenGL)
+    get_target_property(_wrap_opengl_links WrapOpenGL::WrapOpenGL INTERFACE_LINK_LIBRARIES)
+    if(_wrap_opengl_links)
+        set(_wrap_opengl_clean_links)
+        list(LENGTH _wrap_opengl_links _wrap_opengl_link_count)
+        set(_wrap_opengl_link_index 0)
+        while(_wrap_opengl_link_index LESS _wrap_opengl_link_count)
+            list(GET _wrap_opengl_links ${_wrap_opengl_link_index} _wrap_opengl_link)
+            math(EXPR _wrap_opengl_next_index "${_wrap_opengl_link_index} + 1")
+            if(_wrap_opengl_link STREQUAL "-framework" AND _wrap_opengl_next_index LESS _wrap_opengl_link_count)
+                list(GET _wrap_opengl_links ${_wrap_opengl_next_index} _wrap_opengl_next_link)
+                if(_wrap_opengl_next_link STREQUAL "AGL")
+                    math(EXPR _wrap_opengl_link_index "${_wrap_opengl_link_index} + 2")
+                    continue()
+                endif()
+            endif()
+            if(NOT _wrap_opengl_link STREQUAL "AGL" AND NOT _wrap_opengl_link STREQUAL "-framework AGL" AND NOT _wrap_opengl_link MATCHES "/AGL\\.framework/?$")
+                list(APPEND _wrap_opengl_clean_links "${_wrap_opengl_link}")
+            endif()
+            math(EXPR _wrap_opengl_link_index "${_wrap_opengl_link_index} + 1")
+        endwhile()
+        set_target_properties(WrapOpenGL::WrapOpenGL PROPERTIES INTERFACE_LINK_LIBRARIES "${_wrap_opengl_clean_links}")
+    endif()
+endif()
+
 qt_add_executable(pocb MACOSX_BUNDLE
     src/main.cpp
     src/app/BrowserWindow.cpp
