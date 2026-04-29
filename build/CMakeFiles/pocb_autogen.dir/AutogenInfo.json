@@ -349,57 +349,87 @@
 	"HEADERS" : 
 	[
 		[
-			"/Users/nicojaffer/pocb/src/BrowserWindow.hpp",
+			"/Users/nicojaffer/pocb/src/app/BrowserWindow.hpp",
 			"MU",
-			"UVLADIE3JM/moc_BrowserWindow.cpp",
+			"ISMKEKEPX5/moc_BrowserWindow.cpp",
 			null
 		],
 		[
-			"/Users/nicojaffer/pocb/src/FaviconService.hpp",
+			"/Users/nicojaffer/pocb/src/app/SettingsDialog.hpp",
 			"MU",
-			"UVLADIE3JM/moc_FaviconService.cpp",
+			"ISMKEKEPX5/moc_SettingsDialog.cpp",
 			null
 		],
 		[
-			"/Users/nicojaffer/pocb/src/FloatingOmnibox.hpp",
+			"/Users/nicojaffer/pocb/src/mac/MacIntegration.hpp",
 			"MU",
-			"UVLADIE3JM/moc_FloatingOmnibox.cpp",
+			"S2RWXIVC6I/moc_MacIntegration.cpp",
 			null
 		],
 		[
-			"/Users/nicojaffer/pocb/src/MacIntegration.hpp",
+			"/Users/nicojaffer/pocb/src/mac/MacInternal.hpp",
 			"MU",
-			"UVLADIE3JM/moc_MacIntegration.cpp",
+			"S2RWXIVC6I/moc_MacInternal.cpp",
 			null
 		],
 		[
-			"/Users/nicojaffer/pocb/src/ProfileStore.hpp",
+			"/Users/nicojaffer/pocb/src/services/FaviconService.hpp",
 			"MU",
-			"UVLADIE3JM/moc_ProfileStore.cpp",
+			"GQ6NBGVJMG/moc_FaviconService.cpp",
 			null
 		],
 		[
-			"/Users/nicojaffer/pocb/src/SettingsDialog.hpp",
+			"/Users/nicojaffer/pocb/src/services/ProfileStore.hpp",
 			"MU",
-			"UVLADIE3JM/moc_SettingsDialog.cpp",
+			"GQ6NBGVJMG/moc_ProfileStore.cpp",
 			null
 		],
 		[
-			"/Users/nicojaffer/pocb/src/Theme.hpp",
+			"/Users/nicojaffer/pocb/src/services/Theme.hpp",
 			"MU",
-			"UVLADIE3JM/moc_Theme.cpp",
+			"GQ6NBGVJMG/moc_Theme.cpp",
 			null
 		],
 		[
-			"/Users/nicojaffer/pocb/src/WebKitProfile.hpp",
+			"/Users/nicojaffer/pocb/src/tabs/TabTree.hpp",
 			"MU",
-			"UVLADIE3JM/moc_WebKitProfile.cpp",
+			"BUWON6PSIR/moc_TabTree.cpp",
 			null
 		],
 		[
-			"/Users/nicojaffer/pocb/src/WebView.hpp",
+			"/Users/nicojaffer/pocb/src/ui/AddressBarController.hpp",
 			"MU",
-			"UVLADIE3JM/moc_WebView.cpp",
+			"YPKJ5OE7LN/moc_AddressBarController.cpp",
+			null
+		],
+		[
+			"/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp",
+			"MU",
+			"YPKJ5OE7LN/moc_FloatingOmnibox.cpp",
+			null
+		],
+		[
+			"/Users/nicojaffer/pocb/src/ui/SidebarController.hpp",
+			"MU",
+			"YPKJ5OE7LN/moc_SidebarController.cpp",
+			null
+		],
+		[
+			"/Users/nicojaffer/pocb/src/ui/Topbar.hpp",
+			"MU",
+			"YPKJ5OE7LN/moc_Topbar.cpp",
+			null
+		],
+		[
+			"/Users/nicojaffer/pocb/src/web/WebKitProfile.hpp",
+			"MU",
+			"B2MV3FDSZF/moc_WebKitProfile.cpp",
+			null
+		],
+		[
+			"/Users/nicojaffer/pocb/src/web/WebView.hpp",
+			"MU",
+			"B2MV3FDSZF/moc_WebView.cpp",
 			null
 		]
 	],
@@ -423,6 +453,13 @@
 	],
 	"MOC_INCLUDES" : 
 	[
+		"/Users/nicojaffer/pocb/src",
+		"/Users/nicojaffer/pocb/src/app",
+		"/Users/nicojaffer/pocb/src/ui",
+		"/Users/nicojaffer/pocb/src/tabs",
+		"/Users/nicojaffer/pocb/src/web",
+		"/Users/nicojaffer/pocb/src/services",
+		"/Users/nicojaffer/pocb/src/mac",
 		"/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers",
 		"/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework",
 		"/opt/homebrew/Cellar/qtbase/6.10.2/share/qt/mkspecs/macx-clang",
@@ -472,16 +509,26 @@
 	"SETTINGS_FILE" : "/Users/nicojaffer/pocb/build/CMakeFiles/pocb_autogen.dir/AutogenUsed.txt",
 	"SOURCES" : 
 	[
-		[ "/Users/nicojaffer/pocb/src/BrowserWindow.cpp", "MU", null ],
-		[ "/Users/nicojaffer/pocb/src/FaviconService.cpp", "MU", null ],
-		[ "/Users/nicojaffer/pocb/src/FloatingOmnibox.cpp", "MU", null ],
-		[ "/Users/nicojaffer/pocb/src/MacIntegration.mm", "MU", null ],
-		[ "/Users/nicojaffer/pocb/src/ProfileStore.cpp", "MU", null ],
-		[ "/Users/nicojaffer/pocb/src/SettingsDialog.cpp", "MU", null ],
-		[ "/Users/nicojaffer/pocb/src/Theme.cpp", "MU", null ],
-		[ "/Users/nicojaffer/pocb/src/WebKitProfile.mm", "MU", null ],
-		[ "/Users/nicojaffer/pocb/src/WebView.mm", "MU", null ],
-		[ "/Users/nicojaffer/pocb/src/main.cpp", "MU", null ]
+		[ "/Users/nicojaffer/pocb/src/app/BrowserWindow.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/app/SettingsDialog.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/mac/HighRefresh.mm", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/mac/LayerCorners.mm", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/mac/MacInternal.mm", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/mac/SfSymbols.mm", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/mac/TrafficLights.mm", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/mac/Vibrancy.mm", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/main.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/services/FaviconService.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/services/ProfileStore.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/services/Theme.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/tabs/TabTree.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/ui/AddressBarController.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/ui/SidebarController.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/ui/Topbar.cpp", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/web/WebKitProfile.mm", "MU", null ],
+		[ "/Users/nicojaffer/pocb/src/web/WebView.mm", "MU", null ]
 	],
 	"UIC_OPTIONS" : [],
 	"UIC_SEARCH_PATHS" : [],

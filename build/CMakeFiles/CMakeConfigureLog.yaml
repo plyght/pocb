@@ -12059,3 +12059,149 @@ events:
         - "/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/3rdparty/extra-cmake-modules/find-modules"
         - "/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/3rdparty/kwin"
 ...
+
+---
+events:
+  -
+    kind: "find_package-v1"
+    backtrace:
+      - "/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/Qt6Config.cmake:241 (find_package)"
+      - "CMakeLists.txt:11 (find_package)"
+    name: "Qt6Svg"
+    configs:
+      -
+        filename: "Qt6SvgConfig.cmake"
+        kind: "cmake"
+      -
+        filename: "qt6svg-config.cmake"
+        kind: "cmake"
+    version_request:
+      exact: false
+    settings:
+      required: "optional"
+      quiet: false
+      global: false
+      policy_scope: true
+      bypass_provider: false
+      names:
+        - "Qt6Svg"
+      search_paths:
+        - "/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake"
+      path_suffixes:
+        - ""
+      paths:
+        CMAKE_FIND_USE_CMAKE_PATH: false
+        CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+        CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+        CMAKE_FIND_USE_INSTALL_PREFIX: true
+        CMAKE_FIND_USE_PACKAGE_ROOT_PATH: true
+        CMAKE_FIND_USE_CMAKE_PACKAGE_REGISTRY: true
+        CMAKE_FIND_USE_SYSTEM_PACKAGE_REGISTRY: true
+        CMAKE_FIND_ROOT_PATH_MODE: "BOTH"
+    candidates:
+      -
+        path: "/Users/nicojaffer/pocb/build/CMakeFiles/pkgRedirects/Qt6SvgConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/Users/nicojaffer/pocb/build/CMakeFiles/pkgRedirects/qt6svg-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6SvgConfig.cmake"
+        mode: "config"
+        reason: "no_exist"
+      -
+        path: "/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/qt6svg-config.cmake"
+        mode: "config"
+        reason: "no_exist"
+    found: null
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/opt/homebrew/opt/qtbase"
+        - "/opt/homebrew/opt/qtdeclarative"
+        - "/opt/homebrew/opt/qtwebchannel"
+        - "/opt/homebrew/opt/qtpositioning"
+        - "/opt/homebrew/opt/qtwebengine"
+      ENV{PATH}:
+        - "/Users/nicojaffer/Library/pnpm"
+        - "/Users/nicojaffer/.local/bin"
+        - "/Users/nicojaffer/.nvm/versions/node/v22.12.0/bin"
+        - "/opt/homebrew/bin"
+        - "/opt/homebrew/sbin"
+        - "/opt/local/bin"
+        - "/Users/nicojaffer/.basher/bin"
+        - "/Users/nicojaffer/.bun/bin"
+        - "/Users/nicojaffer/.cargo/bin"
+        - "/Users/nicojaffer/anaconda3/bin"
+        - "/Users/nicojaffer/.local/bin"
+        - "/Users/nicojaffer/.cache/lm-studio/bin"
+        - "/Users/nicojaffer/.pixi/bin"
+        - "/opt/homebrew/opt/node@18/bin"
+        - "/usr/local/sbin"
+        - "/Users/nicojaffer/.local/share/mise/shims"
+        - "/Users/nicojaffer/go/bin"
+        - "/opt/homebrew/opt/icu4c@76/bin"
+        - "/opt/homebrew/opt/icu4c@76/sbin"
+        - "/bin"
+        - "/Library/Frameworks/Python.framework/Versions/3.12/bin"
+        - "/opt/local/sbin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/pkg/env/global/bin"
+        - "/opt/X11/bin"
+        - "/Library/Apple/usr/bin"
+        - "/usr/local/MacGPG2/bin"
+        - "/Library/TeX/texbin"
+        - "/Applications/Wireshark.app/Contents/MacOS"
+        - "/Applications/Little Snitch.app/Contents/Components"
+        - "/Applications/VMware Fusion.app/Contents/Public"
+        - "/usr/local/share/dotnet"
+        - "~/.dotnet/tools"
+        - "/Applications/Icons.app/Contents/MacOS"
+        - "/Library/Frameworks/Mono.framework/Versions/Current/Commands"
+        - "/Applications/Cursor.app/Contents/Resources/app/resources/helpers"
+        - "/Users/nicojaffer/.omnara/bin"
+        - "/Users/nicojaffer/.antigravity/antigravity/bin"
+        - "/Users/nicojaffer/.opencode/bin"
+        - "/nix/var/nix/profiles/default/bin"
+        - "/Users/nicojaffer/.rbenv/shims"
+        - "/Users/nicojaffer/.basher/cellar/bin"
+        - "/Users/nicojaffer/.swiftly/bin"
+        - "/Users/nicojaffer/.deno/bin"
+        - "/Users/nicojaffer/.atuin/bin"
+        - "/Users/nicojaffer/.radicle/bin"
+        - "/Users/nicojaffer/.orbstack/bin"
+        - "/Users/nicojaffer/.cache/lm-studio/bin"
+      CMAKE_INSTALL_PREFIX: "/usr/local"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/opt/homebrew"
+        - "/usr/local"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_FRAMEWORK_PATH:
+        - "~/Library/Frameworks"
+        - "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Library/Frameworks"
+        - "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/Network/Library/Frameworks"
+        - "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks"
+        - "/Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+        - "/Applications/Xcode-beta.app/Contents/Developer/Library/Frameworks"
+        - "/Library/Frameworks"
+        - "/Network/Library/Frameworks"
+        - "/System/Library/Frameworks"
+...

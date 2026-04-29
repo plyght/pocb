@@ -1,6 +1,6 @@
 CMakeFiles/pocb.dir/src/main.cpp.o: /Users/nicojaffer/pocb/src/main.cpp \
   /Users/nicojaffer/pocb/src/BrowserWindow.hpp \
-  /Users/nicojaffer/pocb/src/FaviconService.hpp \
+  /Users/nicojaffer/pocb/src/services/FaviconService.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QDir \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdir.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcompare.h \
@@ -1255,9 +1255,9 @@ CMakeFiles/pocb.dir/src/main.cpp.o: /Users/nicojaffer/pocb/src/main.cpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QString \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QUrl \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qurl.h \
-  /Users/nicojaffer/pocb/src/ProfileStore.hpp \
+  /Users/nicojaffer/pocb/src/services/ProfileStore.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QStringList \
-  /Users/nicojaffer/pocb/src/Theme.hpp \
+  /Users/nicojaffer/pocb/src/services/Theme.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QColor \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QMainWindow \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qmainwindow.h \

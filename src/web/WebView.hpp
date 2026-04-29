@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QUrl>
 #include <QWidget>
 
@@ -33,6 +34,9 @@ signals:
     void loadFinished(bool ok);
     void newTabRequested(WebView *child, bool background);
     void closeRequested();
+    // Emitted after a navigation finishes, with the page's preferred chrome
+    // colour. Invalid QColor when the page exposes nothing useful.
+    void themeColorChanged(const QColor &color);
 
 protected:
     void resizeEvent(QResizeEvent *e) override;

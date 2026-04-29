@@ -1016,25 +1016,40 @@ pocb_autogen/timestamp: \
 	/Users/nicojaffer/pocb/build/CMakeFiles/4.2.3/CMakeCXXCompiler.cmake \
 	/Users/nicojaffer/pocb/build/CMakeFiles/4.2.3/CMakeSystem.cmake \
 	/Users/nicojaffer/pocb/build/pocb_autogen/moc_predefs.h \
-	/Users/nicojaffer/pocb/src/BrowserWindow.cpp \
-	/Users/nicojaffer/pocb/src/BrowserWindow.hpp \
-	/Users/nicojaffer/pocb/src/FaviconService.cpp \
-	/Users/nicojaffer/pocb/src/FaviconService.hpp \
-	/Users/nicojaffer/pocb/src/FloatingOmnibox.cpp \
-	/Users/nicojaffer/pocb/src/FloatingOmnibox.hpp \
-	/Users/nicojaffer/pocb/src/MacIntegration.hpp \
-	/Users/nicojaffer/pocb/src/MacIntegration.mm \
-	/Users/nicojaffer/pocb/src/ProfileStore.cpp \
-	/Users/nicojaffer/pocb/src/ProfileStore.hpp \
-	/Users/nicojaffer/pocb/src/SettingsDialog.cpp \
-	/Users/nicojaffer/pocb/src/SettingsDialog.hpp \
-	/Users/nicojaffer/pocb/src/Theme.cpp \
-	/Users/nicojaffer/pocb/src/Theme.hpp \
-	/Users/nicojaffer/pocb/src/WebKitProfile.hpp \
-	/Users/nicojaffer/pocb/src/WebKitProfile.mm \
-	/Users/nicojaffer/pocb/src/WebView.hpp \
-	/Users/nicojaffer/pocb/src/WebView.mm \
+	/Users/nicojaffer/pocb/src/app/BrowserWindow.cpp \
+	/Users/nicojaffer/pocb/src/app/BrowserWindow.hpp \
+	/Users/nicojaffer/pocb/src/app/SettingsDialog.cpp \
+	/Users/nicojaffer/pocb/src/app/SettingsDialog.hpp \
+	/Users/nicojaffer/pocb/src/mac/HighRefresh.mm \
+	/Users/nicojaffer/pocb/src/mac/LayerCorners.mm \
+	/Users/nicojaffer/pocb/src/mac/MacIntegration.hpp \
+	/Users/nicojaffer/pocb/src/mac/MacInternal.hpp \
+	/Users/nicojaffer/pocb/src/mac/MacInternal.mm \
+	/Users/nicojaffer/pocb/src/mac/SfSymbols.mm \
+	/Users/nicojaffer/pocb/src/mac/TrafficLights.mm \
+	/Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm \
+	/Users/nicojaffer/pocb/src/mac/Vibrancy.mm \
 	/Users/nicojaffer/pocb/src/main.cpp \
+	/Users/nicojaffer/pocb/src/services/FaviconService.cpp \
+	/Users/nicojaffer/pocb/src/services/FaviconService.hpp \
+	/Users/nicojaffer/pocb/src/services/ProfileStore.cpp \
+	/Users/nicojaffer/pocb/src/services/ProfileStore.hpp \
+	/Users/nicojaffer/pocb/src/services/Theme.cpp \
+	/Users/nicojaffer/pocb/src/services/Theme.hpp \
+	/Users/nicojaffer/pocb/src/tabs/TabTree.cpp \
+	/Users/nicojaffer/pocb/src/tabs/TabTree.hpp \
+	/Users/nicojaffer/pocb/src/ui/AddressBarController.cpp \
+	/Users/nicojaffer/pocb/src/ui/AddressBarController.hpp \
+	/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp \
+	/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp \
+	/Users/nicojaffer/pocb/src/ui/SidebarController.cpp \
+	/Users/nicojaffer/pocb/src/ui/SidebarController.hpp \
+	/Users/nicojaffer/pocb/src/ui/Topbar.cpp \
+	/Users/nicojaffer/pocb/src/ui/Topbar.hpp \
+	/Users/nicojaffer/pocb/src/web/WebKitProfile.hpp \
+	/Users/nicojaffer/pocb/src/web/WebKitProfile.mm \
+	/Users/nicojaffer/pocb/src/web/WebView.hpp \
+	/Users/nicojaffer/pocb/src/web/WebView.mm \
 	/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QDir \
 	/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QHash \
 	/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QObject \

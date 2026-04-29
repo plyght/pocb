@@ -179,221 +179,221 @@ pocb_autogen/mocs_compilation.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/pocb_autogen/mocs_compilation.cpp.s
 .PHONY : pocb_autogen/mocs_compilation.cpp.s
 
-src/BrowserWindow.o: src/BrowserWindow.cpp.o
-.PHONY : src/BrowserWindow.o
+src/app/BrowserWindow.o: src/app/BrowserWindow.cpp.o
+.PHONY : src/app/BrowserWindow.o
 
 # target to build an object file
-src/BrowserWindow.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o
-.PHONY : src/BrowserWindow.cpp.o
+src/app/BrowserWindow.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o
+.PHONY : src/app/BrowserWindow.cpp.o
 
-src/BrowserWindow.i: src/BrowserWindow.cpp.i
-.PHONY : src/BrowserWindow.i
+src/app/BrowserWindow.i: src/app/BrowserWindow.cpp.i
+.PHONY : src/app/BrowserWindow.i
 
 # target to preprocess a source file
-src/BrowserWindow.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/BrowserWindow.cpp.i
-.PHONY : src/BrowserWindow.cpp.i
+src/app/BrowserWindow.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.i
+.PHONY : src/app/BrowserWindow.cpp.i
 
-src/BrowserWindow.s: src/BrowserWindow.cpp.s
-.PHONY : src/BrowserWindow.s
+src/app/BrowserWindow.s: src/app/BrowserWindow.cpp.s
+.PHONY : src/app/BrowserWindow.s
 
 # target to generate assembly for a file
-src/BrowserWindow.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/BrowserWindow.cpp.s
-.PHONY : src/BrowserWindow.cpp.s
+src/app/BrowserWindow.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.s
+.PHONY : src/app/BrowserWindow.cpp.s
 
-src/FaviconService.o: src/FaviconService.cpp.o
-.PHONY : src/FaviconService.o
+src/app/SettingsDialog.o: src/app/SettingsDialog.cpp.o
+.PHONY : src/app/SettingsDialog.o
 
 # target to build an object file
-src/FaviconService.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/FaviconService.cpp.o
-.PHONY : src/FaviconService.cpp.o
+src/app/SettingsDialog.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o
+.PHONY : src/app/SettingsDialog.cpp.o
 
-src/FaviconService.i: src/FaviconService.cpp.i
-.PHONY : src/FaviconService.i
+src/app/SettingsDialog.i: src/app/SettingsDialog.cpp.i
+.PHONY : src/app/SettingsDialog.i
 
 # target to preprocess a source file
-src/FaviconService.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/FaviconService.cpp.i
-.PHONY : src/FaviconService.cpp.i
+src/app/SettingsDialog.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.i
+.PHONY : src/app/SettingsDialog.cpp.i
 
-src/FaviconService.s: src/FaviconService.cpp.s
-.PHONY : src/FaviconService.s
+src/app/SettingsDialog.s: src/app/SettingsDialog.cpp.s
+.PHONY : src/app/SettingsDialog.s
 
 # target to generate assembly for a file
-src/FaviconService.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/FaviconService.cpp.s
-.PHONY : src/FaviconService.cpp.s
+src/app/SettingsDialog.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.s
+.PHONY : src/app/SettingsDialog.cpp.s
 
-src/FloatingOmnibox.o: src/FloatingOmnibox.cpp.o
-.PHONY : src/FloatingOmnibox.o
+src/mac/HighRefresh.o: src/mac/HighRefresh.mm.o
+.PHONY : src/mac/HighRefresh.o
 
 # target to build an object file
-src/FloatingOmnibox.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o
-.PHONY : src/FloatingOmnibox.cpp.o
+src/mac/HighRefresh.mm.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o
+.PHONY : src/mac/HighRefresh.mm.o
 
-src/FloatingOmnibox.i: src/FloatingOmnibox.cpp.i
-.PHONY : src/FloatingOmnibox.i
+src/mac/HighRefresh.i: src/mac/HighRefresh.mm.i
+.PHONY : src/mac/HighRefresh.i
 
 # target to preprocess a source file
-src/FloatingOmnibox.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.i
-.PHONY : src/FloatingOmnibox.cpp.i
+src/mac/HighRefresh.mm.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.i
+.PHONY : src/mac/HighRefresh.mm.i
 
-src/FloatingOmnibox.s: src/FloatingOmnibox.cpp.s
-.PHONY : src/FloatingOmnibox.s
+src/mac/HighRefresh.s: src/mac/HighRefresh.mm.s
+.PHONY : src/mac/HighRefresh.s
 
 # target to generate assembly for a file
-src/FloatingOmnibox.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.s
-.PHONY : src/FloatingOmnibox.cpp.s
+src/mac/HighRefresh.mm.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.s
+.PHONY : src/mac/HighRefresh.mm.s
 
-src/MacIntegration.o: src/MacIntegration.mm.o
-.PHONY : src/MacIntegration.o
+src/mac/LayerCorners.o: src/mac/LayerCorners.mm.o
+.PHONY : src/mac/LayerCorners.o
 
 # target to build an object file
-src/MacIntegration.mm.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/MacIntegration.mm.o
-.PHONY : src/MacIntegration.mm.o
+src/mac/LayerCorners.mm.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o
+.PHONY : src/mac/LayerCorners.mm.o
 
-src/MacIntegration.i: src/MacIntegration.mm.i
-.PHONY : src/MacIntegration.i
+src/mac/LayerCorners.i: src/mac/LayerCorners.mm.i
+.PHONY : src/mac/LayerCorners.i
 
 # target to preprocess a source file
-src/MacIntegration.mm.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/MacIntegration.mm.i
-.PHONY : src/MacIntegration.mm.i
+src/mac/LayerCorners.mm.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.i
+.PHONY : src/mac/LayerCorners.mm.i
 
-src/MacIntegration.s: src/MacIntegration.mm.s
-.PHONY : src/MacIntegration.s
+src/mac/LayerCorners.s: src/mac/LayerCorners.mm.s
+.PHONY : src/mac/LayerCorners.s
 
 # target to generate assembly for a file
-src/MacIntegration.mm.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/MacIntegration.mm.s
-.PHONY : src/MacIntegration.mm.s
+src/mac/LayerCorners.mm.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.s
+.PHONY : src/mac/LayerCorners.mm.s
 
-src/ProfileStore.o: src/ProfileStore.cpp.o
-.PHONY : src/ProfileStore.o
+src/mac/MacInternal.o: src/mac/MacInternal.mm.o
+.PHONY : src/mac/MacInternal.o
 
 # target to build an object file
-src/ProfileStore.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ProfileStore.cpp.o
-.PHONY : src/ProfileStore.cpp.o
+src/mac/MacInternal.mm.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o
+.PHONY : src/mac/MacInternal.mm.o
 
-src/ProfileStore.i: src/ProfileStore.cpp.i
-.PHONY : src/ProfileStore.i
+src/mac/MacInternal.i: src/mac/MacInternal.mm.i
+.PHONY : src/mac/MacInternal.i
 
 # target to preprocess a source file
-src/ProfileStore.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ProfileStore.cpp.i
-.PHONY : src/ProfileStore.cpp.i
+src/mac/MacInternal.mm.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/MacInternal.mm.i
+.PHONY : src/mac/MacInternal.mm.i
 
-src/ProfileStore.s: src/ProfileStore.cpp.s
-.PHONY : src/ProfileStore.s
+src/mac/MacInternal.s: src/mac/MacInternal.mm.s
+.PHONY : src/mac/MacInternal.s
 
 # target to generate assembly for a file
-src/ProfileStore.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ProfileStore.cpp.s
-.PHONY : src/ProfileStore.cpp.s
+src/mac/MacInternal.mm.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/MacInternal.mm.s
+.PHONY : src/mac/MacInternal.mm.s
 
-src/SettingsDialog.o: src/SettingsDialog.cpp.o
-.PHONY : src/SettingsDialog.o
+src/mac/SfSymbols.o: src/mac/SfSymbols.mm.o
+.PHONY : src/mac/SfSymbols.o
 
 # target to build an object file
-src/SettingsDialog.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o
-.PHONY : src/SettingsDialog.cpp.o
+src/mac/SfSymbols.mm.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o
+.PHONY : src/mac/SfSymbols.mm.o
 
-src/SettingsDialog.i: src/SettingsDialog.cpp.i
-.PHONY : src/SettingsDialog.i
+src/mac/SfSymbols.i: src/mac/SfSymbols.mm.i
+.PHONY : src/mac/SfSymbols.i
 
 # target to preprocess a source file
-src/SettingsDialog.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/SettingsDialog.cpp.i
-.PHONY : src/SettingsDialog.cpp.i
+src/mac/SfSymbols.mm.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.i
+.PHONY : src/mac/SfSymbols.mm.i
 
-src/SettingsDialog.s: src/SettingsDialog.cpp.s
-.PHONY : src/SettingsDialog.s
+src/mac/SfSymbols.s: src/mac/SfSymbols.mm.s
+.PHONY : src/mac/SfSymbols.s
 
 # target to generate assembly for a file
-src/SettingsDialog.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/SettingsDialog.cpp.s
-.PHONY : src/SettingsDialog.cpp.s
+src/mac/SfSymbols.mm.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.s
+.PHONY : src/mac/SfSymbols.mm.s
 
-src/Theme.o: src/Theme.cpp.o
-.PHONY : src/Theme.o
+src/mac/TrafficLights.o: src/mac/TrafficLights.mm.o
+.PHONY : src/mac/TrafficLights.o
 
 # target to build an object file
-src/Theme.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/Theme.cpp.o
-.PHONY : src/Theme.cpp.o
+src/mac/TrafficLights.mm.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o
+.PHONY : src/mac/TrafficLights.mm.o
 
-src/Theme.i: src/Theme.cpp.i
-.PHONY : src/Theme.i
+src/mac/TrafficLights.i: src/mac/TrafficLights.mm.i
+.PHONY : src/mac/TrafficLights.i
 
 # target to preprocess a source file
-src/Theme.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/Theme.cpp.i
-.PHONY : src/Theme.cpp.i
+src/mac/TrafficLights.mm.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.i
+.PHONY : src/mac/TrafficLights.mm.i
 
-src/Theme.s: src/Theme.cpp.s
-.PHONY : src/Theme.s
+src/mac/TrafficLights.s: src/mac/TrafficLights.mm.s
+.PHONY : src/mac/TrafficLights.s
 
 # target to generate assembly for a file
-src/Theme.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/Theme.cpp.s
-.PHONY : src/Theme.cpp.s
+src/mac/TrafficLights.mm.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.s
+.PHONY : src/mac/TrafficLights.mm.s
 
-src/WebKitProfile.o: src/WebKitProfile.mm.o
-.PHONY : src/WebKitProfile.o
+src/mac/UnifiedToolbar.o: src/mac/UnifiedToolbar.mm.o
+.PHONY : src/mac/UnifiedToolbar.o
 
 # target to build an object file
-src/WebKitProfile.mm.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/WebKitProfile.mm.o
-.PHONY : src/WebKitProfile.mm.o
+src/mac/UnifiedToolbar.mm.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o
+.PHONY : src/mac/UnifiedToolbar.mm.o
 
-src/WebKitProfile.i: src/WebKitProfile.mm.i
-.PHONY : src/WebKitProfile.i
+src/mac/UnifiedToolbar.i: src/mac/UnifiedToolbar.mm.i
+.PHONY : src/mac/UnifiedToolbar.i
 
 # target to preprocess a source file
-src/WebKitProfile.mm.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/WebKitProfile.mm.i
-.PHONY : src/WebKitProfile.mm.i
+src/mac/UnifiedToolbar.mm.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.i
+.PHONY : src/mac/UnifiedToolbar.mm.i
 
-src/WebKitProfile.s: src/WebKitProfile.mm.s
-.PHONY : src/WebKitProfile.s
+src/mac/UnifiedToolbar.s: src/mac/UnifiedToolbar.mm.s
+.PHONY : src/mac/UnifiedToolbar.s
 
 # target to generate assembly for a file
-src/WebKitProfile.mm.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/WebKitProfile.mm.s
-.PHONY : src/WebKitProfile.mm.s
+src/mac/UnifiedToolbar.mm.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.s
+.PHONY : src/mac/UnifiedToolbar.mm.s
 
-src/WebView.o: src/WebView.mm.o
-.PHONY : src/WebView.o
+src/mac/Vibrancy.o: src/mac/Vibrancy.mm.o
+.PHONY : src/mac/Vibrancy.o
 
 # target to build an object file
-src/WebView.mm.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/WebView.mm.o
-.PHONY : src/WebView.mm.o
+src/mac/Vibrancy.mm.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o
+.PHONY : src/mac/Vibrancy.mm.o
 
-src/WebView.i: src/WebView.mm.i
-.PHONY : src/WebView.i
+src/mac/Vibrancy.i: src/mac/Vibrancy.mm.i
+.PHONY : src/mac/Vibrancy.i
 
 # target to preprocess a source file
-src/WebView.mm.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/WebView.mm.i
-.PHONY : src/WebView.mm.i
+src/mac/Vibrancy.mm.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.i
+.PHONY : src/mac/Vibrancy.mm.i
 
-src/WebView.s: src/WebView.mm.s
-.PHONY : src/WebView.s
+src/mac/Vibrancy.s: src/mac/Vibrancy.mm.s
+.PHONY : src/mac/Vibrancy.s
 
 # target to generate assembly for a file
-src/WebView.mm.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/WebView.mm.s
-.PHONY : src/WebView.mm.s
+src/mac/Vibrancy.mm.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.s
+.PHONY : src/mac/Vibrancy.mm.s
 
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
@@ -419,6 +419,246 @@ src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+src/services/FaviconService.o: src/services/FaviconService.cpp.o
+.PHONY : src/services/FaviconService.o
+
+# target to build an object file
+src/services/FaviconService.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o
+.PHONY : src/services/FaviconService.cpp.o
+
+src/services/FaviconService.i: src/services/FaviconService.cpp.i
+.PHONY : src/services/FaviconService.i
+
+# target to preprocess a source file
+src/services/FaviconService.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/services/FaviconService.cpp.i
+.PHONY : src/services/FaviconService.cpp.i
+
+src/services/FaviconService.s: src/services/FaviconService.cpp.s
+.PHONY : src/services/FaviconService.s
+
+# target to generate assembly for a file
+src/services/FaviconService.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/services/FaviconService.cpp.s
+.PHONY : src/services/FaviconService.cpp.s
+
+src/services/ProfileStore.o: src/services/ProfileStore.cpp.o
+.PHONY : src/services/ProfileStore.o
+
+# target to build an object file
+src/services/ProfileStore.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o
+.PHONY : src/services/ProfileStore.cpp.o
+
+src/services/ProfileStore.i: src/services/ProfileStore.cpp.i
+.PHONY : src/services/ProfileStore.i
+
+# target to preprocess a source file
+src/services/ProfileStore.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.i
+.PHONY : src/services/ProfileStore.cpp.i
+
+src/services/ProfileStore.s: src/services/ProfileStore.cpp.s
+.PHONY : src/services/ProfileStore.s
+
+# target to generate assembly for a file
+src/services/ProfileStore.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.s
+.PHONY : src/services/ProfileStore.cpp.s
+
+src/services/Theme.o: src/services/Theme.cpp.o
+.PHONY : src/services/Theme.o
+
+# target to build an object file
+src/services/Theme.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/services/Theme.cpp.o
+.PHONY : src/services/Theme.cpp.o
+
+src/services/Theme.i: src/services/Theme.cpp.i
+.PHONY : src/services/Theme.i
+
+# target to preprocess a source file
+src/services/Theme.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/services/Theme.cpp.i
+.PHONY : src/services/Theme.cpp.i
+
+src/services/Theme.s: src/services/Theme.cpp.s
+.PHONY : src/services/Theme.s
+
+# target to generate assembly for a file
+src/services/Theme.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/services/Theme.cpp.s
+.PHONY : src/services/Theme.cpp.s
+
+src/tabs/TabTree.o: src/tabs/TabTree.cpp.o
+.PHONY : src/tabs/TabTree.o
+
+# target to build an object file
+src/tabs/TabTree.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o
+.PHONY : src/tabs/TabTree.cpp.o
+
+src/tabs/TabTree.i: src/tabs/TabTree.cpp.i
+.PHONY : src/tabs/TabTree.i
+
+# target to preprocess a source file
+src/tabs/TabTree.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.i
+.PHONY : src/tabs/TabTree.cpp.i
+
+src/tabs/TabTree.s: src/tabs/TabTree.cpp.s
+.PHONY : src/tabs/TabTree.s
+
+# target to generate assembly for a file
+src/tabs/TabTree.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.s
+.PHONY : src/tabs/TabTree.cpp.s
+
+src/ui/AddressBarController.o: src/ui/AddressBarController.cpp.o
+.PHONY : src/ui/AddressBarController.o
+
+# target to build an object file
+src/ui/AddressBarController.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o
+.PHONY : src/ui/AddressBarController.cpp.o
+
+src/ui/AddressBarController.i: src/ui/AddressBarController.cpp.i
+.PHONY : src/ui/AddressBarController.i
+
+# target to preprocess a source file
+src/ui/AddressBarController.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.i
+.PHONY : src/ui/AddressBarController.cpp.i
+
+src/ui/AddressBarController.s: src/ui/AddressBarController.cpp.s
+.PHONY : src/ui/AddressBarController.s
+
+# target to generate assembly for a file
+src/ui/AddressBarController.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.s
+.PHONY : src/ui/AddressBarController.cpp.s
+
+src/ui/FloatingOmnibox.o: src/ui/FloatingOmnibox.cpp.o
+.PHONY : src/ui/FloatingOmnibox.o
+
+# target to build an object file
+src/ui/FloatingOmnibox.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o
+.PHONY : src/ui/FloatingOmnibox.cpp.o
+
+src/ui/FloatingOmnibox.i: src/ui/FloatingOmnibox.cpp.i
+.PHONY : src/ui/FloatingOmnibox.i
+
+# target to preprocess a source file
+src/ui/FloatingOmnibox.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.i
+.PHONY : src/ui/FloatingOmnibox.cpp.i
+
+src/ui/FloatingOmnibox.s: src/ui/FloatingOmnibox.cpp.s
+.PHONY : src/ui/FloatingOmnibox.s
+
+# target to generate assembly for a file
+src/ui/FloatingOmnibox.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.s
+.PHONY : src/ui/FloatingOmnibox.cpp.s
+
+src/ui/SidebarController.o: src/ui/SidebarController.cpp.o
+.PHONY : src/ui/SidebarController.o
+
+# target to build an object file
+src/ui/SidebarController.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o
+.PHONY : src/ui/SidebarController.cpp.o
+
+src/ui/SidebarController.i: src/ui/SidebarController.cpp.i
+.PHONY : src/ui/SidebarController.i
+
+# target to preprocess a source file
+src/ui/SidebarController.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.i
+.PHONY : src/ui/SidebarController.cpp.i
+
+src/ui/SidebarController.s: src/ui/SidebarController.cpp.s
+.PHONY : src/ui/SidebarController.s
+
+# target to generate assembly for a file
+src/ui/SidebarController.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.s
+.PHONY : src/ui/SidebarController.cpp.s
+
+src/ui/Topbar.o: src/ui/Topbar.cpp.o
+.PHONY : src/ui/Topbar.o
+
+# target to build an object file
+src/ui/Topbar.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o
+.PHONY : src/ui/Topbar.cpp.o
+
+src/ui/Topbar.i: src/ui/Topbar.cpp.i
+.PHONY : src/ui/Topbar.i
+
+# target to preprocess a source file
+src/ui/Topbar.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/Topbar.cpp.i
+.PHONY : src/ui/Topbar.cpp.i
+
+src/ui/Topbar.s: src/ui/Topbar.cpp.s
+.PHONY : src/ui/Topbar.s
+
+# target to generate assembly for a file
+src/ui/Topbar.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/ui/Topbar.cpp.s
+.PHONY : src/ui/Topbar.cpp.s
+
+src/web/WebKitProfile.o: src/web/WebKitProfile.mm.o
+.PHONY : src/web/WebKitProfile.o
+
+# target to build an object file
+src/web/WebKitProfile.mm.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o
+.PHONY : src/web/WebKitProfile.mm.o
+
+src/web/WebKitProfile.i: src/web/WebKitProfile.mm.i
+.PHONY : src/web/WebKitProfile.i
+
+# target to preprocess a source file
+src/web/WebKitProfile.mm.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.i
+.PHONY : src/web/WebKitProfile.mm.i
+
+src/web/WebKitProfile.s: src/web/WebKitProfile.mm.s
+.PHONY : src/web/WebKitProfile.s
+
+# target to generate assembly for a file
+src/web/WebKitProfile.mm.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.s
+.PHONY : src/web/WebKitProfile.mm.s
+
+src/web/WebView.o: src/web/WebView.mm.o
+.PHONY : src/web/WebView.o
+
+# target to build an object file
+src/web/WebView.mm.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/web/WebView.mm.o
+.PHONY : src/web/WebView.mm.o
+
+src/web/WebView.i: src/web/WebView.mm.i
+.PHONY : src/web/WebView.i
+
+# target to preprocess a source file
+src/web/WebView.mm.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/web/WebView.mm.i
+.PHONY : src/web/WebView.mm.i
+
+src/web/WebView.s: src/web/WebView.mm.s
+.PHONY : src/web/WebView.s
+
+# target to generate assembly for a file
+src/web/WebView.mm.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/pocb.dir/build.make CMakeFiles/pocb.dir/src/web/WebView.mm.s
+.PHONY : src/web/WebView.mm.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -433,36 +673,66 @@ help:
 	@echo "... pocb_autogen/mocs_compilation.o"
 	@echo "... pocb_autogen/mocs_compilation.i"
 	@echo "... pocb_autogen/mocs_compilation.s"
-	@echo "... src/BrowserWindow.o"
-	@echo "... src/BrowserWindow.i"
-	@echo "... src/BrowserWindow.s"
-	@echo "... src/FaviconService.o"
-	@echo "... src/FaviconService.i"
-	@echo "... src/FaviconService.s"
-	@echo "... src/FloatingOmnibox.o"
-	@echo "... src/FloatingOmnibox.i"
-	@echo "... src/FloatingOmnibox.s"
-	@echo "... src/MacIntegration.o"
-	@echo "... src/MacIntegration.i"
-	@echo "... src/MacIntegration.s"
-	@echo "... src/ProfileStore.o"
-	@echo "... src/ProfileStore.i"
-	@echo "... src/ProfileStore.s"
-	@echo "... src/SettingsDialog.o"
-	@echo "... src/SettingsDialog.i"
-	@echo "... src/SettingsDialog.s"
-	@echo "... src/Theme.o"
-	@echo "... src/Theme.i"
-	@echo "... src/Theme.s"
-	@echo "... src/WebKitProfile.o"
-	@echo "... src/WebKitProfile.i"
-	@echo "... src/WebKitProfile.s"
-	@echo "... src/WebView.o"
-	@echo "... src/WebView.i"
-	@echo "... src/WebView.s"
+	@echo "... src/app/BrowserWindow.o"
+	@echo "... src/app/BrowserWindow.i"
+	@echo "... src/app/BrowserWindow.s"
+	@echo "... src/app/SettingsDialog.o"
+	@echo "... src/app/SettingsDialog.i"
+	@echo "... src/app/SettingsDialog.s"
+	@echo "... src/mac/HighRefresh.o"
+	@echo "... src/mac/HighRefresh.i"
+	@echo "... src/mac/HighRefresh.s"
+	@echo "... src/mac/LayerCorners.o"
+	@echo "... src/mac/LayerCorners.i"
+	@echo "... src/mac/LayerCorners.s"
+	@echo "... src/mac/MacInternal.o"
+	@echo "... src/mac/MacInternal.i"
+	@echo "... src/mac/MacInternal.s"
+	@echo "... src/mac/SfSymbols.o"
+	@echo "... src/mac/SfSymbols.i"
+	@echo "... src/mac/SfSymbols.s"
+	@echo "... src/mac/TrafficLights.o"
+	@echo "... src/mac/TrafficLights.i"
+	@echo "... src/mac/TrafficLights.s"
+	@echo "... src/mac/UnifiedToolbar.o"
+	@echo "... src/mac/UnifiedToolbar.i"
+	@echo "... src/mac/UnifiedToolbar.s"
+	@echo "... src/mac/Vibrancy.o"
+	@echo "... src/mac/Vibrancy.i"
+	@echo "... src/mac/Vibrancy.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/services/FaviconService.o"
+	@echo "... src/services/FaviconService.i"
+	@echo "... src/services/FaviconService.s"
+	@echo "... src/services/ProfileStore.o"
+	@echo "... src/services/ProfileStore.i"
+	@echo "... src/services/ProfileStore.s"
+	@echo "... src/services/Theme.o"
+	@echo "... src/services/Theme.i"
+	@echo "... src/services/Theme.s"
+	@echo "... src/tabs/TabTree.o"
+	@echo "... src/tabs/TabTree.i"
+	@echo "... src/tabs/TabTree.s"
+	@echo "... src/ui/AddressBarController.o"
+	@echo "... src/ui/AddressBarController.i"
+	@echo "... src/ui/AddressBarController.s"
+	@echo "... src/ui/FloatingOmnibox.o"
+	@echo "... src/ui/FloatingOmnibox.i"
+	@echo "... src/ui/FloatingOmnibox.s"
+	@echo "... src/ui/SidebarController.o"
+	@echo "... src/ui/SidebarController.i"
+	@echo "... src/ui/SidebarController.s"
+	@echo "... src/ui/Topbar.o"
+	@echo "... src/ui/Topbar.i"
+	@echo "... src/ui/Topbar.s"
+	@echo "... src/web/WebKitProfile.o"
+	@echo "... src/web/WebKitProfile.i"
+	@echo "... src/web/WebKitProfile.s"
+	@echo "... src/web/WebView.o"
+	@echo "... src/web/WebView.i"
+	@echo "... src/web/WebView.s"
 .PHONY : help
 
 

@@ -364,6 +364,9 @@ Qt6QuickWidgets_DIR:PATH=/opt/homebrew/Cellar/qtdeclarative/6.10.2/lib/cmake/Qt6
 //The directory containing a CMake configuration file for Qt6Quick.
 Qt6Quick_DIR:PATH=/opt/homebrew/Cellar/qtdeclarative/6.10.2/lib/cmake/Qt6Quick
 
+//The directory containing a CMake configuration file for Qt6Svg.
+Qt6Svg_DIR:PATH=Qt6Svg_DIR-NOTFOUND
+
 //The directory containing a CMake configuration file for Qt6WebChannel.
 Qt6WebChannel_DIR:PATH=/opt/homebrew/Cellar/qtwebchannel/6.10.2/lib/cmake/Qt6WebChannel
 

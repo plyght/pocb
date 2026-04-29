@@ -71,6 +71,7 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
     // Address bar — clickable read-only display that opens the floating
     // omnibox for editing.
     auto *addrWrap = new QWidget(bar);
+    w.addrWrap = addrWrap;
     addrWrap->setObjectName("AddressWrap");
     addrWrap->setFixedHeight(28);
     addrWrap->setStyleSheet(QString(

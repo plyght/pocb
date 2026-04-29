@@ -1,22 +1,40 @@
 #include "BrowserWindow.hpp"
 
 
+#include "AddressBarController.hpp"
 #include "FloatingOmnibox.hpp"
 #include "MacIntegration.hpp"
 #include "SettingsDialog.hpp"
+#include "SidebarController.hpp"
+#include "TabTree.hpp"
+#include "Topbar.hpp"
 #include "WebView.hpp"
 
 #include <QAction>
 #include <QApplication>
 #include <QDesktopServices>
+#include <QEvent>
+#include <QFocusEvent>
 #include <QHBoxLayout>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
+#include <QListWidgetItem>
 #include <QMenuBar>
+#include <QMouseEvent>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QProgressBar>
 #include <QDir>
 #include <QShortcut>
 #include <QTimer>
+#include <QUrlQuery>
 #include <QSettings>
 #include <QSplitter>
 #include <QStandardPaths>
@@ -26,6 +44,9 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QTreeWidget>
+#include <QVariantAnimation>
+#include <QEasingCurve>
+#include <QEvent>
 #include <QVBoxLayout>
 
 BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
@@ -49,7 +70,17 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     // the window is visible (no one-frame flash at the default position).
     winId();
     mac::integrateUnifiedToolbar(this, nullptr, /*compact=*/true);
-    newTab(QUrl(m_homePage));
+    m_tabTree->newTab(QUrl(m_homePage));
+}
+
+void BrowserWindow::moveEvent(QMoveEvent *e) {
+    QMainWindow::moveEvent(e);
+    if (m_sidebar && m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
+}
+
+void BrowserWindow::resizeEvent(QResizeEvent *e) {
+    QMainWindow::resizeEvent(e);
+    if (m_sidebar && m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
 }
 
 void BrowserWindow::showEvent(QShowEvent *e) {
@@ -60,53 +91,14 @@ void BrowserWindow::showEvent(QShowEvent *e) {
     // Round the web-content stack on the next event loop turn (after the
     // first QWebEngineView NSView exists).
     QTimer::singleShot(0, this, [this] {
-        if (m_stack) mac::roundWidgetCorners(m_stack, 10.0);
+        if (m_webContainer) {
+            mac::roundWidgetCorners(m_webContainer, 10.0, /*recurseDescendants=*/false);
+        }
+        if (m_stack) mac::roundWidgetCorners(m_stack, 0.0);
         if (auto *host = findChild<QWidget *>("StackHost")) {
             mac::applyVibrancyBehind(host, mac::VibrancyMaterial::Sidebar);
         }
     });
-}
-
-void BrowserWindow::newTab(const QUrl &url, bool background, QTreeWidgetItem *parentItem) {
-    auto *view = new WebView(m_profiles.currentProfile(), m_stack);
-
-    auto *item = new QTreeWidgetItem(QStringList() << "New tab");
-    item->setData(0, Qt::UserRole, QVariant::fromValue<quintptr>(reinterpret_cast<quintptr>(view)));
-    if (!parentItem) parentItem = currentItem();
-    if (parentItem) parentItem->addChild(item);
-    else m_tabs->addTopLevelItem(item);
-    item->setExpanded(true);
-    m_views.insert(item, view);
-
-    static_cast<QStackedLayout *>(m_stack->layout())->addWidget(view);
-    wireView(view, item);
-
-    view->load(url.isEmpty() ? QUrl(m_homePage) : url);
-    if (!background) selectItem(item);
-}
-
-void BrowserWindow::adoptChildView(WebView *child, QTreeWidgetItem *parentItem, bool background) {
-    if (!child) return;
-    child->setParent(m_stack);
-    auto *item = new QTreeWidgetItem(QStringList() << "New tab");
-    item->setData(0, Qt::UserRole, QVariant::fromValue<quintptr>(reinterpret_cast<quintptr>(child)));
-    if (parentItem) parentItem->addChild(item);
-    else m_tabs->addTopLevelItem(item);
-    item->setExpanded(true);
-    m_views.insert(item, child);
-    static_cast<QStackedLayout *>(m_stack->layout())->addWidget(child);
-    wireView(child, item);
-    if (!background) selectItem(item);
-}
-
-void BrowserWindow::closeCurrentTab() {
-    auto *item = currentItem();
-    if (!item) return;
-    auto *view = m_views.take(item);
-    if (view) view->deleteLater();
-    delete item;
-    if (m_tabs->topLevelItemCount() == 0) newTab(QUrl(m_homePage));
-    updateForCurrentTab();
 }
 
 void BrowserWindow::loadFromOmnibox() {
@@ -115,7 +107,10 @@ void BrowserWindow::loadFromOmnibox() {
 
 void BrowserWindow::showSettings() {
     SettingsDialog dialog(m_profiles, this);
-    connect(&dialog, &SettingsDialog::homePageChanged, this, [this](const QString &url) { m_homePage = url; });
+    connect(&dialog, &SettingsDialog::homePageChanged, this, [this](const QString &url) {
+        m_homePage = url;
+        if (m_tabTree) m_tabTree->setHomePage(url);
+    });
     connect(&dialog, &SettingsDialog::searchEngineChanged, this, [this](const QString &url) {
         if (!url.contains("%1")) return;
         m_searchEngine = url;
@@ -129,8 +124,51 @@ void BrowserWindow::updateForCurrentTab() {
     if (!view) return;
     static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
     m_omnibox->setText(view->url().toString());
+    if (m_addressBarCtl) {
+        m_addressBarCtl->setDisplayUrl(view->url().toString(), view->url().scheme() == "https");
+    }
     setWindowTitle((view->title().isEmpty() ? "pocb" : view->title()) + " — pocb");
 }
+
+QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
+    ui::TopbarWidgets w = ui::buildTopbar(parent, m_theme);
+    m_backBtn = w.back;
+    m_fwdBtn = w.forward;
+    m_reloadBtn = w.reload;
+    m_newTabBtn = w.newTab;
+    m_settingsBtn = w.settings;
+    m_addressBar = w.addressBar;
+    m_lockIcon = w.lockIcon;
+
+    m_addressBarCtl = new AddressBarController(m_addressBar, m_lockIcon, m_theme, this);
+    m_addressBarCtl->setSearchEngineUrl(m_searchEngine);
+    connect(m_addressBarCtl, &AddressBarController::submitted, this, [this](const QString &text) {
+        if (auto *view = currentView()) view->load(urlFromInput(text));
+        if (auto *v = currentView()) v->setFocus();
+    });
+    connect(m_addressBarCtl, &AddressBarController::escapePressed, this, [this] {
+        if (auto *v = currentView()) v->setFocus();
+    });
+
+    connect(m_backBtn,   &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->back(); });
+    connect(m_fwdBtn,    &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->forward(); });
+    connect(m_reloadBtn, &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->reload(); });
+    connect(m_settingsBtn, &QToolButton::clicked, this, &BrowserWindow::showSettings);
+    connect(m_newTabBtn, &QToolButton::clicked, this, [this] {
+        m_tabTree->newTab(QUrl("about:blank"));
+        if (auto *view = currentView()) {
+            const QString bg = m_theme.background.name();
+            view->loadHtml(QStringLiteral(
+                "<!doctype html><html><head><meta charset=\"utf-8\">"
+                "<style>html,body{margin:0;height:100%%;background:%1;}</style>"
+                "</head><body></body></html>").arg(bg));
+        }
+        m_floatingOmnibox->showFor(m_stack, QString());
+    });
+
+    return w.bar;
+}
+
 
 QUrl BrowserWindow::urlFromInput(const QString &input) const {
     const QString trimmed = input.trimmed();
@@ -142,60 +180,7 @@ QUrl BrowserWindow::urlFromInput(const QString &input) const {
 }
 
 WebView *BrowserWindow::currentView() const {
-    return m_views.value(currentItem(), nullptr);
-}
-
-QTreeWidgetItem *BrowserWindow::currentItem() const {
-    return m_tabs->currentItem();
-}
-
-void BrowserWindow::selectItem(QTreeWidgetItem *item) {
-    if (!item) return;
-    m_tabs->setCurrentItem(item);
-    updateForCurrentTab();
-}
-
-void BrowserWindow::wireView(WebView *view, QTreeWidgetItem *item) {
-    connect(view, &WebView::titleChanged, this, [item](const QString &title) {
-        item->setText(0, title.isEmpty() ? "New tab" : title);
-    });
-    connect(view, &WebView::urlChanged, this, [this, view, item](const QUrl &url) {
-        if (view == currentView()) m_omnibox->setText(url.toString());
-        if (m_favicons) {
-            if (auto cached = m_favicons->cached(url); !cached.isNull()) {
-                item->setIcon(0, QIcon(cached));
-            } else {
-                m_favicons->request(url);
-            }
-        }
-    });
-    connect(view, &WebView::loadProgress, this, [this, view](int progress) {
-        if (view != currentView()) return;
-        m_progress->setValue(progress);
-        m_progress->setVisible(progress > 0 && progress < 100);
-    });
-    connect(view, &WebView::loadFinished, this, [this](bool) { updateForCurrentTab(); });
-    connect(view, &WebView::newTabRequested, this, [this, item](WebView *child, bool background) {
-        adoptChildView(child, item, background);
-    });
-    connect(view, &WebView::closeRequested, this, [this, view] {
-        for (auto it = m_views.begin(); it != m_views.end(); ++it) {
-            if (it.value() == view) {
-                m_tabs->setCurrentItem(it.key());
-                closeCurrentTab();
-                return;
-            }
-        }
-    });
-}
-
-void BrowserWindow::rebuildProfilePages() {
-    const QUrl activeUrl = currentView() ? currentView()->url() : QUrl(m_homePage);
-    m_views.clear();
-    m_tabs->clear();
-    const auto children = m_stack->findChildren<WebView *>();
-    for (auto *child : children) child->deleteLater();
-    newTab(activeUrl);
+    return m_tabTree ? m_tabTree->currentView() : nullptr;
 }
 
 void BrowserWindow::setupUi() {
@@ -221,10 +206,20 @@ void BrowserWindow::setupUi() {
     });
 
     m_progress = new QProgressBar(this);
+    m_progress->setObjectName("LoadProgress");
     m_progress->setMaximumHeight(2);
+    m_progress->setMinimumHeight(2);
     m_progress->setTextVisible(false);
     m_progress->setVisible(false);
-    root->addWidget(m_progress);
+    m_progress->setStyleSheet(QString(
+        "QProgressBar#LoadProgress {"
+        "  background: transparent;"
+        "  border: none;"
+        "}"
+        "QProgressBar#LoadProgress::chunk {"
+        "  background: %1;"
+        "}")
+        .arg(m_theme.accent.name()));
 
     m_splitter = new QSplitter(this);
     m_splitter->setOrientation(Qt::Horizontal);
@@ -252,42 +247,9 @@ void BrowserWindow::setupUi() {
     sideLayout->setContentsMargins(10, 52, 0, 10);
     sideLayout->setSpacing(0);
 
-    m_tabs = new QTreeWidget(sidebar);
-    m_tabs->setObjectName("TabTree");
-    m_tabs->setHeaderHidden(true);
-    m_tabs->setIndentation(14);
-    m_tabs->setRootIsDecorated(false);
-    m_tabs->setAnimated(true);
-    m_tabs->setFrameShape(QFrame::NoFrame);
-    m_tabs->setIconSize(QSize(16, 16));
-    m_tabs->setExpandsOnDoubleClick(false);
-    m_tabs->setUniformRowHeights(true);
-    m_tabs->setAttribute(Qt::WA_MacShowFocusRect, false);
-    m_tabs->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    m_tabs->setAttribute(Qt::WA_TranslucentBackground);
-    m_tabs->viewport()->setAutoFillBackground(false);
-    m_tabs->setStyleSheet(QString(
-        "QTreeWidget#TabTree { background: transparent; border: none; color: %1; }"
-        "QTreeWidget#TabTree::item { padding: 4px 6px; border-radius: 6px; color: %1; }"
-        "QTreeWidget#TabTree::item:selected { background: %2; color: %1; }"
-        "QTreeWidget#TabTree::item:hover:!selected { background: %3; }")
-        .arg(m_theme.foreground.name(),
-             m_theme.raised.name(),
-             m_theme.hover.name()));
-    sideLayout->addWidget(m_tabs, 1);
-
     const QDir cacheDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/favicons");
     cacheDir.mkpath(".");
     m_favicons = new FaviconService(cacheDir, this);
-    connect(m_favicons, &FaviconService::faviconReady, this,
-            [this](const QString &domain, const QPixmap &pm) {
-                if (pm.isNull()) return;
-                const QIcon icon(pm);
-                for (auto it = m_views.constBegin(); it != m_views.constEnd(); ++it) {
-                    const QString itemDomain = it.value()->url().host();
-                    if (itemDomain == domain) it.key()->setIcon(0, icon);
-                }
-            });
 
     sidebar->setMinimumWidth(160);
     sidebar->setMaximumWidth(520);
@@ -298,10 +260,43 @@ void BrowserWindow::setupUi() {
     auto *hostLayout = new QVBoxLayout(stackHost);
     hostLayout->setContentsMargins(0, 6, 6, 6);
     hostLayout->setSpacing(0);
-    m_stack = new QWidget(stackHost);
+
+    // The web container holds the top toolbar AND the web view stack inside
+    // a single rounded shape, so the toolbar lives "inside" the rounded card
+    // pushing the page content down.
+    m_webContainer = new QWidget(stackHost);
+    m_webContainer->setObjectName("WebContainer");
+    m_webContainer->setStyleSheet(
+        "QWidget#WebContainer { background: #1a1a1a; }");
+    auto *containerLayout = new QVBoxLayout(m_webContainer);
+    containerLayout->setContentsMargins(0, 0, 0, 0);
+    containerLayout->setSpacing(0);
+
+    m_topbar = buildTopbar(m_webContainer);
+    containerLayout->addWidget(m_topbar);
+    containerLayout->addWidget(m_progress);
+
+    // Fixed thin hairline between toolbar/progress strip and the page.
+    m_topSeparator = new QWidget(m_webContainer);
+    m_topSeparator->setObjectName("WebTopSeparator");
+    m_topSeparator->setFixedHeight(1);
+    m_topSeparator->setAttribute(Qt::WA_TransparentForMouseEvents);
+    m_topSeparator->setStyleSheet(
+        "QWidget#WebTopSeparator { background: #191919; }");
+    containerLayout->addWidget(m_topSeparator);
+
+    m_stack = new QWidget(m_webContainer);
     auto *stackLayout = new QStackedLayout(m_stack);
     stackLayout->setContentsMargins(0, 0, 0, 0);
-    hostLayout->addWidget(m_stack, 1);
+    containerLayout->addWidget(m_stack, 1);
+
+    // TabTree owns the sidebar list + WebView lifetime, but the QStackedLayout
+    // host (`m_stack`) and the surrounding sidebar chrome stay here.
+    m_tabTree = new TabTree(m_profiles, m_favicons, m_stack, m_theme, sidebar, this);
+    m_tabTree->setHomePage(m_homePage);
+    sideLayout->addWidget(m_tabTree->widget(), 1);
+
+    hostLayout->addWidget(m_webContainer, 1);
     m_splitter->addWidget(sidebar);
     m_splitter->addWidget(stackHost);
     m_splitter->setStretchFactor(0, 0);
@@ -318,24 +313,16 @@ void BrowserWindow::setupUi() {
     auto applyStackHostInset = [hostLayout](bool sidebarVisible) {
         hostLayout->setContentsMargins(sidebarVisible ? 0 : 6, 6, 6, 6);
     };
-    m_setStackHostInset = applyStackHostInset;
+    m_sidebar = new SidebarController(this, m_splitter, applyStackHostInset, this);
 
-    connect(m_splitter, &QSplitter::splitterMoved, this, [this, sidebar, applyStackHostInset](int pos, int) {
+    connect(m_splitter, &QSplitter::splitterMoved, this, [this, sidebar](int pos, int) {
         if (!m_splitter) return;
         const int collapseThreshold = sidebar->minimumWidth() * 7 / 10;
         if (pos < collapseThreshold) {
-            if (sidebar->isVisible()) {
-                sidebar->setVisible(false);
-                mac::setTrafficLightsHidden(this, true);
-                applyStackHostInset(false);
-            }
+            if (sidebar->isVisible()) m_sidebar->setHidden(true);
             return;
         }
-        if (!sidebar->isVisible()) {
-            sidebar->setVisible(true);
-            mac::setTrafficLightsHidden(this, false);
-            applyStackHostInset(true);
-        }
+        if (!sidebar->isVisible()) m_sidebar->setHidden(false);
         const auto sizes = m_splitter->sizes();
         if (!sizes.isEmpty() && sizes.first() >= sidebar->minimumWidth()) {
             QSettings().setValue("ui/sidebarWidth", sizes.first());
@@ -344,6 +331,7 @@ void BrowserWindow::setupUi() {
 
     root->addWidget(m_splitter, 1);
     setCentralWidget(central);
+
     central->setObjectName("CentralRoot");
     central->setStyleSheet("QWidget#CentralRoot { background: transparent; }");
     central->setAttribute(Qt::WA_TranslucentBackground);
@@ -353,9 +341,27 @@ void BrowserWindow::setupUi() {
     setStatusBar(nullptr);
 
     connect(m_omnibox, &QLineEdit::returnPressed, this, &BrowserWindow::loadFromOmnibox);
-    connect(m_tabs, &QTreeWidget::currentItemChanged, this, &BrowserWindow::updateForCurrentTab);
+    connect(m_tabTree, &TabTree::currentTabChanged, this, &BrowserWindow::updateForCurrentTab);
+    connect(m_tabTree, &TabTree::loadProgress, this, [this](int progress) {
+        m_progress->setValue(progress);
+        m_progress->setVisible(progress > 0 && progress < 100);
+    });
+    connect(m_tabTree, &TabTree::themeColorChanged, this, [this](const QColor &c) {
+        if (!m_topbar) return;
+        // Adapt the toolbar background to the page's theme colour. We darken
+        // light pages slightly so the toolbar reads as chrome rather than
+        // page, and keep dark pages essentially as-is. Fall back to the
+        // default translucent dark when the page exposes nothing useful.
+        QColor bg = (c.isValid() && c.alpha() >= 16) ? c : QColor(28, 28, 30, 235);
+        m_topbar->setStyleSheet(QString(
+            "QWidget#WebTopbar {"
+            "  background: rgba(%1,%2,%3,%4);"
+            "  border-bottom: none;"
+            "}")
+            .arg(bg.red()).arg(bg.green()).arg(bg.blue()).arg(bg.alpha()));
+    });
     connect(&m_profiles, &ProfileStore::currentProfileChanged, this, [this] {
-        rebuildProfilePages();
+        m_tabTree->rebuildForProfile();
     });
 }
 
@@ -384,7 +390,7 @@ void BrowserWindow::setupActions() {
     connect(forward, &QAction::triggered, this, [this] { if (auto *view = currentView()) view->forward(); });
     connect(reload, &QAction::triggered, this, [this] { if (auto *view = currentView()) view->reload(); });
     auto openBlankTabWithOmnibox = [this] {
-        newTab(QUrl("about:blank"));  // skip the homepage path; we override below.
+        m_tabTree->newTab(QUrl("about:blank"));  // skip the homepage path; we override below.
         if (auto *view = currentView()) {
             const QString bg = m_theme.background.name();
             view->loadHtml(QStringLiteral(
@@ -395,11 +401,11 @@ void BrowserWindow::setupActions() {
         m_floatingOmnibox->showFor(m_stack, QString());
     };
     connect(newTabAction, &QAction::triggered, this, openBlankTabWithOmnibox);
-    connect(closeTab, &QAction::triggered, this, &BrowserWindow::closeCurrentTab);
+    connect(closeTab, &QAction::triggered, this, [this] { m_tabTree->closeCurrent(); });
     connect(settings, &QAction::triggered, this, &BrowserWindow::showSettings);
 
     new QShortcut(QKeySequence::AddTab, this, openBlankTabWithOmnibox);
-    new QShortcut(QKeySequence::Close, this, [this] { closeCurrentTab(); });
+    new QShortcut(QKeySequence::Close, this, [this] { m_tabTree->closeCurrent(); });
     new QShortcut(QKeySequence::Refresh, this, [this] { if (auto *view = currentView()) view->reload(); });
     new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_L), this, [this] {
         QString current;
@@ -414,9 +420,7 @@ void BrowserWindow::setupActions() {
         auto *side = m_splitter->widget(0);
         if (!side) return;
         const bool nowVisible = !side->isVisible();
-        side->setVisible(nowVisible);
-        mac::setTrafficLightsHidden(this, !nowVisible);
-        if (m_setStackHostInset) m_setStackHostInset(nowVisible);
+        m_sidebar->setHidden(!nowVisible);
         if (nowVisible) {
             // Drag-collapse leaves the sidebar with size 0 in the splitter;
             // restore the persisted (or default) width on re-open. Defer to
@@ -438,3 +442,9 @@ void BrowserWindow::setupActions() {
     addAction(toggleSidebarAction);
     mb->addMenu("View")->addAction(toggleSidebarAction);
 }
+
+
+bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
+    return QMainWindow::eventFilter(obj, ev);
+}
+

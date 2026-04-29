@@ -100,167 +100,327 @@ CMakeFiles/pocb.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/main.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/main.cpp -o CMakeFiles/pocb.dir/src/main.cpp.s
 
-CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o: CMakeFiles/pocb.dir/flags.make
-CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o: /Users/nicojaffer/pocb/src/BrowserWindow.cpp
-CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o -MF CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o.d -o CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o -c /Users/nicojaffer/pocb/src/BrowserWindow.cpp
+CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: /Users/nicojaffer/pocb/src/app/BrowserWindow.cpp
+CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o -MF CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o.d -o CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o -c /Users/nicojaffer/pocb/src/app/BrowserWindow.cpp
 
-CMakeFiles/pocb.dir/src/BrowserWindow.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/BrowserWindow.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/BrowserWindow.cpp > CMakeFiles/pocb.dir/src/BrowserWindow.cpp.i
+CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/app/BrowserWindow.cpp > CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.i
 
-CMakeFiles/pocb.dir/src/BrowserWindow.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/BrowserWindow.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/BrowserWindow.cpp -o CMakeFiles/pocb.dir/src/BrowserWindow.cpp.s
+CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/app/BrowserWindow.cpp -o CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.s
 
-CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o: CMakeFiles/pocb.dir/flags.make
-CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o: /Users/nicojaffer/pocb/src/SettingsDialog.cpp
-CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o -MF CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o.d -o CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o -c /Users/nicojaffer/pocb/src/SettingsDialog.cpp
+CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o: /Users/nicojaffer/pocb/src/app/SettingsDialog.cpp
+CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o -MF CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o.d -o CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o -c /Users/nicojaffer/pocb/src/app/SettingsDialog.cpp
 
-CMakeFiles/pocb.dir/src/SettingsDialog.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/SettingsDialog.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/SettingsDialog.cpp > CMakeFiles/pocb.dir/src/SettingsDialog.cpp.i
+CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/app/SettingsDialog.cpp > CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.i
 
-CMakeFiles/pocb.dir/src/SettingsDialog.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/SettingsDialog.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/SettingsDialog.cpp -o CMakeFiles/pocb.dir/src/SettingsDialog.cpp.s
+CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/app/SettingsDialog.cpp -o CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.s
 
-CMakeFiles/pocb.dir/src/ProfileStore.cpp.o: CMakeFiles/pocb.dir/flags.make
-CMakeFiles/pocb.dir/src/ProfileStore.cpp.o: /Users/nicojaffer/pocb/src/ProfileStore.cpp
-CMakeFiles/pocb.dir/src/ProfileStore.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/pocb.dir/src/ProfileStore.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/ProfileStore.cpp.o -MF CMakeFiles/pocb.dir/src/ProfileStore.cpp.o.d -o CMakeFiles/pocb.dir/src/ProfileStore.cpp.o -c /Users/nicojaffer/pocb/src/ProfileStore.cpp
+CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o: /Users/nicojaffer/pocb/src/services/ProfileStore.cpp
+CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o -MF CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o.d -o CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o -c /Users/nicojaffer/pocb/src/services/ProfileStore.cpp
 
-CMakeFiles/pocb.dir/src/ProfileStore.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/ProfileStore.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/ProfileStore.cpp > CMakeFiles/pocb.dir/src/ProfileStore.cpp.i
+CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/services/ProfileStore.cpp > CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.i
 
-CMakeFiles/pocb.dir/src/ProfileStore.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/ProfileStore.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/ProfileStore.cpp -o CMakeFiles/pocb.dir/src/ProfileStore.cpp.s
+CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/services/ProfileStore.cpp -o CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.s
 
-CMakeFiles/pocb.dir/src/Theme.cpp.o: CMakeFiles/pocb.dir/flags.make
-CMakeFiles/pocb.dir/src/Theme.cpp.o: /Users/nicojaffer/pocb/src/Theme.cpp
-CMakeFiles/pocb.dir/src/Theme.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/pocb.dir/src/Theme.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/Theme.cpp.o -MF CMakeFiles/pocb.dir/src/Theme.cpp.o.d -o CMakeFiles/pocb.dir/src/Theme.cpp.o -c /Users/nicojaffer/pocb/src/Theme.cpp
+CMakeFiles/pocb.dir/src/services/Theme.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/services/Theme.cpp.o: /Users/nicojaffer/pocb/src/services/Theme.cpp
+CMakeFiles/pocb.dir/src/services/Theme.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/pocb.dir/src/services/Theme.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/services/Theme.cpp.o -MF CMakeFiles/pocb.dir/src/services/Theme.cpp.o.d -o CMakeFiles/pocb.dir/src/services/Theme.cpp.o -c /Users/nicojaffer/pocb/src/services/Theme.cpp
 
-CMakeFiles/pocb.dir/src/Theme.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/Theme.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/Theme.cpp > CMakeFiles/pocb.dir/src/Theme.cpp.i
+CMakeFiles/pocb.dir/src/services/Theme.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/services/Theme.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/services/Theme.cpp > CMakeFiles/pocb.dir/src/services/Theme.cpp.i
 
-CMakeFiles/pocb.dir/src/Theme.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/Theme.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/Theme.cpp -o CMakeFiles/pocb.dir/src/Theme.cpp.s
+CMakeFiles/pocb.dir/src/services/Theme.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/services/Theme.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/services/Theme.cpp -o CMakeFiles/pocb.dir/src/services/Theme.cpp.s
 
-CMakeFiles/pocb.dir/src/FaviconService.cpp.o: CMakeFiles/pocb.dir/flags.make
-CMakeFiles/pocb.dir/src/FaviconService.cpp.o: /Users/nicojaffer/pocb/src/FaviconService.cpp
-CMakeFiles/pocb.dir/src/FaviconService.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/pocb.dir/src/FaviconService.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/FaviconService.cpp.o -MF CMakeFiles/pocb.dir/src/FaviconService.cpp.o.d -o CMakeFiles/pocb.dir/src/FaviconService.cpp.o -c /Users/nicojaffer/pocb/src/FaviconService.cpp
+CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o: /Users/nicojaffer/pocb/src/services/FaviconService.cpp
+CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o -MF CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o.d -o CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o -c /Users/nicojaffer/pocb/src/services/FaviconService.cpp
 
-CMakeFiles/pocb.dir/src/FaviconService.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/FaviconService.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/FaviconService.cpp > CMakeFiles/pocb.dir/src/FaviconService.cpp.i
+CMakeFiles/pocb.dir/src/services/FaviconService.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/services/FaviconService.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/services/FaviconService.cpp > CMakeFiles/pocb.dir/src/services/FaviconService.cpp.i
 
-CMakeFiles/pocb.dir/src/FaviconService.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/FaviconService.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/FaviconService.cpp -o CMakeFiles/pocb.dir/src/FaviconService.cpp.s
+CMakeFiles/pocb.dir/src/services/FaviconService.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/services/FaviconService.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/services/FaviconService.cpp -o CMakeFiles/pocb.dir/src/services/FaviconService.cpp.s
 
-CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o: CMakeFiles/pocb.dir/flags.make
-CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o: /Users/nicojaffer/pocb/src/FloatingOmnibox.cpp
-CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o -MF CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o.d -o CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o -c /Users/nicojaffer/pocb/src/FloatingOmnibox.cpp
+CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o: /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp
+CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o -MF CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o.d -o CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o -c /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp
 
-CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/FloatingOmnibox.cpp > CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.i
+CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp > CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.i
 
-CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/FloatingOmnibox.cpp -o CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.s
+CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp -o CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.s
 
-CMakeFiles/pocb.dir/src/MacIntegration.mm.o: CMakeFiles/pocb.dir/flags.make
-CMakeFiles/pocb.dir/src/MacIntegration.mm.o: /Users/nicojaffer/pocb/src/MacIntegration.mm
-CMakeFiles/pocb.dir/src/MacIntegration.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/pocb.dir/src/MacIntegration.mm.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/MacIntegration.mm.o -MF CMakeFiles/pocb.dir/src/MacIntegration.mm.o.d -o CMakeFiles/pocb.dir/src/MacIntegration.mm.o -c /Users/nicojaffer/pocb/src/MacIntegration.mm
+CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: /Users/nicojaffer/pocb/src/ui/AddressBarController.cpp
+CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o -MF CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o.d -o CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o -c /Users/nicojaffer/pocb/src/ui/AddressBarController.cpp
 
-CMakeFiles/pocb.dir/src/MacIntegration.mm.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/MacIntegration.mm.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/MacIntegration.mm > CMakeFiles/pocb.dir/src/MacIntegration.mm.i
+CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/ui/AddressBarController.cpp > CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.i
 
-CMakeFiles/pocb.dir/src/MacIntegration.mm.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/MacIntegration.mm.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/MacIntegration.mm -o CMakeFiles/pocb.dir/src/MacIntegration.mm.s
+CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/ui/AddressBarController.cpp -o CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.s
 
-CMakeFiles/pocb.dir/src/WebView.mm.o: CMakeFiles/pocb.dir/flags.make
-CMakeFiles/pocb.dir/src/WebView.mm.o: /Users/nicojaffer/pocb/src/WebView.mm
-CMakeFiles/pocb.dir/src/WebView.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/pocb.dir/src/WebView.mm.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/WebView.mm.o -MF CMakeFiles/pocb.dir/src/WebView.mm.o.d -o CMakeFiles/pocb.dir/src/WebView.mm.o -c /Users/nicojaffer/pocb/src/WebView.mm
+CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o: /Users/nicojaffer/pocb/src/ui/SidebarController.cpp
+CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o -MF CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o.d -o CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o -c /Users/nicojaffer/pocb/src/ui/SidebarController.cpp
 
-CMakeFiles/pocb.dir/src/WebView.mm.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/WebView.mm.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/WebView.mm > CMakeFiles/pocb.dir/src/WebView.mm.i
+CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/ui/SidebarController.cpp > CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.i
 
-CMakeFiles/pocb.dir/src/WebView.mm.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/WebView.mm.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/WebView.mm -o CMakeFiles/pocb.dir/src/WebView.mm.s
+CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/ui/SidebarController.cpp -o CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.s
 
-CMakeFiles/pocb.dir/src/WebKitProfile.mm.o: CMakeFiles/pocb.dir/flags.make
-CMakeFiles/pocb.dir/src/WebKitProfile.mm.o: /Users/nicojaffer/pocb/src/WebKitProfile.mm
-CMakeFiles/pocb.dir/src/WebKitProfile.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/pocb.dir/src/WebKitProfile.mm.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/WebKitProfile.mm.o -MF CMakeFiles/pocb.dir/src/WebKitProfile.mm.o.d -o CMakeFiles/pocb.dir/src/WebKitProfile.mm.o -c /Users/nicojaffer/pocb/src/WebKitProfile.mm
+CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o: /Users/nicojaffer/pocb/src/ui/Topbar.cpp
+CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o -MF CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o.d -o CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o -c /Users/nicojaffer/pocb/src/ui/Topbar.cpp
 
-CMakeFiles/pocb.dir/src/WebKitProfile.mm.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/WebKitProfile.mm.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/WebKitProfile.mm > CMakeFiles/pocb.dir/src/WebKitProfile.mm.i
+CMakeFiles/pocb.dir/src/ui/Topbar.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/ui/Topbar.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/ui/Topbar.cpp > CMakeFiles/pocb.dir/src/ui/Topbar.cpp.i
 
-CMakeFiles/pocb.dir/src/WebKitProfile.mm.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/WebKitProfile.mm.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/WebKitProfile.mm -o CMakeFiles/pocb.dir/src/WebKitProfile.mm.s
+CMakeFiles/pocb.dir/src/ui/Topbar.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/ui/Topbar.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/ui/Topbar.cpp -o CMakeFiles/pocb.dir/src/ui/Topbar.cpp.s
+
+CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o: /Users/nicojaffer/pocb/src/tabs/TabTree.cpp
+CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o -MF CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o.d -o CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o -c /Users/nicojaffer/pocb/src/tabs/TabTree.cpp
+
+CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/nicojaffer/pocb/src/tabs/TabTree.cpp > CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.i
+
+CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/nicojaffer/pocb/src/tabs/TabTree.cpp -o CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.s
+
+CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o: /Users/nicojaffer/pocb/src/mac/MacInternal.mm
+CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o -MF CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o.d -o CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o -c /Users/nicojaffer/pocb/src/mac/MacInternal.mm
+
+CMakeFiles/pocb.dir/src/mac/MacInternal.mm.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/mac/MacInternal.mm.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/mac/MacInternal.mm > CMakeFiles/pocb.dir/src/mac/MacInternal.mm.i
+
+CMakeFiles/pocb.dir/src/mac/MacInternal.mm.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/mac/MacInternal.mm.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/mac/MacInternal.mm -o CMakeFiles/pocb.dir/src/mac/MacInternal.mm.s
+
+CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o: /Users/nicojaffer/pocb/src/mac/SfSymbols.mm
+CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o -MF CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o.d -o CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o -c /Users/nicojaffer/pocb/src/mac/SfSymbols.mm
+
+CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/mac/SfSymbols.mm > CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.i
+
+CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/mac/SfSymbols.mm -o CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.s
+
+CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o: /Users/nicojaffer/pocb/src/mac/LayerCorners.mm
+CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o -MF CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o.d -o CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o -c /Users/nicojaffer/pocb/src/mac/LayerCorners.mm
+
+CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/mac/LayerCorners.mm > CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.i
+
+CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/mac/LayerCorners.mm -o CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.s
+
+CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o: /Users/nicojaffer/pocb/src/mac/Vibrancy.mm
+CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o -MF CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o.d -o CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o -c /Users/nicojaffer/pocb/src/mac/Vibrancy.mm
+
+CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/mac/Vibrancy.mm > CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.i
+
+CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/mac/Vibrancy.mm -o CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.s
+
+CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o: /Users/nicojaffer/pocb/src/mac/TrafficLights.mm
+CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o -MF CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o.d -o CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o -c /Users/nicojaffer/pocb/src/mac/TrafficLights.mm
+
+CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/mac/TrafficLights.mm > CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.i
+
+CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/mac/TrafficLights.mm -o CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.s
+
+CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o: /Users/nicojaffer/pocb/src/mac/HighRefresh.mm
+CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o -MF CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o.d -o CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o -c /Users/nicojaffer/pocb/src/mac/HighRefresh.mm
+
+CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/mac/HighRefresh.mm > CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.i
+
+CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/mac/HighRefresh.mm -o CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.s
+
+CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o: /Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm
+CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o -MF CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o.d -o CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o -c /Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm
+
+CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm > CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.i
+
+CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm -o CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.s
+
+CMakeFiles/pocb.dir/src/web/WebView.mm.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/web/WebView.mm.o: /Users/nicojaffer/pocb/src/web/WebView.mm
+CMakeFiles/pocb.dir/src/web/WebView.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/pocb.dir/src/web/WebView.mm.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/web/WebView.mm.o -MF CMakeFiles/pocb.dir/src/web/WebView.mm.o.d -o CMakeFiles/pocb.dir/src/web/WebView.mm.o -c /Users/nicojaffer/pocb/src/web/WebView.mm
+
+CMakeFiles/pocb.dir/src/web/WebView.mm.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/web/WebView.mm.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/web/WebView.mm > CMakeFiles/pocb.dir/src/web/WebView.mm.i
+
+CMakeFiles/pocb.dir/src/web/WebView.mm.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/web/WebView.mm.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/web/WebView.mm -o CMakeFiles/pocb.dir/src/web/WebView.mm.s
+
+CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o: CMakeFiles/pocb.dir/flags.make
+CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o: /Users/nicojaffer/pocb/src/web/WebKitProfile.mm
+CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o: CMakeFiles/pocb.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -MD -MT CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o -MF CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o.d -o CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o -c /Users/nicojaffer/pocb/src/web/WebKitProfile.mm
+
+CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -E /Users/nicojaffer/pocb/src/web/WebKitProfile.mm > CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.i
+
+CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -fobjc-arc -S /Users/nicojaffer/pocb/src/web/WebKitProfile.mm -o CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.s
 
 # Object files for target pocb
 pocb_OBJECTS = \
 "CMakeFiles/pocb.dir/pocb_autogen/mocs_compilation.cpp.o" \
 "CMakeFiles/pocb.dir/src/main.cpp.o" \
-"CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o" \
-"CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o" \
-"CMakeFiles/pocb.dir/src/ProfileStore.cpp.o" \
-"CMakeFiles/pocb.dir/src/Theme.cpp.o" \
-"CMakeFiles/pocb.dir/src/FaviconService.cpp.o" \
-"CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o" \
-"CMakeFiles/pocb.dir/src/MacIntegration.mm.o" \
-"CMakeFiles/pocb.dir/src/WebView.mm.o" \
-"CMakeFiles/pocb.dir/src/WebKitProfile.mm.o"
+"CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o" \
+"CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o" \
+"CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o" \
+"CMakeFiles/pocb.dir/src/services/Theme.cpp.o" \
+"CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o" \
+"CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o" \
+"CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o" \
+"CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o" \
+"CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o" \
+"CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o" \
+"CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o" \
+"CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o" \
+"CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o" \
+"CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o" \
+"CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o" \
+"CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o" \
+"CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o" \
+"CMakeFiles/pocb.dir/src/web/WebView.mm.o" \
+"CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o"
 
 # External object files for target pocb
 pocb_EXTERNAL_OBJECTS =
 
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/pocb_autogen/mocs_compilation.cpp.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/main.cpp.o
-pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/BrowserWindow.cpp.o
-pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/SettingsDialog.cpp.o
-pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ProfileStore.cpp.o
-pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/Theme.cpp.o
-pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/FaviconService.cpp.o
-pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/FloatingOmnibox.cpp.o
-pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/MacIntegration.mm.o
-pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/WebView.mm.o
-pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/WebKitProfile.mm.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/services/ProfileStore.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/services/Theme.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/services/FaviconService.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ui/FloatingOmnibox.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ui/SidebarController.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/tabs/TabTree.cpp.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/web/WebView.mm.o
+pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/build.make
 pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Versions/A/QtWidgets
 pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Versions/A/QtNetwork
 pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/QtGui
 pocb.app/Contents/MacOS/pocb: /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/QtCore
 pocb.app/Contents/MacOS/pocb: CMakeFiles/pocb.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Linking CXX executable pocb.app/Contents/MacOS/pocb"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/nicojaffer/pocb/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Linking CXX executable pocb.app/Contents/MacOS/pocb"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/pocb.dir/link.txt --verbose=$(VERBOSE)
 	/opt/homebrew/bin/cmake -E make_directory /Users/nicojaffer/pocb/build/pocb.app/Contents/PlugIns/platforms
 	/opt/homebrew/bin/cmake -E copy_if_different /opt/homebrew/Cellar/qtbase/6.10.2/share/qt/plugins/platforms/libqcocoa.dylib /Users/nicojaffer/pocb/build/pocb.app/Contents/PlugIns/platforms/libqcocoa.dylib

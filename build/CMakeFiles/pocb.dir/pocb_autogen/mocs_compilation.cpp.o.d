@@ -1,8 +1,8 @@
 CMakeFiles/pocb.dir/pocb_autogen/mocs_compilation.cpp.o: \
   /Users/nicojaffer/pocb/build/pocb_autogen/mocs_compilation.cpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/moc_BrowserWindow.cpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/../../../src/BrowserWindow.hpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/../../../src/FaviconService.hpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/ISMKEKEPX5/moc_BrowserWindow.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/ISMKEKEPX5/../../../src/app/BrowserWindow.hpp \
+  /Users/nicojaffer/pocb/src/services/FaviconService.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QDir \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdir.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcompare.h \
@@ -1257,9 +1257,9 @@ CMakeFiles/pocb.dir/pocb_autogen/mocs_compilation.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QString \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QUrl \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qurl.h \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/../../../src/ProfileStore.hpp \
+  /Users/nicojaffer/pocb/src/services/ProfileStore.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QStringList \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/../../../src/Theme.hpp \
+  /Users/nicojaffer/pocb/src/services/Theme.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QColor \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QMainWindow \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qmainwindow.h \
@@ -1284,16 +1284,24 @@ CMakeFiles/pocb.dir/pocb_autogen/mocs_compilation.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtmochelpers.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtmocconstants.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/q20algorithm.h \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/moc_FaviconService.cpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/moc_FloatingOmnibox.cpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/../../../src/FloatingOmnibox.hpp \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QWidget \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/moc_ProfileStore.cpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/moc_SettingsDialog.cpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/../../../src/SettingsDialog.hpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/ISMKEKEPX5/moc_SettingsDialog.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/ISMKEKEPX5/../../../src/app/SettingsDialog.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QDialog \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qdialog.h \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/moc_WebKitProfile.cpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/../../../src/WebKitProfile.hpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/moc_WebView.cpp \
-  /Users/nicojaffer/pocb/build/pocb_autogen/UVLADIE3JM/../../../src/WebView.hpp
+  /Users/nicojaffer/pocb/build/pocb_autogen/GQ6NBGVJMG/moc_FaviconService.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/GQ6NBGVJMG/../../../src/services/FaviconService.hpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/GQ6NBGVJMG/moc_ProfileStore.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/GQ6NBGVJMG/../../../src/services/ProfileStore.hpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/BUWON6PSIR/moc_TabTree.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/BUWON6PSIR/../../../src/tabs/TabTree.hpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/moc_AddressBarController.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/../../../src/ui/AddressBarController.hpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/moc_FloatingOmnibox.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/../../../src/ui/FloatingOmnibox.hpp \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QWidget \
+  /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/moc_SidebarController.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/YPKJ5OE7LN/../../../src/ui/SidebarController.hpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/B2MV3FDSZF/moc_WebKitProfile.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/B2MV3FDSZF/../../../src/web/WebKitProfile.hpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/B2MV3FDSZF/moc_WebView.cpp \
+  /Users/nicojaffer/pocb/build/pocb_autogen/B2MV3FDSZF/../../../src/web/WebView.hpp

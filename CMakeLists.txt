@@ -12,35 +12,57 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network)
 
 qt_add_executable(pocb MACOSX_BUNDLE
     src/main.cpp
-    src/BrowserWindow.cpp
-    src/BrowserWindow.hpp
-    src/SettingsDialog.cpp
-    src/SettingsDialog.hpp
-    src/ProfileStore.cpp
-    src/ProfileStore.hpp
-    src/Theme.cpp
-    src/Theme.hpp
-    src/FaviconService.cpp
-    src/FaviconService.hpp
-    src/FloatingOmnibox.cpp
-    src/FloatingOmnibox.hpp
-    src/MacIntegration.hpp
-    src/WebView.hpp
-    src/WebKitProfile.hpp
+    src/app/BrowserWindow.cpp
+    src/app/BrowserWindow.hpp
+    src/app/SettingsDialog.cpp
+    src/app/SettingsDialog.hpp
+    src/services/ProfileStore.cpp
+    src/services/ProfileStore.hpp
+    src/services/Theme.cpp
+    src/services/Theme.hpp
+    src/services/FaviconService.cpp
+    src/services/FaviconService.hpp
+    src/ui/FloatingOmnibox.cpp
+    src/ui/FloatingOmnibox.hpp
+    src/ui/AddressBarController.cpp
+    src/ui/AddressBarController.hpp
+    src/ui/SidebarController.cpp
+    src/ui/SidebarController.hpp
+    src/ui/Topbar.cpp
+    src/ui/Topbar.hpp
+    src/tabs/TabTree.cpp
+    src/tabs/TabTree.hpp
+    src/mac/MacIntegration.hpp
+    src/web/WebView.hpp
+    src/web/WebKitProfile.hpp
+)
+
+target_include_directories(pocb PRIVATE
+    src
+    src/app
+    src/ui
+    src/tabs
+    src/web
+    src/services
+    src/mac
 )
 
 if(APPLE)
-    target_sources(pocb PRIVATE
-        src/MacIntegration.mm
-        src/WebView.mm
-        src/WebKitProfile.mm
+    set(POCB_OBJC_SOURCES
+        src/mac/MacInternal.mm
+        src/mac/SfSymbols.mm
+        src/mac/LayerCorners.mm
+        src/mac/Vibrancy.mm
+        src/mac/TrafficLights.mm
+        src/mac/HighRefresh.mm
+        src/mac/UnifiedToolbar.mm
+        src/web/WebView.mm
+        src/web/WebKitProfile.mm
     )
-    set_source_files_properties(
-        src/MacIntegration.mm
-        src/WebView.mm
-        src/WebKitProfile.mm
-        PROPERTIES COMPILE_FLAGS "-fobjc-arc"
-    )
+    target_sources(pocb PRIVATE ${POCB_OBJC_SOURCES})
+    foreach(_src IN LISTS POCB_OBJC_SOURCES)
+        set_source_files_properties(${_src} PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+    endforeach()
     target_link_libraries(pocb PRIVATE
         "-framework AppKit"
         "-framework WebKit"

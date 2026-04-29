@@ -1,9 +1,17 @@
 #pragma once
 
+#include <QIcon>
+#include <QString>
+
+class QColor;
 class QMainWindow;
 class QWidget;
 
 namespace mac {
+
+// Renders a system SF Symbol (macOS 11+) as a QIcon. Returns null QIcon on
+// older macOS or non-Apple targets.
+QIcon sfSymbolIcon(const QString &name, double pointSize, const QColor &color);
 
 // Configures the QMainWindow's NSWindow for a unified, Safari-style titlebar
 // (transparent titlebar, hidden title, full-size content view, attached
@@ -11,9 +19,12 @@ namespace mac {
 // leading inset to `toolbarRow`'s contents margins. No-op off macOS.
 void integrateUnifiedToolbar(QMainWindow *window, QWidget *toolbarRow, bool compact = true);
 
-// Sets a corner radius on the underlying NSView's CALayer for `widget` (and
-// its descendant NSViews). Useful for rounding QWebEngineView's surface.
-void roundWidgetCorners(QWidget *widget, double radius);
+// Sets a corner radius on the underlying NSView's CALayer for `widget`. When
+// `recurseDescendants` is true (default) the same radius is applied to every
+// descendant NSView — necessary for QWebEngineView/WKWebView's nested layer
+// stack. Pass false when you want the parent layer's masksToBounds to be the
+// only thing clipping the descendants (e.g. a toolbar+webview wrapper).
+void roundWidgetCorners(QWidget *widget, double radius, bool recurseDescendants = true);
 
 // Material identifiers (mirrors NSVisualEffectMaterial). 0 == window
 // background (under-window), 1 == sidebar, 2 == header (titlebar-style),

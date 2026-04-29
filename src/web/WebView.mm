@@ -5,6 +5,8 @@
 #import <AppKit/AppKit.h>
 #import <WebKit/WKWebView.h>
 #import <WebKit/WKWebViewConfiguration.h>
+
+#include <QRegularExpression>
 #import <WebKit/WKWebsiteDataStore.h>
 #import <WebKit/WKNavigationDelegate.h>
 #import <WebKit/WKUIDelegate.h>
@@ -68,8 +70,68 @@ struct WebView::Impl {
 #pragma mark - WKNavigationDelegate
 
 - (void)webView:(WKWebView *)wk didFinishNavigation:(WKNavigation *)nav {
-    (void)wk; (void)nav;
-    if (self.owner) emit self.owner->loadFinished(true);
+    (void)nav;
+    WebView *o = self.owner;
+    if (!o) return;
+    emit o->loadFinished(true);
+
+    // Sniff the page's preferred chrome colour (theme-color meta first,
+    // then the computed body background). One short async JS call per
+    // navigation — cheap.
+    // Try, in order:
+    //   1. <meta name="theme-color"> (with media-query awareness for dark mode)
+    //   2. computed background of <html>
+    //   3. computed background of <body>
+    //   4. background of any large fixed-position banner near the top
+    // Skip transparent / fully-clear values so we always emit something
+    // useful when the page actually has a colour.
+    static NSString *const kSniff =
+        @"(function(){"
+        @"  function ok(c){ if(!c) return false; c=c.trim(); if(!c) return false; "
+        @"    if(c==='transparent') return false; "
+        @"    var m=c.match(/rgba?\\(([^)]+)\\)/); if(m){ var p=m[1].split(','); if(p.length>=4 && parseFloat(p[3])<0.05) return false; } "
+        @"    return true; }"
+        @"  try {"
+        @"    var dark = matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;"
+        @"    var metas = document.querySelectorAll('meta[name=\"theme-color\"]');"
+        @"    var fallbackMeta = null;"
+        @"    for (var i=0; i<metas.length; ++i) {"
+        @"      var mm = metas[i]; var media = mm.getAttribute('media') || '';"
+        @"      if (!media) { fallbackMeta = mm; continue; }"
+        @"      if (dark && /dark/i.test(media)) return mm.content;"
+        @"      if (!dark && /light/i.test(media)) return mm.content;"
+        @"    }"
+        @"    if (fallbackMeta && ok(fallbackMeta.content)) return fallbackMeta.content;"
+        @"    var html = document.documentElement;"
+        @"    if (html) { var hc = getComputedStyle(html).backgroundColor; if (ok(hc)) return hc; }"
+        @"    var body = document.body;"
+        @"    if (body) { var bc = getComputedStyle(body).backgroundColor; if (ok(bc)) return bc; }"
+        @"  } catch(e) {}"
+        @"  return '';"
+        @"})()";
+    [wk evaluateJavaScript:kSniff completionHandler:^(id result, NSError *error) {
+        if (!o) return;
+        if (error && !result) return;
+        NSString *s = [result isKindOfClass:[NSString class]] ? (NSString *)result : nil;
+        QColor color;
+        if (s && s.length > 0) {
+            QString qs = QString::fromNSString(s).trimmed();
+            // QColor parses CSS named colours, "#rrggbb", "#rgb", and most
+            // "rgb(r,g,b)"/"rgba(r,g,b,a)" forms via setNamedColor.
+            color.setNamedColor(qs);
+            if (!color.isValid()) {
+                // Fallback: parse "rgb(r, g, b[, a])" by hand.
+                static const QRegularExpression re(
+                    "rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*(?:,\\s*([0-9.]+)\\s*)?\\)");
+                QRegularExpressionMatch m = re.match(qs);
+                if (m.hasMatch()) {
+                    color.setRgb(m.captured(1).toInt(), m.captured(2).toInt(), m.captured(3).toInt());
+                    if (!m.captured(4).isEmpty()) color.setAlphaF(m.captured(4).toDouble());
+                }
+            }
+        }
+        emit o->themeColorChanged(color);
+    }];
 }
 
 - (void)webView:(WKWebView *)wk didFailNavigation:(WKNavigation *)nav withError:(NSError *)err {

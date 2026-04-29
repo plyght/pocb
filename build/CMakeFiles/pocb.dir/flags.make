@@ -4,15 +4,27 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_WIDGETS_LIB
 
-CXX_INCLUDES = -I/Users/nicojaffer/pocb/build/pocb_autogen/include -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers -iframework /opt/homebrew/Cellar/qtbase/6.10.2/lib -isystem /opt/homebrew/Cellar/qtbase/6.10.2/share/qt/mkspecs/macx-clang -isystem /opt/homebrew/Cellar/qtbase/6.10.2/include -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers
+CXX_INCLUDES = -I/Users/nicojaffer/pocb/build/pocb_autogen/include -I/Users/nicojaffer/pocb/src -I/Users/nicojaffer/pocb/src/app -I/Users/nicojaffer/pocb/src/ui -I/Users/nicojaffer/pocb/src/tabs -I/Users/nicojaffer/pocb/src/web -I/Users/nicojaffer/pocb/src/services -I/Users/nicojaffer/pocb/src/mac -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers -iframework /opt/homebrew/Cellar/qtbase/6.10.2/lib -isystem /opt/homebrew/Cellar/qtbase/6.10.2/share/qt/mkspecs/macx-clang -isystem /opt/homebrew/Cellar/qtbase/6.10.2/include -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers -isystem /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers
 
 CXX_FLAGSarm64 = -std=gnu++20 -arch arm64
 
 CXX_FLAGS = -std=gnu++20 -arch arm64
 
-# Custom flags: CMakeFiles/pocb.dir/src/MacIntegration.mm.o_FLAGS = -fobjc-arc
+# Custom flags: CMakeFiles/pocb.dir/src/mac/MacInternal.mm.o_FLAGS = -fobjc-arc
 
-# Custom flags: CMakeFiles/pocb.dir/src/WebView.mm.o_FLAGS = -fobjc-arc
+# Custom flags: CMakeFiles/pocb.dir/src/mac/SfSymbols.mm.o_FLAGS = -fobjc-arc
 
-# Custom flags: CMakeFiles/pocb.dir/src/WebKitProfile.mm.o_FLAGS = -fobjc-arc
+# Custom flags: CMakeFiles/pocb.dir/src/mac/LayerCorners.mm.o_FLAGS = -fobjc-arc
+
+# Custom flags: CMakeFiles/pocb.dir/src/mac/Vibrancy.mm.o_FLAGS = -fobjc-arc
+
+# Custom flags: CMakeFiles/pocb.dir/src/mac/TrafficLights.mm.o_FLAGS = -fobjc-arc
+
+# Custom flags: CMakeFiles/pocb.dir/src/mac/HighRefresh.mm.o_FLAGS = -fobjc-arc
+
+# Custom flags: CMakeFiles/pocb.dir/src/mac/UnifiedToolbar.mm.o_FLAGS = -fobjc-arc
+
+# Custom flags: CMakeFiles/pocb.dir/src/web/WebView.mm.o_FLAGS = -fobjc-arc
+
+# Custom flags: CMakeFiles/pocb.dir/src/web/WebKitProfile.mm.o_FLAGS = -fobjc-arc
 

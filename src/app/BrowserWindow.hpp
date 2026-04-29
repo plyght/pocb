@@ -9,10 +9,18 @@
 #include <QUrl>
 #include <functional>
 
+class AddressBarController;
+class SidebarController;
+class TabTree;
 class FloatingOmnibox;
 class QHBoxLayout;
+class QLabel;
 class QLineEdit;
+class QListWidget;
+class QNetworkAccessManager;
+class QNetworkReply;
 class QProgressBar;
+class QTimer;
 class QSplitter;
 class QToolBar;
 class QToolButton;
@@ -28,10 +36,11 @@ public:
 
 protected:
     void showEvent(QShowEvent *e) override;
+    void moveEvent(QMoveEvent *e) override;
+    void resizeEvent(QResizeEvent *e) override;
+    bool eventFilter(QObject *obj, QEvent *ev) override;
 
 private slots:
-    void newTab(const QUrl &url = QUrl(), bool background = false, QTreeWidgetItem *parentItem = nullptr);
-    void closeCurrentTab();
     void loadFromOmnibox();
     void showSettings();
     void updateForCurrentTab();
@@ -39,14 +48,9 @@ private slots:
 private:
     QUrl urlFromInput(const QString &input) const;
     WebView *currentView() const;
-    QTreeWidgetItem *currentItem() const;
-    void selectItem(QTreeWidgetItem *item);
-    void wireView(WebView *view, QTreeWidgetItem *item);
-    void adoptChildView(WebView *child, QTreeWidgetItem *parentItem, bool background);
-    void rebuildProfilePages();
     void setupUi();
     void setupActions();
-
+    QWidget *buildTopbar(QWidget *parent);
     Theme m_theme;
     ProfileStore m_profiles;
     QString m_homePage = "https://search.brave.com";
@@ -55,12 +59,22 @@ private:
     QLineEdit *m_omnibox = nullptr;
     FloatingOmnibox *m_floatingOmnibox = nullptr;
     QProgressBar *m_progress = nullptr;
+    QWidget *m_topSeparator = nullptr;
     QSplitter *m_splitter = nullptr;
-    QTreeWidget *m_tabs = nullptr;
+    TabTree *m_tabTree = nullptr;
     QWidget *m_stack = nullptr;
-    QHash<QTreeWidgetItem *, WebView *> m_views;
+    QWidget *m_webContainer = nullptr;
+    QWidget *m_topbar = nullptr;
+    QToolButton *m_backBtn = nullptr;
+    QToolButton *m_fwdBtn = nullptr;
+    QToolButton *m_reloadBtn = nullptr;
+    QToolButton *m_settingsBtn = nullptr;
+    QToolButton *m_newTabBtn = nullptr;
+    QLineEdit *m_addressBar = nullptr;
+    QLabel *m_lockIcon = nullptr;
+    AddressBarController *m_addressBarCtl = nullptr;
     QAction *m_omniAction = nullptr;
     FaviconService *m_favicons = nullptr;
     QHBoxLayout *m_toolbarLayout = nullptr;
-    std::function<void(bool)> m_setStackHostInset;
+    SidebarController *m_sidebar = nullptr;
 };

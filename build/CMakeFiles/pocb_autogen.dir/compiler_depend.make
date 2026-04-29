@@ -1018,25 +1018,40 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
   CMakeFiles/4.2.3/CMakeCXXCompiler.cmake \
   CMakeFiles/4.2.3/CMakeSystem.cmake \
   pocb_autogen/moc_predefs.h \
-  /Users/nicojaffer/pocb/src/BrowserWindow.cpp \
-  /Users/nicojaffer/pocb/src/BrowserWindow.hpp \
-  /Users/nicojaffer/pocb/src/FaviconService.cpp \
-  /Users/nicojaffer/pocb/src/FaviconService.hpp \
-  /Users/nicojaffer/pocb/src/FloatingOmnibox.cpp \
-  /Users/nicojaffer/pocb/src/FloatingOmnibox.hpp \
-  /Users/nicojaffer/pocb/src/MacIntegration.hpp \
-  /Users/nicojaffer/pocb/src/MacIntegration.mm \
-  /Users/nicojaffer/pocb/src/ProfileStore.cpp \
-  /Users/nicojaffer/pocb/src/ProfileStore.hpp \
-  /Users/nicojaffer/pocb/src/SettingsDialog.cpp \
-  /Users/nicojaffer/pocb/src/SettingsDialog.hpp \
-  /Users/nicojaffer/pocb/src/Theme.cpp \
-  /Users/nicojaffer/pocb/src/Theme.hpp \
-  /Users/nicojaffer/pocb/src/WebKitProfile.hpp \
-  /Users/nicojaffer/pocb/src/WebKitProfile.mm \
-  /Users/nicojaffer/pocb/src/WebView.hpp \
-  /Users/nicojaffer/pocb/src/WebView.mm \
+  /Users/nicojaffer/pocb/src/app/BrowserWindow.cpp \
+  /Users/nicojaffer/pocb/src/app/BrowserWindow.hpp \
+  /Users/nicojaffer/pocb/src/app/SettingsDialog.cpp \
+  /Users/nicojaffer/pocb/src/app/SettingsDialog.hpp \
+  /Users/nicojaffer/pocb/src/mac/HighRefresh.mm \
+  /Users/nicojaffer/pocb/src/mac/LayerCorners.mm \
+  /Users/nicojaffer/pocb/src/mac/MacIntegration.hpp \
+  /Users/nicojaffer/pocb/src/mac/MacInternal.hpp \
+  /Users/nicojaffer/pocb/src/mac/MacInternal.mm \
+  /Users/nicojaffer/pocb/src/mac/SfSymbols.mm \
+  /Users/nicojaffer/pocb/src/mac/TrafficLights.mm \
+  /Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm \
+  /Users/nicojaffer/pocb/src/mac/Vibrancy.mm \
   /Users/nicojaffer/pocb/src/main.cpp \
+  /Users/nicojaffer/pocb/src/services/FaviconService.cpp \
+  /Users/nicojaffer/pocb/src/services/FaviconService.hpp \
+  /Users/nicojaffer/pocb/src/services/ProfileStore.cpp \
+  /Users/nicojaffer/pocb/src/services/ProfileStore.hpp \
+  /Users/nicojaffer/pocb/src/services/Theme.cpp \
+  /Users/nicojaffer/pocb/src/services/Theme.hpp \
+  /Users/nicojaffer/pocb/src/tabs/TabTree.cpp \
+  /Users/nicojaffer/pocb/src/tabs/TabTree.hpp \
+  /Users/nicojaffer/pocb/src/ui/AddressBarController.cpp \
+  /Users/nicojaffer/pocb/src/ui/AddressBarController.hpp \
+  /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp \
+  /Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp \
+  /Users/nicojaffer/pocb/src/ui/SidebarController.cpp \
+  /Users/nicojaffer/pocb/src/ui/SidebarController.hpp \
+  /Users/nicojaffer/pocb/src/ui/Topbar.cpp \
+  /Users/nicojaffer/pocb/src/ui/Topbar.hpp \
+  /Users/nicojaffer/pocb/src/web/WebKitProfile.hpp \
+  /Users/nicojaffer/pocb/src/web/WebKitProfile.mm \
+  /Users/nicojaffer/pocb/src/web/WebView.hpp \
+  /Users/nicojaffer/pocb/src/web/WebView.mm \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QDir \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QHash \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QObject \
@@ -1544,8 +1559,6 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Network/Qt6QAppleNetworkInformationPluginConfig.cmake:
 
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Network/Qt6NetworkVersionlessAliasTargets.cmake:
-
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Network/Qt6NetworkConfigVersionImpl.cmake:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Network/Qt6NetworkConfigVersion.cmake:
@@ -1565,8 +1578,6 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Gui/Qt6QMinimalIntegrationPluginAdditionalTargetInfo.cmake:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Gui/Qt6QJpegPluginTargets.cmake:
-
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Gui/Qt6QJpegPluginTargets-release.cmake:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Gui/Qt6QJpegPluginAdditionalTargetInfo.cmake:
 
@@ -1642,8 +1653,6 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Core/Qt6QDarwinCalendarPermissionPluginConfig.cmake:
 
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Core/Qt6CoreTargets.cmake:
-
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Core/Qt6CorePlugins.cmake:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Core/Qt6CoreMacros.cmake:
@@ -1663,8 +1672,6 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/QtPublicSbomSystemDepHelpers.cmake:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/QtPublicSbomPurlHelpers.cmake:
-
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/QtPublicSbomOpsHelpers.cmake:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6DBus/Qt6DBusConfigVersionImpl.cmake:
 
@@ -1760,6 +1767,10 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtmetamacros.h:
 
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/Qt6ConfigExtras.cmake:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtimezone.h:
+
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtextstream.h:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtenvironmentvariables.h:
@@ -1767,6 +1778,14 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/QtPublicSbomQtEntityHelpers.cmake:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtdeprecationdefinitions.h:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Core/Qt6QDarwinLocationPermissionPluginTargets.cmake:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtcoreglobal.h:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6CoreTools/Qt6CoreToolsConfigVersionImpl.cmake:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtcore-config.h:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtconfiginclude.h:
 
@@ -1914,41 +1933,55 @@ pocb_autogen/timestamp: /Applications/Xcode-beta.app/Contents/Developer/Platform
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QHash:
 
+/Users/nicojaffer/pocb/src/web/WebView.hpp:
+
+/Users/nicojaffer/pocb/src/web/WebKitProfile.mm:
+
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Core/Qt6CoreTargets.cmake:
+
+/Users/nicojaffer/pocb/src/web/WebKitProfile.hpp:
+
+/Users/nicojaffer/pocb/src/ui/SidebarController.cpp:
+
+/Users/nicojaffer/pocb/src/ui/AddressBarController.hpp:
+
+/Users/nicojaffer/pocb/src/ui/AddressBarController.cpp:
+
+/Users/nicojaffer/pocb/src/tabs/TabTree.cpp:
+
+/Users/nicojaffer/pocb/src/services/Theme.hpp:
+
+/Users/nicojaffer/pocb/src/services/ProfileStore.hpp:
+
+/Users/nicojaffer/pocb/src/services/FaviconService.hpp:
+
+/Users/nicojaffer/pocb/src/ui/Topbar.cpp:
+
+/Users/nicojaffer/pocb/src/services/FaviconService.cpp:
+
 /Users/nicojaffer/pocb/src/main.cpp:
 
-/Users/nicojaffer/pocb/src/WebView.mm:
+/Users/nicojaffer/pocb/src/mac/Vibrancy.mm:
 
-/Users/nicojaffer/pocb/src/WebView.hpp:
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Gui/Qt6QJpegPluginTargets-release.cmake:
 
-/Users/nicojaffer/pocb/src/Theme.hpp:
+/Users/nicojaffer/pocb/src/mac/UnifiedToolbar.mm:
 
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/Qt6ConfigExtras.cmake:
+/Users/nicojaffer/pocb/src/mac/TrafficLights.mm:
 
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtimezone.h:
+/Users/nicojaffer/pocb/src/ui/SidebarController.hpp:
 
-/Users/nicojaffer/pocb/src/Theme.cpp:
+/Users/nicojaffer/pocb/src/mac/SfSymbols.mm:
 
-/Users/nicojaffer/pocb/src/SettingsDialog.hpp:
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Network/Qt6NetworkVersionlessAliasTargets.cmake:
 
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6CoreTools/Qt6CoreToolsConfigVersionImpl.cmake:
+/Users/nicojaffer/pocb/src/mac/MacInternal.hpp:
 
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtcore-config.h:
+/Users/nicojaffer/pocb/src/app/SettingsDialog.hpp:
 
-/Users/nicojaffer/pocb/src/ProfileStore.hpp:
+/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/QtPublicSbomOpsHelpers.cmake:
 
-/Users/nicojaffer/pocb/src/ProfileStore.cpp:
-
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Core/Qt6QDarwinLocationPermissionPluginTargets.cmake:
-
-/opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qtcoreglobal.h:
-
-/Users/nicojaffer/pocb/src/FloatingOmnibox.hpp:
-
-/Users/nicojaffer/pocb/src/FloatingOmnibox.cpp:
-
-/Users/nicojaffer/pocb/src/FaviconService.cpp:
-
-/Users/nicojaffer/pocb/src/BrowserWindow.hpp:
+/Users/nicojaffer/pocb/src/app/SettingsDialog.cpp:
 
 pocb_autogen/moc_predefs.h:
 
@@ -2031,6 +2064,8 @@ pocb_autogen/moc_predefs.h:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_fsblkcnt_t.h:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6DBusTools/Qt6DBusToolsConfig.cmake:
+
+/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.hpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/_types/_fd_def.h:
 
@@ -2145,8 +2180,6 @@ pocb_autogen/moc_predefs.h:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/optional:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/numeric:
-
-/Users/nicojaffer/pocb/src/MacIntegration.mm:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/mutex:
 
@@ -2290,6 +2323,8 @@ pocb_autogen/moc_predefs.h:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6/QtPublicAppleHelpers.cmake:
 
+/Users/nicojaffer/pocb/src/services/ProfileStore.cpp:
+
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__utility/cmp.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__utility/auto_cast.h:
@@ -2297,6 +2332,8 @@ pocb_autogen/moc_predefs.h:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__utility/as_lvalue.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__utility/as_const.h:
+
+/Users/nicojaffer/pocb/src/app/BrowserWindow.hpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__undef_macros:
 
@@ -2335,6 +2372,8 @@ CMakeFiles/4.2.3/CMakeSystem.cmake:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_union.h:
 
 /opt/homebrew/bin/cmake:
+
+/Users/nicojaffer/pocb/src/mac/LayerCorners.mm:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__tuple/tuple_size.h:
 
@@ -2394,7 +2433,7 @@ CMakeFiles/4.2.3/CMakeSystem.cmake:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Network/Qt6NetworkTargets.cmake:
 
-/Users/nicojaffer/pocb/src/BrowserWindow.cpp:
+/Users/nicojaffer/pocb/src/app/BrowserWindow.cpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_constant_evaluated.h:
 
@@ -2413,6 +2452,8 @@ CMakeFiles/4.2.3/CMakeSystem.cmake:
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qdirlisting.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_assignable.h:
+
+/Users/nicojaffer/pocb/src/ui/Topbar.hpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_standard_layout.h:
 
@@ -2609,6 +2650,8 @@ CMakeFiles/4.2.3/CMakeSystem.cmake:
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Core/Qt6QDarwinMicrophonePermissionPluginTargets-release.cmake:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/from_range.h:
+
+/Users/nicojaffer/pocb/src/mac/HighRefresh.mm:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/elements_view.h:
 
@@ -2812,8 +2855,6 @@ CMakeFiles/4.2.3/CMakeSystem.cmake:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__locale_dir/support/apple.h:
 
-/Users/nicojaffer/pocb/src/SettingsDialog.cpp:
-
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__locale_dir/scan_keyword.h:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Network/Qt6QGlibNetworkInformationPluginTargets-release.cmake:
@@ -2839,6 +2880,8 @@ CMakeFiles/4.2.3/CMakeSystem.cmake:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__locale:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Widgets/Qt6QMacStylePluginTargets.cmake:
+
+/Users/nicojaffer/pocb/src/mac/MacIntegration.hpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__iterator/unreachable_sentinel.h:
 
@@ -3005,6 +3048,8 @@ CMakeFiles/4.2.3/CMakeSystem.cmake:
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QObject:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/ref_view.h:
+
+/Users/nicojaffer/pocb/src/web/WebView.mm:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__format/formatter_string.h:
 
@@ -3518,6 +3563,8 @@ CMakeFiles/4.2.3/CMakeSystem.cmake:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__chrono/calendar.h:
 
+/Users/nicojaffer/pocb/src/services/Theme.cpp:
+
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_trivially_assignable.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__utility/move.h:
@@ -3788,6 +3835,8 @@ CMakeFiles/4.2.3/CMakeCXXCompiler.cmake:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_unique.h:
 
+/Users/nicojaffer/pocb/src/mac/MacInternal.mm:
+
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/replace_copy_if.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/traits.h:
@@ -3840,8 +3889,6 @@ CMakeFiles/4.2.3/CMakeCXXCompiler.cmake:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/promote.h:
 
-/Users/nicojaffer/pocb/src/WebKitProfile.hpp:
-
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_referenceable.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_binary_search.h:
@@ -3857,6 +3904,8 @@ CMakeFiles/4.2.3/CMakeCXXCompiler.cmake:
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6GuiTools/Qt6GuiToolsConfigVersion.cmake:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/remove_reference.h:
+
+/Users/nicojaffer/pocb/src/tabs/TabTree.hpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_partial_sort.h:
 
@@ -3889,8 +3938,6 @@ CMakeFiles/4.2.3/CMakeCXXCompiler.cmake:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__atomic/support.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__format/formatter.h:
-
-/Users/nicojaffer/pocb/src/MacIntegration.hpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__string/char_traits.h:
 
@@ -3969,8 +4016,6 @@ CMakeFiles/4.2.3/CMakeCXXCompiler.cmake:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_function.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_generate.h:
-
-/Users/nicojaffer/pocb/src/FaviconService.hpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_find_if.h:
 
@@ -4071,8 +4116,6 @@ CMakeFiles/4.2.3/CMakeCXXCompiler.cmake:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__new/interference_size.h:
 
 /opt/homebrew/Cellar/qtbase/6.10.2/lib/cmake/Qt6Core/Qt6QDarwinBluetoothPermissionPluginConfig.cmake:
-
-/Users/nicojaffer/pocb/src/WebKitProfile.mm:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_count.h:
 
@@ -4273,6 +4316,8 @@ CMakeFiles/4.2.3/CMakeCXXCompiler.cmake:
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_unqualified.h:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_pointer.h:
+
+/Users/nicojaffer/pocb/src/ui/FloatingOmnibox.cpp:
 
 /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/copy_backward.h:
 
