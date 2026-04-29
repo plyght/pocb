@@ -180,7 +180,7 @@ SettingsDialog::SettingsDialog(ProfileStore &profiles, QWidget *parent) : QDialo
     extensionLayout->addWidget(addExtension);
     extensionsCol->addWidget(extensionRow);
     extensionsCol->addWidget(makeHelp(
-        "Loads unpacked Chrome extension content scripts into new tabs. WebKit cannot run Chrome background workers, popups, or privileged Chrome APIs.",
+        "Loads local WebExtensions through WebKit on macOS 15.4+ and injects a compatibility runtime for older systems. Unpacked folders work best; background workers, native messaging, request blocking, and store installs depend on WebKit support and extension permissions.",
         theme, extensionsCard));
     root->addWidget(extensionsCard);
 
