@@ -50,7 +50,18 @@ void ChromeBar::setBackgroundColor(const QColor &c, bool animate) {
 
 void ChromeBar::paintEvent(QPaintEvent *) {
     QPainter p(this);
-    p.fillRect(rect(), m_bg);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    if (m_topCornerRadius <= 0) {
+        p.fillRect(rect(), m_bg);
+        return;
+    }
+
+    QPainterPath path;
+    path.setFillRule(Qt::WindingFill);
+    const QRectF r(rect());
+    path.addRoundedRect(r, m_topCornerRadius, m_topCornerRadius);
+    path.addRect(QRectF(r.left(), r.top() + m_topCornerRadius, r.width(), r.height() - m_topCornerRadius));
+    p.fillPath(path, m_bg);
 }
 
 // ---- AddrPill -----------------------------------------------------------

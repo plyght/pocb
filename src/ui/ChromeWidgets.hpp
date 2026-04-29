@@ -17,12 +17,14 @@ public:
 
     void setBackgroundColor(const QColor &c, bool animate = true);
     QColor backgroundColor() const { return m_bg; }
+    void setTopCornerRadius(int px) { m_topCornerRadius = px; update(); }
 
 protected:
     void paintEvent(QPaintEvent *) override;
 
 private:
     QColor m_bg;
+    int m_topCornerRadius = 0;
     QVariantAnimation *m_anim = nullptr;
 };
 

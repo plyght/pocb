@@ -123,9 +123,6 @@ void BrowserWindow::showEvent(QShowEvent *e) {
             mac::roundWidgetCorners(m_webContainer, ui::metrics::WebContainerRadius, /*recurseDescendants=*/false);
         }
         if (m_stack) mac::roundWidgetCorners(m_stack, 0.0);
-        if (auto *host = findChild<QWidget *>("StackHost")) {
-            mac::applyVibrancyBehind(host, mac::VibrancyMaterial::Sidebar);
-        }
     });
 }
 
@@ -283,7 +280,7 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     connect(m_addressBar, &QLineEdit::textChanged, this, [syncSearchIcon](const QString &) { syncSearchIcon(); });
 
     if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
-        pill->setIdleColor(QColor(255, 255, 255, 14));
+        pill->setIdleColor(QColor(28, 28, 30, 235));
     }
     // Pop the pill when the user begins editing it.
     class FocusPopFilter : public QObject {
@@ -445,8 +442,9 @@ void BrowserWindow::setupUi() {
     // pushing the page content down.
     m_webContainer = new QWidget(stackHost);
     m_webContainer->setObjectName("WebContainer");
-    m_webContainer->setStyleSheet(
-        "QWidget#WebContainer { background: #1a1a1a; }");
+    m_webContainer->setStyleSheet(QString(
+        "QWidget#WebContainer { background: rgba(26, 26, 26, 180); border-radius: %1px; }")
+        .arg(ui::metrics::WebContainerRadius));
     auto *containerLayout = new QVBoxLayout(m_webContainer);
     containerLayout->setContentsMargins(0, 0, 0, 0);
     containerLayout->setSpacing(0);
@@ -860,12 +858,18 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
 
     // Hover shade: lighten dark pages, darken light ones — same logic for
     // toolbar buttons and the address bar wrap.
-    QColor hover = bg;
-    hover = dark ? hover.lighter(125) : hover.darker(108);
+    auto mixRgb = [](const QColor &from, const QColor &to, double t) {
+        return QColor(qRound(from.red() + (to.red() - from.red()) * t),
+                      qRound(from.green() + (to.green() - from.green()) * t),
+                      qRound(from.blue() + (to.blue() - from.blue()) * t),
+                      from.alpha());
+    };
+    QColor hover = dark ? mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.16)
+                        : mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.10);
     hover.setAlpha(qMax(220, bg.alpha()));
 
-    QColor pressed = bg;
-    pressed = dark ? pressed.lighter(140) : pressed.darker(115);
+    QColor pressed = dark ? mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.24)
+                          : mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.16);
     pressed.setAlpha(qMax(230, bg.alpha()));
 
     auto rgba = [](const QColor &c) {
@@ -906,6 +910,7 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
     }
 
     if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
+        pill->setIdleColor(bg);
         pill->setHoverColor(hover);
         QColor loadTint = fg;
         loadTint.setAlpha(220);

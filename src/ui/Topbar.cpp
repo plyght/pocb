@@ -1,6 +1,7 @@
 #include "Topbar.hpp"
 
 #include "ChromeWidgets.hpp"
+#include "LayoutMetrics.hpp"
 #include "MacIntegration.hpp"
 
 #include <QHBoxLayout>
@@ -19,6 +20,7 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
     auto *bar = new ChromeBar(parent);
     bar->setObjectName("WebTopbar");
     bar->setFixedHeight(40);
+    bar->setTopCornerRadius(ui::metrics::WebContainerRadius);
     bar->setBackgroundColor(QColor(28, 28, 30, 235), /*animate=*/false);
     w.bar = bar;
 
