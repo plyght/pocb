@@ -2,6 +2,7 @@
 
 #include <QEasingCurve>
 #include <QEnterEvent>
+#include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
 #include <QVariantAnimation>
@@ -78,10 +79,27 @@ AddrPill::AddrPill(QWidget *parent) : QWidget(parent) {
         update();
     });
     m_loadAnim = new QVariantAnimation(this);
-    m_loadAnim->setDuration(180);
+    m_loadAnim->setDuration(130);
     m_loadAnim->setEasingCurve(QEasingCurve::OutCubic);
     connect(m_loadAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
         m_loadCurrent = v.toDouble();
+        update();
+    });
+    connect(m_loadAnim, &QVariantAnimation::finished, this, [this] {
+        if (m_loadTarget >= 100) {
+            m_loadCurrent = 0.0;
+            m_loadPulseAnim->stop();
+            update();
+        }
+    });
+    m_loadPulseAnim = new QVariantAnimation(this);
+    m_loadPulseAnim->setStartValue(0.0);
+    m_loadPulseAnim->setEndValue(1.0);
+    m_loadPulseAnim->setDuration(1100);
+    m_loadPulseAnim->setLoopCount(-1);
+    m_loadPulseAnim->setEasingCurve(QEasingCurve::Linear);
+    connect(m_loadPulseAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
+        m_loadPulse = v.toDouble();
         update();
     });
 }
@@ -90,16 +108,27 @@ void AddrPill::setLoadProgress(int percent) {
     if (percent < 0) percent = 0;
     if (percent > 100) percent = 100;
     if (percent == m_loadTarget) return;
+    if (percent > 0 && percent < 100 && m_loadCurrent >= 100.0) {
+        m_loadCurrent = 0.0;
+    }
     m_loadTarget = percent;
     m_loadAnim->stop();
     m_loadAnim->setStartValue(m_loadCurrent);
-    // 100% snaps shut quickly: slide to full, then hide via a follow-up to 0.
-    if (percent <= 0 || percent >= 100) {
-        m_loadAnim->setEndValue(percent <= 0 ? 0.0 : 100.0);
-        m_loadAnim->setDuration(percent >= 100 ? 120 : 0);
+    if (percent <= 0) {
+        m_loadCurrent = 0.0;
+        m_loadPulseAnim->stop();
+        update();
+        return;
+    }
+    if (percent >= 100) {
+        m_loadAnim->setEndValue(100.0);
+        m_loadAnim->setDuration(115);
     } else {
-        m_loadAnim->setEndValue((qreal)percent);
-        m_loadAnim->setDuration(180);
+        if (m_loadPulseAnim->state() != QAbstractAnimation::Running) m_loadPulseAnim->start();
+        const qreal visualTarget = qMax((qreal)percent, 96.0);
+        m_loadAnim->setEndValue(visualTarget);
+        const int delta = qAbs(qRound(visualTarget - m_loadCurrent));
+        m_loadAnim->setDuration(qBound(70, 28 + delta * 3, 145));
     }
     m_loadAnim->start();
 }
@@ -174,7 +203,27 @@ void AddrPill::paintEvent(QPaintEvent *) {
         const qreal h = 2.0;
         const qreal w = width() * (m_loadCurrent / 100.0);
         const QRectF strip(0, height() - h, w, h);
-        p.fillRect(strip, m_loadColor);
+        QColor load = m_loadColor;
+        load.setAlphaF(qMin(1.0, load.alphaF() * 0.86));
+        p.fillRect(strip, load);
+        const qreal pulseWidth = qMax<qreal>(26.0, qMin<qreal>(72.0, width() * 0.18));
+        const qreal edgePulse = 0.5 - 0.5 * qCos(m_loadPulse * 6.283185307179586);
+        const qreal center = w - pulseWidth * (0.38 + edgePulse * 0.18);
+        const qreal left = qMax<qreal>(0.0, center - pulseWidth * 0.62);
+        const qreal right = qMin<qreal>(w, center + pulseWidth * 0.38);
+        if (right > left) {
+            QLinearGradient shine(left, 0.0, right, 0.0);
+            QColor edge = m_loadColor.lighter(110);
+            edge.setAlphaF(0.0);
+            QColor mid = m_loadColor.lighter(155);
+            mid.setAlphaF(qMin(1.0, mid.alphaF() * (0.52 + edgePulse * 0.36)));
+            QColor tip = m_loadColor.lighter(170);
+            tip.setAlphaF(qMin(1.0, tip.alphaF() * (0.70 + edgePulse * 0.25)));
+            shine.setColorAt(0.0, edge);
+            shine.setColorAt(0.58, mid);
+            shine.setColorAt(1.0, tip);
+            p.fillRect(QRectF(left, height() - h, right - left, h), shine);
+        }
         p.restore();
     }
 }

@@ -75,6 +75,13 @@ private:
     void updateSidebarPreview(int direction);
     void showProfileMenu();
     void showCopiedLinkPopup();
+    void refreshFloatingOmniboxItems();
+    void rememberCurrentPage();
+    bool handleInternalUrl(const QUrl &url);
+    struct RecentPage {
+        QString title;
+        QUrl url;
+    };
     Theme m_theme;
     ProfileStore m_profiles;
     BookmarkStore m_bookmarks;
@@ -129,4 +136,6 @@ private:
     FaviconService *m_favicons = nullptr;
     QHBoxLayout *m_toolbarLayout = nullptr;
     SidebarController *m_sidebar = nullptr;
+    QList<WebView *> m_tabRecency;
+    QList<RecentPage> m_recentPages;
 };

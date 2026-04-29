@@ -215,11 +215,7 @@ bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
     if (ev->type() == QEvent::FocusIn) {
         beginEditing();
     } else if (ev->type() == QEvent::FocusOut) {
-        QTimer::singleShot(0, this, [this] {
-            QWidget *now = QApplication::focusWidget();
-            if (now == m_bar || now == m_popup || (m_popupList && now == m_popupList->viewport())) return;
-            endEditing(/*restoreUrl=*/true, m_savedUrl);
-        });
+        return QObject::eventFilter(obj, ev);
     } else if (ev->type() == QEvent::KeyPress) {
         auto *ke = static_cast<QKeyEvent *>(ev);
         if (ke->key() == Qt::Key_Escape) {
@@ -278,7 +274,7 @@ void AddressBarController::commit() {
     }
     hidePopup();
     if (text.trimmed().isEmpty()) return;
-    m_editing = false;
+    endEditing(/*restoreUrl=*/false, QString());
     emit submitted(text);
 }
 
@@ -576,6 +572,7 @@ void AddressBarController::showPopup() {
         m_popupList->viewport()->raise();
     }
     m_popup->raise();
+    if (m_bar && !m_bar->hasFocus()) m_bar->setFocus(Qt::OtherFocusReason);
 }
 
 void AddressBarController::hidePopup() {

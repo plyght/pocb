@@ -23,7 +23,7 @@
 namespace {
 
 QRect closeButtonRect(const QRect &rowRect, int viewportWidth) {
-    const int side = 18;
+    const int side = 16;
     const int right = viewportWidth > 0 ? viewportWidth - 6 : rowRect.right() - 6;
     return QRect(right - side,
                  rowRect.top() + (rowRect.height() - side) / 2,
@@ -40,6 +40,10 @@ int itemDepth(const QTreeWidget *tree, const QModelIndex &index) {
         item = item->parent();
     }
     return depth;
+}
+
+bool isNewTabUrl(const QUrl &url) {
+    return url.isEmpty() || url.toString() == QStringLiteral("about:blank");
 }
 
 class TabItemDelegate final : public QStyledItemDelegate {
@@ -63,17 +67,17 @@ public:
             fill.setAlpha(selected ? 22 : 12);
             QRect rowRect = option.rect;
             rowRect.setLeft(6 + depth * 18);
-            if (viewportWidth > 0) rowRect.setRight(viewportWidth - 4);
+            if (viewportWidth > 0) rowRect.setRight(viewportWidth - 6);
             painter->setPen(Qt::NoPen);
             painter->setBrush(fill);
-            painter->drawRoundedRect(rowRect.adjusted(0, 2, 0, -2), 7, 7);
+            painter->drawRoundedRect(rowRect.adjusted(0, 3, 0, -3), 6, 6);
         }
 
         const QVariant decoration = index.data(Qt::DecorationRole);
-        QRect textRect = option.rect.adjusted(14 + depth * 18, 0, -30, 0);
+        QRect textRect = option.rect.adjusted(12 + depth * 18, 0, -28, 0);
         if (decoration.canConvert<QIcon>()) {
             const QIcon icon = qvariant_cast<QIcon>(decoration);
-            const QRect iconRect(textRect.left(), option.rect.top() + (option.rect.height() - 16) / 2, 16, 16);
+            const QRect iconRect(textRect.left(), option.rect.top() + (option.rect.height() - 14) / 2, 14, 14);
             icon.paint(painter, iconRect, Qt::AlignCenter);
             textRect.setLeft(iconRect.right() + 7);
         }
@@ -128,7 +132,7 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
     m_tabs->setFocusPolicy(Qt::NoFocus);
     m_tabs->setAnimated(true);
     m_tabs->setFrameShape(QFrame::NoFrame);
-    m_tabs->setIconSize(QSize(16, 16));
+    m_tabs->setIconSize(QSize(14, 14));
     m_tabs->setExpandsOnDoubleClick(false);
     m_tabs->setUniformRowHeights(true);
     m_tabs->setMouseTracking(true);
@@ -144,7 +148,7 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
     m_tabs->viewport()->setAutoFillBackground(false);
     m_tabs->setStyleSheet(QString(
         "QTreeWidget#TabTree { background: transparent; border: none; color: %1; outline: 0; }"
-        "QTreeWidget#TabTree::item { padding: 4px 28px 4px 6px; border: none; background: transparent; color: %1; selection-background-color: transparent; }"
+        "QTreeWidget#TabTree::item { padding: 2px 26px 2px 6px; border: none; background: transparent; color: %1; selection-background-color: transparent; }"
         "QTreeWidget#TabTree::item:selected { background: transparent; color: %1; selection-background-color: transparent; }"
         "QTreeWidget#TabTree::item:selected:active { background: transparent; color: %1; selection-background-color: transparent; }"
         "QTreeWidget#TabTree::item:selected:!active { background: transparent; color: %1; selection-background-color: transparent; }"
@@ -160,6 +164,11 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
         // snappy chrome update, then kick off a fresh sniff in case the
         // page has changed since (scrolled, dynamically restyled, etc.).
         if (auto *v = currentView()) {
+            if (isNewTabUrl(v->url())) {
+                emit loadProgress(0);
+                emit themeColorChanged(QColor());
+                return;
+            }
             const QColor cached = v->cachedThemeColor();
             if (cached.isValid()) emit themeColorChanged(cached);
             v->sniffTopColor();
@@ -317,6 +326,10 @@ void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {
     });
     connect(view, &WebView::loadProgress, this, [this, view](int progress) {
         if (view != currentView()) return;
+        if (isNewTabUrl(view->url())) {
+            emit loadProgress(0);
+            return;
+        }
         emit loadProgress(progress);
     });
     connect(view, &WebView::themeColorChanged, this, [this, view](const QColor &c) {

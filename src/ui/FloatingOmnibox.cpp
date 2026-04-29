@@ -24,9 +24,10 @@ namespace {
 // Vicinae LauncherWindow.qml: 60px search row, 14px corner rounding,
 // 1px mainWindowBorder, no shadow, full-window translucent fill.
 constexpr int kPanelWidth   = 720;
+constexpr int kPanelSideInset = 24;
 constexpr int kInputHeight  = 60;
-constexpr int kRowHeight    = 40;
-constexpr int kMaxRows      = 7;
+constexpr int kRowHeight    = 46;
+constexpr int kMaxRows      = 5;
 constexpr int kPanelRadius  = 14;
 constexpr int kInputPadX    = 16;   // SearchBar.qml leftMargin/rightMargin
 constexpr int kListPadV     = 4;    // GenericListView topMargin/bottomMargin
@@ -187,11 +188,11 @@ FloatingOmnibox::FloatingOmnibox(const Theme &theme, QWidget *parent)
     connect(m_input, &QLineEdit::textEdited, this, &FloatingOmnibox::onTextEdited);
     connect(m_input, &QLineEdit::returnPressed, this, &FloatingOmnibox::acceptCurrent);
     connect(m_list, &QListWidget::itemActivated, this, [this](QListWidgetItem *item) {
-        if (item) emit submitted(item->text());
+        if (item) emit submitted(item->data(Qt::UserRole).toString());
         close();
     });
     connect(m_list, &QListWidget::itemClicked, this, [this](QListWidgetItem *item) {
-        if (item) emit submitted(item->text());
+        if (item) emit submitted(item->data(Qt::UserRole).toString());
         close();
     });
 
@@ -205,16 +206,19 @@ void FloatingOmnibox::setSearchEngineUrl(const QString &templateUrl) {
 }
 
 void FloatingOmnibox::showFor(QWidget *anchor, const QString &initialText) {
+    m_anchorWidth = anchor ? anchor->width() : 0;
+    m_searchSuggestions.clear();
+    rebuildSuggestions();
+    m_input->setText(initialText);
+    m_input->selectAll();
+    relayout();
     if (anchor) {
         const QPoint topLeft = anchor->mapToGlobal(QPoint(0, 0));
-        const int x = topLeft.x() + (anchor->width() - width()) / 2;
+        const int x = topLeft.x() + qBound(kPanelSideInset, (anchor->width() - width()) / 2, qMax(kPanelSideInset, anchor->width() - width() - kPanelSideInset));
         // Vicinae sits at Screen.height/3; over the web viewport, ~38% reads similarly.
         const int y = topLeft.y() + (anchor->height() - height()) * 38 / 100;
         move(x, y);
     }
-    setSuggestions({});
-    m_input->setText(initialText);
-    m_input->selectAll();
     show();
     raise();
     activateWindow();
@@ -276,7 +280,12 @@ bool FloatingOmnibox::eventFilter(QObject *obj, QEvent *ev) {
 
 void FloatingOmnibox::onTextEdited(const QString &text) {
     m_pendingQuery = text.trimmed();
-    if (m_pendingQuery.isEmpty()) { setSuggestions({}); return; }
+    if (m_pendingQuery.isEmpty()) {
+        m_searchSuggestions.clear();
+        rebuildSuggestions();
+        return;
+    }
+    rebuildSuggestions();
     m_debounce->start();
 }
 
@@ -333,24 +342,56 @@ void FloatingOmnibox::onSuggestionsReceived(QNetworkReply *reply) {
         }
     }
     if (items.size() > kMaxRows) items = items.mid(0, kMaxRows);
-    setSuggestions(items);
+    setSearchSuggestions(items);
 }
 
-void FloatingOmnibox::setSuggestions(const QStringList &items) {
+void FloatingOmnibox::setLocalItems(const QList<LocalItem> &items) {
+    m_localItems = items;
+    rebuildSuggestions();
+}
+
+void FloatingOmnibox::setSearchSuggestions(const QStringList &items) {
+    m_searchSuggestions = items;
+    rebuildSuggestions();
+}
+
+void FloatingOmnibox::addItem(const QString &title, const QString &value, const QIcon &icon) {
+    auto *it = new QListWidgetItem(icon, title, m_list);
+    it->setData(Qt::UserRole, value);
+    it->setSizeHint(QSize(0, kRowHeight));
+}
+
+void FloatingOmnibox::rebuildSuggestions() {
     m_list->clear();
-    if (items.isEmpty()) {
+    const QString query = m_input ? m_input->text().trimmed() : QString();
+    for (const auto &item : m_localItems) {
+        const bool isTabSwitch = item.value.startsWith(QStringLiteral("pocb://switch-tab?"));
+        if (query.isEmpty()) {
+            if (!item.alwaysShow) continue;
+        } else if (isTabSwitch) {
+            if (QString::compare(item.title, query, Qt::CaseInsensitive) != 0 && QString::compare(item.value, query, Qt::CaseInsensitive) != 0) continue;
+        } else if (item.value.startsWith(QStringLiteral("pocb://")) && query.size() < 3) {
+            continue;
+        } else if (!item.title.contains(query, Qt::CaseInsensitive) && !item.value.contains(query, Qt::CaseInsensitive)) {
+            continue;
+        }
+        addItem(item.title, item.value, item.icon);
+        if (m_list->count() >= kMaxRows) break;
+    }
+    for (const auto &s : m_searchSuggestions) {
+        if (m_list->count() >= kMaxRows) break;
+        if (s.isEmpty()) continue;
+        addItem(s, s);
+    }
+    if (m_list->count() == 0) {
         m_list->hide();
         m_divider->hide();
         relayout();
         return;
     }
-    for (const auto &s : items) {
-        auto *it = new QListWidgetItem(s, m_list);
-        it->setSizeHint(QSize(0, kRowHeight));
-    }
     m_divider->show();
     m_list->show();
-    m_list->setCurrentRow(-1);
+    m_list->setCurrentRow(0);
     relayout();
 }
 
@@ -358,13 +399,14 @@ void FloatingOmnibox::relayout() {
     int visibleRows = qMin(m_list->count(), kMaxRows);
     int listHeight = visibleRows == 0 ? 0 : visibleRows * kRowHeight + kListPadV * 2;
     int divH = visibleRows == 0 ? 0 : 1;
-    setFixedSize(kPanelWidth, kInputHeight + divH + listHeight);
+    const int maxWidth = m_anchorWidth > 0 ? qMax(320, m_anchorWidth - kPanelSideInset * 2) : kPanelWidth;
+    setFixedSize(qMin(kPanelWidth, maxWidth), kInputHeight + divH + listHeight);
     m_list->setFixedHeight(listHeight);
 }
 
 void FloatingOmnibox::acceptCurrent() {
     QString text = m_list->currentItem()
-                       ? m_list->currentItem()->text()
+                       ? m_list->currentItem()->data(Qt::UserRole).toString()
                        : m_input->text();
     emit submitted(text);
     close();

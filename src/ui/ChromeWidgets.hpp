@@ -65,8 +65,10 @@ private:
 
     int m_loadTarget = 0;
     qreal m_loadCurrent = 0.0;
+    qreal m_loadPulse = 0.0;
     QColor m_loadColor = QColor(120, 180, 255, 235);
     QVariantAnimation *m_loadAnim = nullptr;
+    QVariantAnimation *m_loadPulseAnim = nullptr;
 };
 
 }  // namespace ui

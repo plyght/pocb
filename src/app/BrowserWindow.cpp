@@ -23,6 +23,7 @@
 #include <QEvent>
 #include <QFocusEvent>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -40,6 +41,7 @@
 #include <QNetworkRequest>
 #include <QProgressBar>
 #include <QPropertyAnimation>
+#include <QPixmap>
 #include <QDir>
 #include <QShortcut>
 #include <QShortcutEvent>
@@ -180,7 +182,9 @@ void BrowserWindow::extensionSetAction(const QString &key, const QString &label,
 }
 
 void BrowserWindow::loadFromOmnibox() {
-    if (auto *view = currentView()) view->load(urlFromInput(m_omnibox->text()));
+    const QUrl url = urlFromInput(m_omnibox->text());
+    if (handleInternalUrl(url)) return;
+    if (auto *view = currentView()) view->load(url);
 }
 
 void BrowserWindow::showCopiedLinkPopup() {
@@ -253,12 +257,15 @@ void BrowserWindow::updateForCurrentTab() {
     mac::refreshUnifiedToolbar(this);
     auto *view = currentView();
     if (!view) return;
+    m_tabRecency.removeAll(view);
+    m_tabRecency.prepend(view);
     static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
     m_omnibox->setText(view->url().toString());
     if (m_addressBarCtl) {
         m_addressBarCtl->setDisplayUrl(view->url().toString(), view->url().scheme() == "https");
     }
     setWindowTitle((view->title().isEmpty() ? "pocb" : view->title()) + " — pocb");
+    rememberCurrentPage();
 }
 
 QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
@@ -310,6 +317,7 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
             auto reload = [this] { if (auto *v = currentView()) v->reload(); };
             auto newTab = [this] {
                 m_tabTree->newTab(QUrl("about:blank"));
+                refreshFloatingOmniboxItems();
                 m_floatingOmnibox->showFor(m_stack, QString());
             };
             auto settings = [this] { showSettings(); };
@@ -333,7 +341,10 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     m_addressBarCtl = new AddressBarController(m_addressBar, m_lockIcon, m_theme, this);
     m_addressBarCtl->setSearchEngineUrl(m_searchEngine);
     connect(m_addressBarCtl, &AddressBarController::submitted, this, [this](const QString &text) {
-        if (auto *view = currentView()) view->load(urlFromInput(text));
+        const QUrl url = urlFromInput(text);
+        if (!handleInternalUrl(url)) {
+            if (auto *view = currentView()) view->load(url);
+        }
         if (auto *v = currentView()) v->setFocus();
     });
     connect(m_addressBarCtl, &AddressBarController::escapePressed, this, [this] {
@@ -353,6 +364,7 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
                 "<style>html,body{margin:0;height:100%%;background:%1;}</style>"
                 "</head><body></body></html>").arg(bg));
         }
+        refreshFloatingOmniboxItems();
         m_floatingOmnibox->showFor(m_stack, QString());
     });
 
@@ -561,14 +573,106 @@ void BrowserWindow::showProfileMenu() {
 QUrl BrowserWindow::urlFromInput(const QString &input) const {
     const QString trimmed = input.trimmed();
     if (trimmed.isEmpty()) return QUrl(m_homePage);
-    QUrl url = QUrl::fromUserInput(trimmed);
-    const bool looksLikeHost = trimmed.contains('.') || trimmed.startsWith("localhost") || trimmed.startsWith("http://") || trimmed.startsWith("https://");
-    if (looksLikeHost && url.isValid()) return url;
+    if (trimmed.startsWith(QStringLiteral("pocb://"), Qt::CaseInsensitive)) return QUrl(trimmed);
+    const bool hasScheme = trimmed.contains("://");
+    const bool isLocalhost = trimmed.startsWith("localhost") || trimmed.startsWith("127.") || trimmed.startsWith("[::1]");
+    const bool looksLikeHost = trimmed.contains('.') || isLocalhost || trimmed.startsWith("http://") || trimmed.startsWith("https://");
+    if (looksLikeHost) {
+        const QString navigable = (!hasScheme && !isLocalhost) ? QStringLiteral("https://") + trimmed : trimmed;
+        QUrl url = QUrl::fromUserInput(navigable);
+        if (url.isValid()) return url;
+    }
     return QUrl(m_searchEngine.arg(QString::fromUtf8(QUrl::toPercentEncoding(trimmed))));
 }
 
 WebView *BrowserWindow::currentView() const {
     return m_tabTree ? m_tabTree->currentView() : nullptr;
+}
+
+bool BrowserWindow::handleInternalUrl(const QUrl &url) {
+    if (url.scheme() != QStringLiteral("pocb")) return false;
+    const QString command = url.host().toLower();
+    if (command == QStringLiteral("settings")) {
+        showSettings();
+    } else if (command == QStringLiteral("close-sidebar")) {
+        if (m_sidebar) m_sidebar->setHidden(true);
+    } else if (command == QStringLiteral("toggle-sidebar")) {
+        if (m_sidebar && m_sidebarWidget) m_sidebar->setHidden(m_sidebarWidget->isVisible());
+    } else if (command == QStringLiteral("new-tab")) {
+        if (m_tabTree) m_tabTree->newTab(QUrl("about:blank"));
+    } else if (command == QStringLiteral("close-tab")) {
+        if (m_tabTree) m_tabTree->closeCurrent();
+    } else if (command == QStringLiteral("copy-url")) {
+        if (auto *v = currentView()) {
+            QApplication::clipboard()->setText(v->url().toString());
+            showCopiedLinkPopup();
+        }
+    } else if (command == QStringLiteral("switch-tab")) {
+        bool ok = false;
+        const quintptr ptr = url.query().toULongLong(&ok, 16);
+        if (ok && m_tabTree) m_tabTree->selectView(reinterpret_cast<WebView *>(ptr));
+    }
+    return true;
+}
+
+void BrowserWindow::rememberCurrentPage() {
+    auto *view = currentView();
+    if (!view) return;
+    const QUrl url = view->url();
+    if (!url.isValid() || url.isEmpty() || url.scheme() == QStringLiteral("about") || url.scheme() == QStringLiteral("data")) return;
+    const QString title = view->title().isEmpty() ? url.toString() : view->title();
+    for (int i = m_recentPages.size() - 1; i >= 0; --i) {
+        if (m_recentPages.at(i).url == url) m_recentPages.removeAt(i);
+    }
+    m_recentPages.prepend({title, url});
+    while (m_recentPages.size() > 25) m_recentPages.removeLast();
+}
+
+void BrowserWindow::refreshFloatingOmniboxItems() {
+    if (!m_floatingOmnibox) return;
+    QList<FloatingOmnibox::LocalItem> items;
+    auto addCommand = [this, &items](const QString &title, const QString &url, const QString &symbol) {
+        items.append({title, url, mac::sfSymbolIcon(symbol, 13.0, m_theme.foreground), false});
+    };
+    addCommand("Settings", "pocb://settings", "gearshape");
+    addCommand("Close Sidebar", "pocb://close-sidebar", "sidebar.left");
+    addCommand("Toggle Sidebar", "pocb://toggle-sidebar", "sidebar.left");
+    addCommand("New Tab", "pocb://new-tab", "plus");
+    addCommand("Close Tab", "pocb://close-tab", "xmark");
+    addCommand("Copy Current URL", "pocb://copy-url", "link");
+    auto iconForUrl = [this](const QUrl &url) {
+        if (m_favicons) {
+            if (const QPixmap pm = m_favicons->cached(url); !pm.isNull()) return QIcon(pm);
+            m_favicons->request(url);
+        }
+        return mac::sfSymbolIcon("globe", 13.0, m_theme.muted);
+    };
+    auto addUrlItem = [&items, &iconForUrl](const QString &title, const QUrl &url) {
+        if (!url.isValid() || url.isEmpty() || url.scheme() == QStringLiteral("about") || url.scheme() == QStringLiteral("data")) return;
+        items.append({title.isEmpty() ? url.toString() : title, url.toString(), iconForUrl(url), false});
+    };
+    QList<WebView *> orderedTabs = m_tabRecency;
+    if (m_tabTree) {
+        for (auto *view : m_tabTree->views()) {
+            if (view && !orderedTabs.contains(view)) orderedTabs.append(view);
+        }
+    }
+    int defaultTabCount = 0;
+    for (auto *view : orderedTabs) {
+        if (!view || view == currentView()) continue;
+        const QUrl url = view->url();
+        if (!url.isValid() || url.isEmpty() || url.scheme() == QStringLiteral("about") || url.scheme() == QStringLiteral("data")) continue;
+        const QString title = view->title().isEmpty() ? url.toString() : view->title();
+        items.append({title, QStringLiteral("pocb://switch-tab?") + QString::number(reinterpret_cast<quintptr>(view), 16), iconForUrl(url), defaultTabCount < 3});
+        ++defaultTabCount;
+    }
+    for (const RecentPage &page : m_recentPages) {
+        addUrlItem(page.title, page.url);
+    }
+    for (const Bookmark &bookmark : m_bookmarks.bookmarks(m_profiles.currentName())) {
+        addUrlItem(bookmark.title, bookmark.url);
+    }
+    m_floatingOmnibox->setLocalItems(items);
 }
 
 void BrowserWindow::setupUi() {
@@ -589,8 +693,10 @@ void BrowserWindow::setupUi() {
     m_floatingOmnibox->setSearchEngineUrl(m_searchEngine);
     connect(m_floatingOmnibox, &FloatingOmnibox::submitted, this, [this](const QString &text) {
         if (text.trimmed().isEmpty()) return;
+        const QUrl url = urlFromInput(text);
+        if (handleInternalUrl(url)) return;
         m_omnibox->setText(text);
-        if (auto *view = currentView()) view->load(urlFromInput(text));
+        if (auto *view = currentView()) view->load(url);
     });
 
     // The load progress is now painted inside the address pill (see
@@ -816,29 +922,54 @@ void BrowserWindow::setupUi() {
         // visual dimensions: ~26 px tall, 6 px horizontal inner padding,
         // same 6 px corner radius.
         if (m_addrWrap) {
+            if (auto *oldLayout = m_addrWrap->parentWidget() ? m_addrWrap->parentWidget()->layout() : nullptr) {
+                oldLayout->removeWidget(m_addrWrap);
+            }
             m_addrWrap->setParent(m_sidebarHeader);
-            m_addrWrap->setFixedHeight(30);
+            m_addrWrap->setFixedHeight(36);
             if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
-                pill->setRadius(6);
+                pill->setRadius(8);
             }
             if (auto *row = qobject_cast<QHBoxLayout *>(m_addrWrap->layout())) {
-                row->setContentsMargins(6, 0, 6, 0);
-                row->setSpacing(6);
+                row->setContentsMargins(10, 0, 10, 0);
+                row->setSpacing(8);
                 row->setSizeConstraint(QLayout::SetNoConstraint);
             }
-            m_addrWrap->setMinimumHeight(30);
-            m_addrWrap->setMaximumHeight(30);
+            m_addrWrap->setMinimumHeight(36);
+            m_addrWrap->setMaximumHeight(36);
             if (m_searchIcon) {
-                m_searchIcon->setFixedSize(16, 16);
-                m_searchIcon->setPixmap(mac::sfSymbolIcon("magnifyingglass", 13.0, m_theme.muted).pixmap(16, 16));
+                m_searchIcon->setFixedSize(18, 18);
+                m_searchIcon->setPixmap(mac::sfSymbolIcon("magnifyingglass", 13.5, m_theme.muted).pixmap(18, 18));
             }
-            if (m_lockIcon) m_lockIcon->setFixedSize(16, 16);
+            if (m_lockIcon) m_lockIcon->setFixedSize(18, 18);
+            if (m_pillMenuBtn) {
+                m_pillMenuBtn->setFixedSize(24, 24);
+                m_pillMenuBtn->setIconSize(QSize(16, 16));
+                m_pillMenuBtn->setIcon(mac::sfSymbolIcon("ellipsis.circle", 14.0, m_theme.foreground));
+            }
             if (m_addressBar) {
-                m_addressBar->setFixedHeight(22);
+                m_addressBar->setFixedHeight(28);
+                m_addressBar->setStyleSheet(QString(
+                    "QLineEdit {"
+                    "  background: transparent;"
+                    "  border: none;"
+                    "  color: %1;"
+                    "  font-family: '%2';"
+                    "  font-size: 14px;"
+                    "  padding: 0px;"
+                    "}" )
+                    .arg(m_theme.foreground.name(), m_theme.fontFamily));
                 m_addressBar->setContentsMargins(0, 0, 0, 0);
                 m_addressBar->setTextMargins(0, 0, 0, 0);
             }
-            headerCol->addWidget(m_addrWrap);
+            auto *addrHost = new QWidget(m_sidebarHeader);
+            addrHost->setObjectName("SidebarAddressHost");
+            addrHost->setStyleSheet("QWidget#SidebarAddressHost { background: transparent; }");
+            auto *addrHostLayout = new QHBoxLayout(addrHost);
+            addrHostLayout->setContentsMargins(6, 0, 6, 0);
+            addrHostLayout->setSpacing(0);
+            addrHostLayout->addWidget(m_addrWrap);
+            headerCol->addWidget(addrHost);
         }
 
         pageLayout->insertWidget(0, m_sidebarHeader);
@@ -874,6 +1005,7 @@ void BrowserWindow::setupUi() {
     connect(m_tabTree, &TabTree::currentTabChanged, this, [this] {
         updateForCurrentTab();
         updateCurrentProfileSnapshot();
+        refreshFloatingOmniboxItems();
     });
     connect(m_tabTree, &TabTree::loadProgress, this, [this](int progress) {
         if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
@@ -904,6 +1036,7 @@ void BrowserWindow::setupActions() {
                 "<style>html,body{margin:0;height:100%%;background:%1;}</style>"
                 "</head><body></body></html>").arg(bg));
         }
+        refreshFloatingOmniboxItems();
         m_floatingOmnibox->showFor(m_stack, QString());
     };
     auto focusOmnibox = [this] {
@@ -913,6 +1046,7 @@ void BrowserWindow::setupActions() {
             const QString s = u.toString();
             if (!s.isEmpty() && s != "about:blank" && !s.startsWith("data:")) current = s;
         }
+        refreshFloatingOmniboxItems();
         m_floatingOmnibox->showFor(m_stack, current);
     };
     auto toggleSidebar = [this] {
@@ -1218,7 +1352,7 @@ bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
 }
 
 void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
-    if (!m_topbar) return;
+    if (!m_topbar || m_addrInSidebar) return;
 
     const bool hasColor = pageColor.isValid() && pageColor.alpha() >= 16;
     const QColor bg = hasColor ? pageColor : QColor(28, 28, 30, 235);

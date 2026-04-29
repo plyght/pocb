@@ -2,6 +2,8 @@
 
 #include "Theme.hpp"
 
+#include <QIcon>
+#include <QList>
 #include <QPointer>
 #include <QWidget>
 
@@ -26,6 +28,14 @@ public:
     // the omnibox will derive the engine's public suggest endpoint.
     void setSearchEngineUrl(const QString &templateUrl);
 
+    struct LocalItem {
+        QString title;
+        QString value;
+        QIcon icon;
+        bool alwaysShow = false;
+    };
+    void setLocalItems(const QList<LocalItem> &items);
+
 signals:
     void submitted(const QString &text);
 
@@ -40,7 +50,9 @@ private:
     void scheduleSuggestionRequest();
     void fetchSuggestions();
     void onSuggestionsReceived(QNetworkReply *reply);
-    void setSuggestions(const QStringList &items);
+    void rebuildSuggestions();
+    void setSearchSuggestions(const QStringList &items);
+    void addItem(const QString &title, const QString &value, const QIcon &icon = QIcon());
     void acceptCurrent();
     void relayout();
 
@@ -53,4 +65,7 @@ private:
     QTimer *m_debounce = nullptr;
     QString m_pendingQuery;
     QString m_engineHost;  // e.g. "duckduckgo.com"
+    QList<LocalItem> m_localItems;
+    QStringList m_searchSuggestions;
+    int m_anchorWidth = 0;
 };
