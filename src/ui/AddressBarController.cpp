@@ -3,6 +3,9 @@
 #include "MacIntegration.hpp"
 
 #include <QApplication>
+#include <QPainter>
+#include <QPainterPath>
+#include <QVBoxLayout>
 #include <QSettings>
 #include <QEvent>
 #include <QFocusEvent>
@@ -24,6 +27,39 @@
 #include <QUrlQuery>
 
 namespace {
+
+// Top-level container that paints a rounded translucent background plus a
+// 1 px hairline border. Hosts the suggestion QListWidget. Required because
+// frameless Qt::Tool windows on macOS otherwise have no background of
+// their own — the QListWidget stylesheet alone can't draw past the
+// rounded corners since AppKit clips to the square frame.
+class AddrPopupFrame : public QWidget {
+public:
+    explicit AddrPopupFrame(const QColor &fill, const QColor &border)
+        : m_fill(fill), m_border(border) {
+        setAttribute(Qt::WA_TranslucentBackground);
+        setAttribute(Qt::WA_ShowWithoutActivating);
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override {
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing, true);
+        const QRectF r = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
+        QPainterPath path;
+        path.addRoundedRect(r, 12.0, 12.0);
+        p.fillPath(path, m_fill);
+        QPen pen(m_border);
+        pen.setWidthF(1.0);
+        p.setPen(pen);
+        p.drawPath(path);
+    }
+
+private:
+    QColor m_fill;
+    QColor m_border;
+};
+
 struct AddrEngine {
     QString host;
     QString path;
@@ -141,7 +177,7 @@ bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
         beginEditing();
     } else if (ev->type() == QEvent::FocusOut) {
         QWidget *now = QApplication::focusWidget();
-        if (!m_popup || (now != m_popup && now != m_popup->viewport())) {
+        if (!m_popup || (now != m_popup && now != m_popup && (!m_popupList || now != m_popupList->viewport()))) {
             endEditing(/*restoreUrl=*/true, m_savedUrl);
         }
     } else if (ev->type() == QEvent::KeyPress) {
@@ -152,14 +188,16 @@ bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
             return true;
         }
         if ((ke->key() == Qt::Key_Down || ke->key() == Qt::Key_Up) &&
-            m_popup && m_popup->isVisible() && m_popup->count() > 0) {
-            int row = m_popup->currentRow();
+            m_popupList && m_popup && m_popup->isVisible() && m_popupList->count() > 1) {
+            // Skip the non-selectable header row at index 0.
+            int row = m_popupList->currentRow();
+            if (row < 1) row = 1;
             if (ke->key() == Qt::Key_Down)
-                row = (row + 1) % m_popup->count();
+                row = row + 1 >= m_popupList->count() ? 1 : row + 1;
             else
-                row = (row <= 0) ? m_popup->count() - 1 : row - 1;
-            m_popup->setCurrentRow(row);
-            m_bar->setText(m_popup->item(row)->text());
+                row = row <= 1 ? m_popupList->count() - 1 : row - 1;
+            m_popupList->setCurrentRow(row);
+            m_bar->setText(m_popupList->item(row)->text());
             return true;
         }
     }
@@ -178,12 +216,17 @@ void AddressBarController::beginEditing() {
     QTimer::singleShot(0, this, [this] {
         if (m_bar->hasFocus()) m_bar->selectAll();
     });
+    // Open the floating popout immediately on focus, even before typing —
+    // the user expects to see the "box with URL on top" the moment the bar
+    // becomes active.
+    populatePopup({});
 }
 
 void AddressBarController::commit() {
     QString text;
-    if (m_popup && m_popup->isVisible() && m_popup->currentItem()) {
-        text = m_popup->currentItem()->text();
+    if (m_popupList && m_popup && m_popup->isVisible() && m_popupList->currentItem()
+        && (m_popupList->currentItem()->flags() & Qt::ItemIsSelectable)) {
+        text = m_popupList->currentItem()->text();
     } else {
         text = m_bar->text();
     }
@@ -251,31 +294,40 @@ void AddressBarController::fetchSuggestions() {
 
 void AddressBarController::populatePopup(const QStringList &items) {
     if (!m_popup) {
-        m_popup = new QListWidget(nullptr);
-        m_popup->setWindowFlags(Qt::Popup | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
-        m_popup->setAttribute(Qt::WA_TranslucentBackground);
-        m_popup->setObjectName("AddrPopup");
-        m_popup->setFrameShape(QFrame::NoFrame);
+        // Container window: paints the rounded fill + border. The list
+        // widget itself sits inside as a transparent child, so its rows
+        // can be painted/styled independently of the panel chrome.
+        QColor fill = m_theme.panel;
+        fill.setAlphaF(0.96);
+        m_popup = new AddrPopupFrame(fill, m_theme.border);
+        m_popup->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+        m_popup->setAttribute(Qt::WA_ShowWithoutActivating);
         m_popup->setFocusPolicy(Qt::NoFocus);
-        m_popup->setUniformItemSizes(true);
-        m_popup->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        m_popup->setAttribute(Qt::WA_ShowWithoutActivating, true);
-        QFont f = m_popup->font();
+
+        auto *vbox = new QVBoxLayout(m_popup);
+        vbox->setContentsMargins(6, 6, 6, 6);
+        vbox->setSpacing(0);
+
+        m_popupList = new QListWidget(m_popup);
+        vbox->addWidget(m_popupList);
+
+        m_popupList->setObjectName("AddrPopup");
+        m_popupList->setFrameShape(QFrame::NoFrame);
+        m_popupList->setFocusPolicy(Qt::NoFocus);
+        m_popupList->setUniformItemSizes(false);
+        m_popupList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        m_popupList->setAttribute(Qt::WA_TranslucentBackground);
+        m_popupList->viewport()->setAutoFillBackground(false);
+        QFont f = m_popupList->font();
         f.setFamily(m_theme.fontFamily);
         f.setPointSize(m_theme.regularSize);
-        m_popup->setFont(f);
-        m_popup->setStyleSheet(QString(
-            "QListWidget#AddrPopup {"
-            "  background: %1;"
-            "  border: 1px solid %2;"
-            "  border-radius: 10px;"
-            "  padding: 6px 0px;"
-            "  color: %3;"
-            "}"
+        m_popupList->setFont(f);
+        m_popupList->setStyleSheet(QString(
+            "QListWidget#AddrPopup { background: transparent; border: none; padding: 0px; color: %3; }"
             "QListWidget#AddrPopup::item {"
-            "  padding: 8px 12px;"
-            "  margin: 1px 6px;"
-            "  border-radius: 7px;"
+            "  padding: 6px 10px;"
+            "  margin: 1px 2px;"
+            "  border-radius: 6px;"
             "  color: %3;"
             "}"
             "QListWidget#AddrPopup::item:selected { background: %4; }"
@@ -288,19 +340,30 @@ void AddressBarController::populatePopup(const QStringList &items) {
                  m_theme.foreground.name(),
                  m_theme.raised.name(),
                  m_theme.hover.name()));
-        connect(m_popup, &QListWidget::itemClicked, this, [this](QListWidgetItem *it) {
+        connect(m_popupList, &QListWidget::itemClicked, this, [this](QListWidgetItem *it) {
             if (!it) return;
+            // Skip non-selectable header row.
+            if (!(it->flags() & Qt::ItemIsSelectable)) return;
             m_bar->setText(it->text());
             commit();
         });
     }
-    m_popup->clear();
-    if (items.isEmpty()) { hidePopup(); return; }
-    for (const auto &s : items) {
-        auto *it = new QListWidgetItem(s, m_popup);
-        it->setSizeHint(QSize(0, 32));
+    m_popupList->clear();
+    {
+        const QString headerText = m_bar ? m_bar->text() : QString();
+        auto *header = new QListWidgetItem(headerText.isEmpty() ? QStringLiteral("Search or enter address") : headerText, m_popupList);
+        header->setIcon(mac::sfSymbolIcon("magnifyingglass", 13.0, m_iconColor));
+        header->setFlags(Qt::ItemIsEnabled);
+        header->setSizeHint(QSize(0, 32));
+        QFont f = m_popupList->font();
+        f.setBold(true);
+        header->setFont(f);
     }
-    m_popup->setCurrentRow(-1);
+    for (const auto &s : items) {
+        auto *it = new QListWidgetItem(s, m_popupList);
+        it->setSizeHint(QSize(0, 28));
+    }
+    m_popupList->setCurrentRow(-1);
     showPopup();
 }
 
@@ -308,9 +371,12 @@ void AddressBarController::positionPopup() {
     if (!m_popup || !m_bar) return;
     QWidget *anchor = m_bar->parentWidget() ? m_bar->parentWidget() : m_bar;
     const QPoint topLeft = anchor->mapToGlobal(QPoint(0, anchor->height() + 6));
-    const int width = anchor->width();
-    int rows = qMin(m_popup->count(), 8);
-    const int height = rows * 32 + 12;
+    // Tight to the anchor in the sidebar; extends a bit past it on a
+    // narrow column so suggestions don't truncate. Compact dimensions —
+    // header 32 px, rows 28 px, 6 px chrome — keep it from feeling huge.
+    const int width = qMax(anchor->width(), 320);
+    const int rows = qMin(m_popupList ? m_popupList->count() : 0, 9);
+    const int height = 32 + qMax(0, rows - 1) * 28 + 12;
     m_popup->setGeometry(topLeft.x(), topLeft.y(), width, height);
 }
 

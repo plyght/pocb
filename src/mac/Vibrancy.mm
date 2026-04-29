@@ -82,6 +82,19 @@ void makeFloatingVibrantPanel(QWidget *window, VibrancyMaterial material, double
 #endif
 }
 
+void makeTitlebarTransparent(QWidget *window) {
+#ifdef __APPLE__
+    if (!window) return;
+    NSWindow *nsw = internal::nsWindowOf(window);
+    if (!nsw) return;
+    nsw.titlebarAppearsTransparent = YES;
+    nsw.titleVisibility = NSWindowTitleHidden;
+    nsw.styleMask |= NSWindowStyleMaskFullSizeContentView;
+#else
+    (void)window;
+#endif
+}
+
 void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material) {
 #ifdef __APPLE__
     if (!widget) return;

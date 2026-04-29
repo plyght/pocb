@@ -103,6 +103,17 @@ void AddrPill::setHoverColor(const QColor &c) {
     update();
 }
 
+void AddrPill::setIdleColor(const QColor &c) {
+    m_idleColor = c;
+    update();
+}
+
+void AddrPill::setPopped(bool popped) {
+    if (m_popped == popped) return;
+    m_popped = popped;
+    update();
+}
+
 void AddrPill::animateTo(qreal target) {
     m_anim->stop();
     m_anim->setStartValue(m_progress);
@@ -121,10 +132,27 @@ void AddrPill::paintEvent(QPaintEvent *) {
     path.addRoundedRect(QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5),
                         m_radius, m_radius);
 
+    // Idle base — used to give the pill a slightly lighter tone than the
+    // surrounding chrome, even when not hovered.
+    if (m_idleColor.alpha() > 0) {
+        p.fillPath(path, m_idleColor);
+    }
+
     if (m_progress > 0.0) {
         QColor c = m_hoverColor;
         c.setAlphaF(c.alphaF() * m_progress);
         p.fillPath(path, c);
+    }
+
+    // Focused/"popped" state: brighten the fill and draw a subtle 1 px
+    // border so the pill reads as elevated above the rest of the chrome.
+    if (m_popped) {
+        p.fillPath(path, QColor(255, 255, 255, 22));
+        QPen pen(QColor(255, 255, 255, 60));
+        pen.setWidthF(1.0);
+        p.setPen(pen);
+        p.setBrush(Qt::NoBrush);
+        p.drawPath(path);
     }
 
     // Bottom-edge load strip — clipped to the rounded pill so it follows

@@ -18,6 +18,8 @@ struct TopbarWidgets {
     QToolButton *settings = nullptr;
     QLineEdit *addressBar = nullptr;
     QLabel *lockIcon = nullptr;
+    QLabel *searchIcon = nullptr;
+    QToolButton *pillMenuBtn = nullptr;
     QWidget *addrWrap = nullptr;
 };
 

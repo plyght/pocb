@@ -1245,6 +1245,24 @@ CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qvarlengtharray.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qalloc.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qguiapplication_platform.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QPainter \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpainter.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextoption.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpen.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qbrush.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontinfo.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfont.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qendian.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontvariableaxis.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontmetrics.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QPainterPath \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpainterpath.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QVBoxLayout \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qboxlayout.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlayout.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlayoutitem.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qsizepolicy.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qgridlayout.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSettings \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsettings.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QEvent \
@@ -1266,8 +1284,6 @@ CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qscreen_platform.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qkeysequence.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QFont \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfont.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qendian.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QJsonArray \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qjsonarray.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qjsonvalue.h \
@@ -1290,19 +1306,12 @@ CMakeFiles/pocb.dir/src/ui/AddressBarController.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qwidget.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qaction.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpalette.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qbrush.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontmetrics.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontinfo.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qfontvariableaxis.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qsizepolicy.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpicture.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextdocument.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QLineEdit \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlineedit.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextcursor.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextformat.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpen.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextoption.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QListWidget \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlistwidget.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlistview.h \

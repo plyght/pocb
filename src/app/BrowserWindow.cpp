@@ -13,7 +13,9 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QClipboard>
 #include <QDesktopServices>
+#include <QMenu>
 #include <QEvent>
 #include <QFocusEvent>
 #include <QHBoxLayout>
@@ -162,7 +164,69 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     m_settingsBtn = w.settings;
     m_addressBar = w.addressBar;
     m_lockIcon = w.lockIcon;
+    m_searchIcon = w.searchIcon;
+    m_pillMenuBtn = w.pillMenuBtn;
     m_addrWrap = w.addrWrap;
+
+    // Magnifier icon visible only when the field is empty.
+    auto syncSearchIcon = [this] {
+        if (!m_searchIcon || !m_addressBar) return;
+        m_searchIcon->setVisible(m_addressBar->text().isEmpty());
+    };
+    syncSearchIcon();
+    connect(m_addressBar, &QLineEdit::textChanged, this, [syncSearchIcon](const QString &) { syncSearchIcon(); });
+
+    if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
+        pill->setIdleColor(QColor(255, 255, 255, 14));
+    }
+    // Pop the pill when the user begins editing it.
+    class FocusPopFilter : public QObject {
+    public:
+        FocusPopFilter(QWidget *pill, QObject *parent) : QObject(parent), m_pill(pill) {}
+        bool eventFilter(QObject *o, QEvent *e) override {
+            if (auto *ap = qobject_cast<ui::AddrPill *>(m_pill)) {
+                if (e->type() == QEvent::FocusIn) ap->setPopped(true);
+                else if (e->type() == QEvent::FocusOut) ap->setPopped(false);
+            }
+            return QObject::eventFilter(o, e);
+        }
+        QWidget *m_pill;
+    };
+    if (m_addressBar && m_addrWrap) {
+        m_addressBar->installEventFilter(new FocusPopFilter(m_addrWrap, this));
+    }
+
+    // Reveal the ellipsis menu only on pill hover.
+    if (m_addrWrap && m_pillMenuBtn) {
+        class PillHoverFilter : public QObject {
+        public:
+            PillHoverFilter(QToolButton *btn, QObject *parent) : QObject(parent), m_btn(btn) {}
+            bool eventFilter(QObject *o, QEvent *e) override {
+                if (e->type() == QEvent::Enter) m_btn->show();
+                else if (e->type() == QEvent::Leave) m_btn->hide();
+                return QObject::eventFilter(o, e);
+            }
+            QToolButton *m_btn;
+        };
+        m_addrWrap->installEventFilter(new PillHoverFilter(m_pillMenuBtn, this));
+    }
+    if (m_pillMenuBtn) {
+        connect(m_pillMenuBtn, &QToolButton::clicked, this, [this] {
+            QMenu menu(this);
+            menu.addAction("Copy URL", this, [this] {
+                if (auto *v = currentView()) QApplication::clipboard()->setText(v->url().toString());
+            });
+            menu.addAction("Reload", this, [this] { if (auto *v = currentView()) v->reload(); });
+            menu.addSeparator();
+            menu.addAction("New Tab", this, [this] {
+                m_tabTree->newTab(QUrl("about:blank"));
+                m_floatingOmnibox->showFor(m_stack, QString());
+            });
+            menu.addAction("Settings…", this, &BrowserWindow::showSettings);
+            const QPoint pos = m_pillMenuBtn->mapToGlobal(QPoint(0, m_pillMenuBtn->height()));
+            menu.exec(pos);
+        });
+    }
 
     m_addressBarCtl = new AddressBarController(m_addressBar, m_lockIcon, m_theme, this);
     m_addressBarCtl->setSearchEngineUrl(m_searchEngine);
@@ -265,7 +329,7 @@ void BrowserWindow::setupUi() {
     cacheDir.mkpath(".");
     m_favicons = new FaviconService(cacheDir, this);
 
-    sidebar->setMinimumWidth(160);
+    sidebar->setMinimumWidth(190);
     sidebar->setMaximumWidth(520);
 
     auto *stackHost = new QWidget(m_splitter);
@@ -328,6 +392,84 @@ void BrowserWindow::setupUi() {
     };
     m_sidebar = new SidebarController(this, m_splitter, applyStackHostInset, this);
     m_sidebar->setSidebarContent(m_tabTree->widget(), sideLayout);
+
+    m_addrInSidebar = QSettings().value("ui/addressBarInSidebar", false).toBool();
+    if (m_addrInSidebar) {
+        // Drop the toolbar entirely; the address pill + nav buttons live in
+        // the sidebar instead.
+        if (m_topbar) m_topbar->hide();
+        if (m_topSeparator) m_topSeparator->hide();
+
+        // Sidebar already has 52px top inset for the traffic-light band; we
+        // re-use that band by placing nav buttons inside it (right-aligned),
+        // so reset the top margin and own the spacing manually.
+        // Right margin matches the web container's left inset (0 — the
+        // splitter handle itself provides the visual gap), so the sidebar
+        // doesn't end with extra dead space relative to the page edge.
+        sideLayout->setContentsMargins(10, 0, 0, 10);
+
+        m_sidebarHeader = new QWidget(sidebar);
+        m_sidebarHeader->setObjectName("SidebarHeader");
+        m_sidebarHeader->setStyleSheet("QWidget#SidebarHeader { background: transparent; }");
+        auto *headerCol = new QVBoxLayout(m_sidebarHeader);
+        headerCol->setContentsMargins(0, 0, 0, 6);
+        headerCol->setSpacing(6);
+
+        // Traffic-light row: 52px tall (matches the unified-toolbar band).
+        // Traffic lights are painted by AppKit on the leading edge; nav
+        // buttons sit on the trailing edge at the same vertical center.
+        auto *navRow = new QWidget(m_sidebarHeader);
+        navRow->setFixedHeight(52);
+        auto *navLayout = new QHBoxLayout(navRow);
+        // Top inset positions buttons at the traffic-light vertical center
+        // (~y=14 from window top); the leading spacer keeps a comfortable
+        // gap between the lights and the back button on narrow sidebars.
+        navLayout->setContentsMargins(0, 11, 6, 0);
+        navLayout->setSpacing(4);
+        navLayout->addSpacing(96);
+        navLayout->addStretch(1);
+        for (QToolButton *btn : {m_backBtn, m_fwdBtn, m_reloadBtn}) {
+            if (!btn) continue;
+            btn->setParent(navRow);
+            btn->setFixedSize(24, 24);
+            btn->setIconSize(QSize(14, 14));
+            navLayout->addWidget(btn, 0, Qt::AlignTop);
+        }
+        headerCol->addWidget(navRow);
+
+        // Move the address pill itself into the sidebar header. It keeps
+        // every property (controller, lock icon, search icon, menu btn,
+        // load-progress fill) — only its parent changes. Match a tab row's
+        // visual dimensions: ~26 px tall, 6 px horizontal inner padding,
+        // same 6 px corner radius.
+        if (m_addrWrap) {
+            m_addrWrap->setParent(m_sidebarHeader);
+            m_addrWrap->setFixedHeight(24);
+            if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
+                pill->setRadius(6);
+            }
+            if (auto *row = qobject_cast<QHBoxLayout *>(m_addrWrap->layout())) {
+                row->setContentsMargins(6, 0, 6, 0);
+                row->setSpacing(6);
+                row->setSizeConstraint(QLayout::SetNoConstraint);
+            }
+            m_addrWrap->setMinimumHeight(0);
+            m_addrWrap->setMaximumHeight(24);
+            if (m_searchIcon) {
+                m_searchIcon->setFixedSize(16, 16);
+                m_searchIcon->setPixmap(mac::sfSymbolIcon("magnifyingglass", 13.0, m_theme.muted).pixmap(16, 16));
+            }
+            if (m_lockIcon) m_lockIcon->setFixedSize(16, 16);
+            if (m_addressBar) {
+                m_addressBar->setFixedHeight(20);
+                m_addressBar->setContentsMargins(0, 0, 0, 0);
+                m_addressBar->setTextMargins(0, 0, 0, 0);
+            }
+            headerCol->addWidget(m_addrWrap);
+        }
+
+        sideLayout->insertWidget(0, m_sidebarHeader);
+    }
 
     connect(m_splitter, &QSplitter::splitterMoved, this, [this, sidebar](int pos, int) {
         if (!m_splitter) return;

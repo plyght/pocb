@@ -36,6 +36,8 @@ public:
 
     // Idle = transparent (toolbar shows through); hover blends towards `c`.
     void setHoverColor(const QColor &c);
+    void setIdleColor(const QColor &c);
+    void setPopped(bool popped);
     void setRadius(int px) { m_radius = px; update(); }
 
     // 0..100, 0/100 hides the strip. Animates between intermediate values
@@ -53,6 +55,8 @@ private:
     void animateTo(qreal target);
 
     QColor m_hoverColor = QColor(255, 255, 255, 24);
+    QColor m_idleColor = QColor(0, 0, 0, 0);
+    bool m_popped = false;
     qreal m_progress = 0.0;
     int m_radius = 7;
     QVariantAnimation *m_anim = nullptr;

@@ -64,7 +64,8 @@ private:
     QNetworkAccessManager *m_net = nullptr;
     QNetworkReply *m_inflight = nullptr;
     QTimer *m_debounce = nullptr;
-    QListWidget *m_popup = nullptr;
+    QWidget *m_popup = nullptr;
+    QListWidget *m_popupList = nullptr;
     QString m_pendingQuery;
     QString m_savedUrl;
     QString m_currentUrl;       // Full URL of the active page (for editing).

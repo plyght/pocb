@@ -48,6 +48,12 @@ void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material = VibrancyMa
 // NSWindow shadow is enabled so the shadow tracks the rounded silhouette.
 void makeFloatingVibrantPanel(QWidget *window, VibrancyMaterial material, double cornerRadius);
 
+// Make the NSWindow's titlebar transparent and hide its title text, so the
+// behind-window vibrancy reads through the titlebar area as well. The
+// content view is expanded to full size so Qt widgets can paint into the
+// titlebar region too. No-op off macOS.
+void makeTitlebarTransparent(QWidget *window);
+
 // Hide or show the three standard window buttons (close/min/zoom) on the
 // QMainWindow's NSWindow. Useful for collapsing them with a sidebar.
 void setTrafficLightsHidden(QWidget *window, bool hidden);

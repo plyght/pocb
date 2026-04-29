@@ -1237,6 +1237,12 @@ CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qsizepolicy.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qcursor.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qbitmap.h \
+  /Users/nicojaffer/pocb/src/services/Theme.hpp \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QColor \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QHash \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QString \
+  /Users/nicojaffer/pocb/src/mac/MacIntegration.hpp \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QIcon \
   /Users/nicojaffer/pocb/src/services/ProfileStore.hpp \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QDir \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdir.h \
@@ -1267,7 +1273,6 @@ CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o: \
   /Applications/Xcode-beta.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1/__filesystem/u8path.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qfileinfo.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qtimezone.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QHash \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QObject \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QStringList \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QCheckBox \
@@ -1288,10 +1293,6 @@ CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qrubberband.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qframe.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qabstractitemmodel.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QDialogButtonBox \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qdialogbuttonbox.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSettings \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsettings.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QFormLayout \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qformlayout.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QLayout \
@@ -1299,12 +1300,38 @@ CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlayoutitem.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qboxlayout.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qgridlayout.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QFrame \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QHBoxLayout \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QKeyEvent \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qevent.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcoreevent.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qbasictimer.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qabstracteventdispatcher.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qeventloop.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qdeadlinetimer.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qurl.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qeventpoint.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qvector2d.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qvectornd.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpointingdevice.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qinputdevice.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qscreen.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QList \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QRect \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSize \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSizeF \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QTransform \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qnativeinterface.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qscreen_platform.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qguiapplication.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcoreapplication.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qcoreapplication_platform.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qinputmethod.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qguiapplication_platform.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QLabel \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlabel.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpicture.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextdocument.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qurl.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QLineEdit \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qlineedit.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextcursor.h \
@@ -1313,4 +1340,9 @@ CMakeFiles/pocb.dir/src/app/SettingsDialog.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextoption.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QPushButton \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qpushbutton.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QSettings \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/qsettings.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QShowEvent \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QToolButton \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtoolbutton.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QVBoxLayout

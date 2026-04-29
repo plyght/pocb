@@ -1261,6 +1261,8 @@ CMakeFiles/pocb.dir/src/ui/Topbar.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextformat.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qpen.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qtextoption.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QStyleFactory \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qstylefactory.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QToolButton \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qtoolbutton.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qabstractbutton.h

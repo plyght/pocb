@@ -7,6 +7,7 @@
 #include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
+#include <QStyleFactory>
 #include <QToolButton>
 #include <QWidget>
 
@@ -83,10 +84,28 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
     }
     addrRow->addWidget(w.lockIcon);
 
+    // Magnifying-glass icon shown when the address field is empty (mutually
+    // exclusive with the lock icon, which is hidden for blank URLs anyway).
+    w.searchIcon = new QLabel(addrWrap);
+    w.searchIcon->setFixedSize(14, 14);
+    {
+        QIcon mag = mac::sfSymbolIcon("magnifyingglass", 11.0, theme.muted);
+        w.searchIcon->setPixmap(mag.pixmap(14, 14));
+    }
+    addrRow->addWidget(w.searchIcon);
+
     w.addressBar = new QLineEdit(addrWrap);
     w.addressBar->setFrame(false);
     w.addressBar->setPlaceholderText("Search or enter address");
     w.addressBar->setClearButtonEnabled(false);
+    // QLineEdit on macOS otherwise renders through native Cocoa NSTextField
+    // which ignores most of our stylesheet sizing/padding. Forcing the
+    // Fusion style swaps it to a fully Qt-painted widget so fixed heights,
+    // padding, and background colours actually take effect.
+    if (auto *fusion = QStyleFactory::create("Fusion")) {
+        w.addressBar->setStyle(fusion);
+    }
+    w.addressBar->setAttribute(Qt::WA_MacShowFocusRect, false);
     w.addressBar->setStyleSheet(QString(
         "QLineEdit {"
         "  background: transparent;"
@@ -100,6 +119,24 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
              theme.fontFamily,
              QString::number(theme.regularSize)));
     addrRow->addWidget(w.addressBar, 1);
+
+    // Hover-only ellipsis menu button on the right edge of the pill. Shown
+    // only when the pill is hovered (controlled by enter/leave events on the
+    // pill widget); kept hidden by default.
+    w.pillMenuBtn = new QToolButton(addrWrap);
+    w.pillMenuBtn->setAutoRaise(true);
+    w.pillMenuBtn->setFocusPolicy(Qt::NoFocus);
+    w.pillMenuBtn->setCursor(Qt::PointingHandCursor);
+    w.pillMenuBtn->setIconSize(QSize(14, 14));
+    w.pillMenuBtn->setFixedSize(20, 20);
+    w.pillMenuBtn->setIcon(mac::sfSymbolIcon("ellipsis.circle", 12.0, iconColor));
+    w.pillMenuBtn->setToolTip("Page actions");
+    w.pillMenuBtn->setStyleSheet(
+        "QToolButton { background: transparent; border: none; border-radius: 4px; }"
+        "QToolButton:hover { background: rgba(255,255,255,0.10); }"
+        "QToolButton:pressed { background: rgba(255,255,255,0.18); }");
+    w.pillMenuBtn->hide();
+    addrRow->addWidget(w.pillMenuBtn);
 
     row->addWidget(addrWrap, 1);
     row->addSpacing(6);

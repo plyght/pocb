@@ -995,6 +995,9 @@
   /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/limits.h \
   /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/ptrcheck.h \
   /Applications/Xcode-beta.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/stdarg.h \
+  /Users/nicojaffer/pocb/src/services/Theme.hpp \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QHash \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/QString \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/q17memory.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/q20functional.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/q20iterator.h \
@@ -1122,6 +1125,7 @@
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qversiontagging.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qxptype_traits.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Versions/A/Headers/qyieldcpu.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/QColor \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/qaction.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/qbitmap.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Versions/A/Headers/qbrush.h \

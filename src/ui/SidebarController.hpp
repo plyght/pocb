@@ -51,6 +51,7 @@ private:
     QVariantAnimation *m_anim = nullptr;
     QVariantAnimation *m_slideAnim = nullptr;
     QTimer *m_dismissTimer = nullptr;
+    QTimer *m_hoverPoll = nullptr;
     std::function<void(bool)> m_setStackHostInset;
     bool m_hoverArmed = true;
     bool m_slidingOut = false;

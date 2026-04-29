@@ -2,9 +2,14 @@
 
 #include <QDialog>
 
+#include "Theme.hpp"
+
 class QCheckBox;
 class QComboBox;
+class QKeyEvent;
 class QLineEdit;
+class QPaintEvent;
+class QShowEvent;
 class ProfileStore;
 
 class SettingsDialog final : public QDialog {
@@ -19,8 +24,14 @@ signals:
     // domain-first form when not editing.
     void showFullUrlChanged(bool enabled);
 
+protected:
+    void keyPressEvent(QKeyEvent *e) override;
+    void showEvent(QShowEvent *e) override;
+
 private:
     void refreshProfiles();
+
+    Theme m_theme;
 
     ProfileStore &m_profiles;
     QComboBox *m_profileBox = nullptr;
@@ -28,4 +39,5 @@ private:
     QLineEdit *m_homePage = nullptr;
     QLineEdit *m_searchEngine = nullptr;
     QCheckBox *m_showFullUrl = nullptr;
+    QCheckBox *m_addrInSidebar = nullptr;
 };

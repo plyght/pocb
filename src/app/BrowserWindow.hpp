@@ -73,7 +73,11 @@ private:
     QToolButton *m_newTabBtn = nullptr;
     QLineEdit *m_addressBar = nullptr;
     QLabel *m_lockIcon = nullptr;
+    QLabel *m_searchIcon = nullptr;
+    QToolButton *m_pillMenuBtn = nullptr;
     QWidget *m_addrWrap = nullptr;
+    QWidget *m_sidebarHeader = nullptr;
+    bool m_addrInSidebar = false;
     QColor m_lastAppliedChrome;
     void applyChromeForPageColor(const QColor &pageColor);
     AddressBarController *m_addressBarCtl = nullptr;

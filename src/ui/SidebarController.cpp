@@ -17,8 +17,8 @@ namespace {
 constexpr int kFloatingTopGap = 52;     // clears the toolbar (~52px tall)
 constexpr int kFloatingBottomGap = 8;
 constexpr int kFloatingSideGap = 8;
-constexpr int kDismissDelayMs = 220;
-constexpr int kSlideDurationMs = 220;
+constexpr int kDismissDelayMs = 180;
+constexpr int kSlideDurationMs = 160;
 }
 
 SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
@@ -71,6 +71,30 @@ SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
     m_dismissTimer->setInterval(kDismissDelayMs);
     connect(m_dismissTimer, &QTimer::timeout, this, [this] { hideFloatingAnimated(); });
 
+    // While the floating panel is open we poll the cursor every ~60ms to
+    // decide whether to dismiss. The "keep-alive" rect spans from the host
+    // window's left edge all the way to the panel's right edge — so the
+    // gap between window edge and panel edge (kFloatingSideGap) doesn't
+    // count as "left the panel" and we don't get the dismiss/re-summon
+    // ping-pong that Enter/Leave events caused.
+    m_hoverPoll = new QTimer(this);
+    m_hoverPoll->setInterval(60);
+    connect(m_hoverPoll, &QTimer::timeout, this, [this] {
+        if (!m_floating || !m_window || !m_floating->isVisible()) return;
+        const QPoint cursor = QCursor::pos();
+        const QRect panel = m_floating->frameGeometry();
+        const QPoint winTL = m_window->mapToGlobal(QPoint(0, 0));
+        const QRect keepAlive(winTL.x(), panel.top(),
+                              panel.right() - winTL.x() + 1, panel.height());
+        if (keepAlive.contains(cursor)) {
+            if (m_dismissTimer) m_dismissTimer->stop();
+            if (m_slidingOut) showFloating();
+        } else if (!m_slidingOut) {
+            if (m_dismissTimer && !m_dismissTimer->isActive())
+                m_dismissTimer->start();
+        }
+    });
+
     // The slide animation drives both window x position (small inward
     // travel) and opacity. Value runs 0..1, where 0 = hidden / out-of-place,
     // 1 = fully shown / final position.
@@ -92,6 +116,7 @@ SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
     connect(m_slideAnim, &QVariantAnimation::finished, this, [this] {
         if (!m_slidingOut) return;
         m_slidingOut = false;
+        if (m_hoverPoll) m_hoverPoll->stop();
         if (m_floating) m_floating->hide();
         dockContent();
         if (m_splitter) {
@@ -158,7 +183,7 @@ void SidebarController::setHidden(bool hidden) {
 
 void SidebarController::positionHoverZone() {
     if (!m_hoverZone || !m_window) return;
-    constexpr int kZoneWidth = 16;
+    constexpr int kZoneWidth = 48;
     const QPoint topLeft = m_window->mapToGlobal(QPoint(0, 0));
     const int top = topLeft.y() + 28;
     const int height = qMax(0, m_window->height() - 28);
@@ -259,6 +284,7 @@ void SidebarController::showFloating() {
     m_slideAnim->setStartValue(0.0);
     m_slideAnim->setEndValue(1.0);
     m_slideAnim->start();
+    if (m_hoverPoll) m_hoverPoll->start();
 }
 
 void SidebarController::hideFloatingAnimated() {
@@ -276,6 +302,7 @@ void SidebarController::hideFloatingAnimated() {
 
 void SidebarController::hideFloatingImmediate() {
     if (m_dismissTimer) m_dismissTimer->stop();
+    if (m_hoverPoll) m_hoverPoll->stop();
     if (m_slideAnim) m_slideAnim->stop();
     m_slidingOut = false;
     if (m_floating && m_floating->isVisible()) m_floating->hide();
@@ -295,13 +322,10 @@ bool SidebarController::eventFilter(QObject *obj, QEvent *ev) {
         } else if (ev->type() == QEvent::Enter) {
             if (m_hoverArmed) showFloating();
         }
-    } else if (obj == m_floating) {
-        if (ev->type() == QEvent::Leave) {
-            if (m_dismissTimer) m_dismissTimer->start();
-        } else if (ev->type() == QEvent::Enter) {
-            if (m_dismissTimer) m_dismissTimer->stop();
-            if (m_slidingOut) showFloating();
-        }
     }
+    // Note: dismiss/keep-alive on the floating panel itself is handled by
+    // the cursor-position poll (m_hoverPoll), not by Enter/Leave events,
+    // because the gap between the window edge and the panel edge would
+    // otherwise cause an immediate dismiss-then-resummon cycle.
     return QObject::eventFilter(obj, ev);
 }

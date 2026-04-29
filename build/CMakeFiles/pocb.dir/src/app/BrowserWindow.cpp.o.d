@@ -1307,8 +1307,12 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qguiapplication.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qinputmethod.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qguiapplication_platform.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QClipboard \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qclipboard.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QDesktopServices \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qdesktopservices.h \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QMenu \
+  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qmenu.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtCore.framework/Headers/QEvent \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QFocusEvent \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/qevent.h \
@@ -1373,7 +1377,6 @@ CMakeFiles/pocb.dir/src/app/BrowserWindow.cpp.o: \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QListWidgetItem \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/QMenuBar \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qmenubar.h \
-  /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtWidgets.framework/Headers/qmenu.h \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtGui.framework/Headers/QMouseEvent \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/QNetworkAccessManager \
   /opt/homebrew/Cellar/qtbase/6.10.2/lib/QtNetwork.framework/Headers/qnetworkaccessmanager.h \
