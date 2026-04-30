@@ -2,6 +2,7 @@
 
 #include <QIcon>
 #include <QPoint>
+#include <QRect>
 #include <QString>
 #include <QStringList>
 #include <QVector>
@@ -97,6 +98,12 @@ void enableHighRefreshRate(QWidget *window);
 void sendStandardEditAction(const char *selector);
 
 void performHapticFeedback();
+
+void animateWindowFrame(QWidget *window,
+                        const QRect &from,
+                        const QRect &to,
+                        int durationMs,
+                        std::function<void()> completion = {});
 
 bool showNativePageActionsMenu(QWidget *anchor,
                                std::function<void()> copyUrl,

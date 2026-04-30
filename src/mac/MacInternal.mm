@@ -20,6 +20,7 @@ NSWindow *nsWindowOf(QWidget *w) {
 #include "MacIntegration.hpp"
 #import <AppKit/AppKit.h>
 #import <AppKit/NSGlassEffectView.h>
+#import <QuartzCore/QuartzCore.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -241,6 +242,14 @@ static bool pocbShowGlassMenu(NSWindow *owner,
 
 namespace mac {
 
+static NSRect pocbNSWindowFrameFromQRect(const QRect &rect, NSScreen *preferredScreen) {
+    NSScreen *screen = preferredScreen ?: NSScreen.mainScreen;
+    if (!screen) return NSMakeRect(rect.x(), rect.y(), rect.width(), rect.height());
+    const NSRect screenFrame = screen.frame;
+    const CGFloat y = NSMaxY(screenFrame) - rect.y() - rect.height();
+    return NSMakeRect(rect.x(), y, rect.width(), rect.height());
+}
+
 void performHapticFeedback() {
     [[NSHapticFeedbackManager defaultPerformer] performFeedbackPattern:NSHapticFeedbackPatternGeneric performanceTime:NSHapticFeedbackPerformanceTimeDefault];
 }
@@ -249,6 +258,35 @@ void sendStandardEditAction(const char *selector) {
     if (!selector || !*selector) return;
     SEL sel = sel_registerName(selector);
     [NSApp sendAction:sel to:nil from:nil];
+}
+
+void animateWindowFrame(QWidget *window,
+                        const QRect &from,
+                        const QRect &to,
+                        int durationMs,
+                        std::function<void()> completion) {
+    if (!window) {
+        if (completion) completion();
+        return;
+    }
+    NSWindow *nsWindow = mac::internal::nsWindowOf(window);
+    if (!nsWindow) {
+        window->setGeometry(to);
+        if (completion) completion();
+        return;
+    }
+    NSScreen *screen = nsWindow.screen ?: NSScreen.mainScreen;
+    [nsWindow setFrame:pocbNSWindowFrameFromQRect(from, screen) display:YES];
+    auto *completionCopy = new std::function<void()>(std::move(completion));
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *context) {
+        context.duration = qMax(0, durationMs) / 1000.0;
+        context.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut];
+        [[nsWindow animator] setFrame:pocbNSWindowFrameFromQRect(to, screen) display:YES];
+    } completionHandler:^{
+        window->setGeometry(to);
+        if (*completionCopy) (*completionCopy)();
+        delete completionCopy;
+    }];
 }
 
 bool showNativeContextMenu(QWidget *anchor,
@@ -365,6 +403,15 @@ bool showNativePageActionsMenu(QWidget *anchor,
 #include "MacIntegration.hpp"
 
 namespace mac {
+
+void animateWindowFrame(QWidget *window,
+                        const QRect &,
+                        const QRect &to,
+                        int,
+                        std::function<void()> completion) {
+    if (window) window->setGeometry(to);
+    if (completion) completion();
+}
 
 bool showNativePageActionsMenu(QWidget *,
                                std::function<void()>,

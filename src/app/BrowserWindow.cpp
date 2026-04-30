@@ -69,6 +69,12 @@
 
 namespace {
 
+QEasingCurve responsiveEaseOut() {
+    QEasingCurve curve(QEasingCurve::BezierSpline);
+    curve.addCubicBezierSegment(QPointF(0.23, 1.0), QPointF(0.32, 1.0), QPointF(1.0, 1.0));
+    return curve;
+}
+
 void setButtonSymbolSmooth(QToolButton *button, const QString &symbol, double pointSize, const QColor &color) {
     if (!button) return;
     const QString previousSymbol = button->property("sfSymbolName").toString();
@@ -90,17 +96,17 @@ void setButtonSymbolSmooth(QToolButton *button, const QString &symbol, double po
         button->setGraphicsEffect(effect);
     }
     auto *out = new QPropertyAnimation(effect, "opacity", button);
-    out->setDuration(45);
+    out->setDuration(55);
     out->setStartValue(effect->opacity());
     out->setEndValue(0.35);
-    out->setEasingCurve(QEasingCurve::OutCubic);
+    out->setEasingCurve(responsiveEaseOut());
     QObject::connect(out, &QPropertyAnimation::finished, button, [button, effect, applyIcon] {
         applyIcon();
         auto *in = new QPropertyAnimation(effect, "opacity", button);
-        in->setDuration(45);
+        in->setDuration(70);
         in->setStartValue(effect->opacity());
         in->setEndValue(1.0);
-        in->setEasingCurve(QEasingCurve::OutCubic);
+        in->setEasingCurve(responsiveEaseOut());
         QObject::connect(in, &QPropertyAnimation::finished, in, &QObject::deleteLater);
         in->start();
     });
@@ -527,7 +533,11 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
         };
         syncPaneNav();
         connect(view, &WebView::navigationStateChanged, toolbar.bar, syncPaneNav);
-        connect(toolbar.sidebar, &QToolButton::clicked, this, [this] { if (m_sidebar && m_sidebarWidget) m_sidebar->setHidden(m_sidebarWidget->isVisible()); });
+        connect(toolbar.sidebar, &QToolButton::clicked, this, [this] {
+            if (!m_sidebar || !m_sidebarWidget) return;
+            if (m_sidebarWidget->isVisible()) m_sidebar->setHidden(true);
+            else m_sidebar->expandAnimated();
+        });
         connect(toolbar.back, &QToolButton::clicked, view, [viewGuard] { if (viewGuard) viewGuard->back(); });
         connect(toolbar.forward, &QToolButton::clicked, view, [viewGuard] { if (viewGuard) viewGuard->forward(); });
         connect(toolbar.reload, &QToolButton::clicked, view, [viewGuard] { if (viewGuard) { if (viewGuard->isLoading()) viewGuard->stop(); else viewGuard->reload(); } });
@@ -865,7 +875,11 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
         if (auto *v = currentView()) v->setFocus();
     });
 
-    connect(m_sidebarBtn, &QToolButton::clicked, this, [this] { if (m_sidebar && m_sidebarWidget) m_sidebar->setHidden(m_sidebarWidget->isVisible()); });
+    connect(m_sidebarBtn, &QToolButton::clicked, this, [this] {
+        if (!m_sidebar || !m_sidebarWidget) return;
+        if (m_sidebarWidget->isVisible()) m_sidebar->setHidden(true);
+        else m_sidebar->expandAnimated();
+    });
     connect(m_backBtn,   &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->back(); });
     connect(m_fwdBtn,    &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->forward(); });
     connect(m_reloadBtn, &QToolButton::clicked, this, [this] { if (auto *v = currentView()) { if (v->isLoading()) v->stop(); else v->reload(); } });
@@ -1022,8 +1036,8 @@ void BrowserWindow::settleSidebarSwipe(bool commit) {
     m_sidebarSwipeAnim = driver;
     driver->setStartValue(startOffset);
     driver->setEndValue(commit ? (direction > 0 ? -width : width) : 0);
-    driver->setDuration(commit ? 160 : 120);
-    driver->setEasingCurve(QEasingCurve::OutCubic);
+    driver->setDuration(commit ? 150 : 105);
+    driver->setEasingCurve(responsiveEaseOut());
     m_sidebarSwipeSettling = true;
     connect(driver, &QVariantAnimation::valueChanged, this, [this](const QVariant &value) {
         setSidebarSwipeOffset(value.toInt());
@@ -1056,10 +1070,10 @@ void BrowserWindow::animateProfileSwitcher(int direction) {
     QRect start = end.translated(direction > 0 ? 18 : -18, 0);
     m_profileBtn->setGeometry(start);
     m_profileAnim = new QPropertyAnimation(m_profileBtn, "geometry", this);
-    m_profileAnim->setDuration(180);
+    m_profileAnim->setDuration(155);
     m_profileAnim->setStartValue(start);
     m_profileAnim->setEndValue(end);
-    m_profileAnim->setEasingCurve(QEasingCurve::OutCubic);
+    m_profileAnim->setEasingCurve(responsiveEaseOut());
     QPropertyAnimation *anim = m_profileAnim;
     connect(anim, &QPropertyAnimation::finished, anim, &QObject::deleteLater);
     connect(anim, &QObject::destroyed, this, [this, anim] { if (m_profileAnim == anim) m_profileAnim = nullptr; });
@@ -1580,14 +1594,10 @@ void BrowserWindow::setupActions() {
         auto *side = m_splitter->widget(0);
         if (!side) return;
         const bool nowVisible = !side->isVisible();
-        m_sidebar->setHidden(!nowVisible);
         if (nowVisible) {
-            QTimer::singleShot(0, this, [this, side] {
-                const int saved = QSettings().value("ui/sidebarWidth", ui::metrics::SidebarDefaultWidth).toInt();
-                const int target = qBound(side->minimumWidth(), saved, side->maximumWidth());
-                const int total = m_splitter->size().width();
-                m_splitter->setSizes({target, qMax(0, total - target - m_splitter->handleWidth())});
-            });
+            m_sidebar->expandAnimated();
+        } else {
+            m_sidebar->setHidden(true);
         }
     };
 

@@ -308,7 +308,7 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
     m_tabs->setAllColumnsShowFocus(false);
     m_tabs->setSelectionMode(QAbstractItemView::NoSelection);
     m_tabs->setFocusPolicy(Qt::NoFocus);
-    m_tabs->setAnimated(true);
+    m_tabs->setAnimated(false);
     m_tabs->setFrameShape(QFrame::NoFrame);
     m_tabs->setIconSize(QSize(14, 14));
     m_tabs->setExpandsOnDoubleClick(false);

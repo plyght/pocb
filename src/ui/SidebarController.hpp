@@ -4,6 +4,7 @@
 #include <QPointer>
 #include <functional>
 
+class QLabel;
 class QMainWindow;
 class QSplitter;
 class QVBoxLayout;
@@ -39,6 +40,8 @@ private:
     void hideFloatingAnimated();
     void hideFloatingImmediate();
     void dockContent();
+    void prepareFloatingSnapshot();
+    void clearFloatingSnapshot();
 
     QMainWindow *m_window = nullptr;
     QSplitter *m_splitter = nullptr;
@@ -46,6 +49,7 @@ private:
     QWidget *m_floating = nullptr;
     QWidget *m_floatingInner = nullptr;
     QVBoxLayout *m_floatingLayout = nullptr;
+    QLabel *m_floatingSnapshot = nullptr;
     QPointer<QWidget> m_content;
     QPointer<QVBoxLayout> m_dockedLayout;
     QVariantAnimation *m_anim = nullptr;
@@ -56,4 +60,6 @@ private:
     bool m_hoverArmed = true;
     bool m_slidingOut = false;
     bool m_floatingChromeApplied = false;
+    double m_slideProgress = 0.0;
+    bool m_nativeFloatingAnimation = false;
 };

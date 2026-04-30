@@ -18,6 +18,12 @@ QColor lerp(const QColor &a, const QColor &b, qreal t) {
                             a.blueF()  + (b.blueF()  - a.blueF())  * t,
                             a.alphaF() + (b.alphaF() - a.alphaF()) * t);
 }
+
+QEasingCurve responsiveEaseOut() {
+    QEasingCurve curve(QEasingCurve::BezierSpline);
+    curve.addCubicBezierSegment(QPointF(0.23, 1.0), QPointF(0.32, 1.0), QPointF(1.0, 1.0));
+    return curve;
+}
 }  // namespace
 
 // ---- ChromeBar ----------------------------------------------------------
@@ -27,8 +33,8 @@ ChromeBar::ChromeBar(QWidget *parent)
     setAttribute(Qt::WA_StyledBackground, false);
     setAutoFillBackground(false);
     m_anim = new QVariantAnimation(this);
-    m_anim->setDuration(220);
-    m_anim->setEasingCurve(QEasingCurve::OutCubic);
+    m_anim->setDuration(180);
+    m_anim->setEasingCurve(responsiveEaseOut());
     connect(m_anim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
         m_bg = v.value<QColor>();
         update();
@@ -74,15 +80,15 @@ AddrPill::AddrPill(QWidget *parent) : QWidget(parent) {
     setAttribute(Qt::WA_StyledBackground, false);
     setAutoFillBackground(false);
     m_anim = new QVariantAnimation(this);
-    m_anim->setDuration(140);
-    m_anim->setEasingCurve(QEasingCurve::OutCubic);
+    m_anim->setDuration(125);
+    m_anim->setEasingCurve(responsiveEaseOut());
     connect(m_anim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
         m_progress = v.toDouble();
         update();
     });
     m_loadAnim = new QVariantAnimation(this);
-    m_loadAnim->setDuration(130);
-    m_loadAnim->setEasingCurve(QEasingCurve::OutCubic);
+    m_loadAnim->setDuration(115);
+    m_loadAnim->setEasingCurve(responsiveEaseOut());
     connect(m_loadAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
         m_loadCurrent = v.toDouble();
         update();
@@ -124,13 +130,13 @@ void AddrPill::setLoadProgress(int percent) {
     }
     if (percent >= 100) {
         m_loadAnim->setEndValue(100.0);
-        m_loadAnim->setDuration(115);
+        m_loadAnim->setDuration(90);
     } else {
         if (m_loadPulseAnim->state() != QAbstractAnimation::Running) m_loadPulseAnim->start();
         const qreal visualTarget = qMax((qreal)percent, 96.0);
         m_loadAnim->setEndValue(visualTarget);
         const int delta = qAbs(qRound(visualTarget - m_loadCurrent));
-        m_loadAnim->setDuration(qBound(70, 28 + delta * 3, 145));
+        m_loadAnim->setDuration(qBound(60, 24 + delta * 2, 120));
     }
     m_loadAnim->start();
 }

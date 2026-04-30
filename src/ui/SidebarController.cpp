@@ -6,6 +6,7 @@
 #include <QCursor>
 #include <QEasingCurve>
 #include <QEvent>
+#include <QLabel>
 #include <QMainWindow>
 #include <QSettings>
 #include <QSplitter>
@@ -16,7 +17,13 @@
 
 namespace {
 constexpr int kDismissDelayMs = ui::metrics::FloatingDismissDelayMs;
-constexpr int kSlideDurationMs = ui::metrics::FloatingSlideDurationMs;
+constexpr int kSlideInDurationMs = ui::metrics::FloatingSlideInDurationMs;
+constexpr int kSlideOutDurationMs = ui::metrics::FloatingSlideOutDurationMs;
+constexpr int kSlideTravelPx = ui::metrics::FloatingSlideTravelPx;
+
+QEasingCurve responsiveEaseOut() {
+    return QEasingCurve(QEasingCurve::OutCubic);
+}
 }
 
 SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
@@ -61,6 +68,13 @@ SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
     m_floatingLayout->setContentsMargins(10, 12, 10, 10);
     m_floatingLayout->setSpacing(0);
 
+    m_floatingSnapshot = new QLabel(m_floatingInner);
+    m_floatingSnapshot->setObjectName("FloatingSidebarSnapshot");
+    m_floatingSnapshot->setAttribute(Qt::WA_TransparentForMouseEvents);
+    m_floatingSnapshot->setScaledContents(false);
+    m_floatingSnapshot->setStyleSheet("QLabel#FloatingSidebarSnapshot { background: transparent; }");
+    m_floatingSnapshot->hide();
+
     m_floating->hide();
     m_floating->installEventFilter(this);
 
@@ -82,8 +96,8 @@ SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
         const QPoint cursor = QCursor::pos();
         const QRect panel = m_floating->frameGeometry();
         const QRect windowFrame = ui::metrics::windowContentRect(m_window);
-        const QRect keepAlive(windowFrame.left(), panel.top(),
-                              panel.right() - windowFrame.left() + 1, panel.height());
+        const QRect keepAlive(windowFrame.left(), panel.top() - 10,
+                              panel.right() - windowFrame.left() + 18, panel.height() + 20);
         if (keepAlive.contains(cursor)) {
             if (m_dismissTimer) m_dismissTimer->stop();
             if (m_slidingOut) showFloating();
@@ -97,22 +111,27 @@ SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
     // travel) and opacity. Value runs 0..1, where 0 = hidden / out-of-place,
     // 1 = fully shown / final position.
     m_slideAnim = new QVariantAnimation(this);
-    m_slideAnim->setDuration(kSlideDurationMs);
-    m_slideAnim->setEasingCurve(QEasingCurve::OutCubic);
+    m_slideAnim->setDuration(kSlideInDurationMs);
+    m_slideAnim->setEasingCurve(responsiveEaseOut());
     m_slideAnim->setStartValue(0.0);
     m_slideAnim->setEndValue(1.0);
     connect(m_slideAnim, &QVariantAnimation::valueChanged, this,
             [this](const QVariant &v) {
                 if (!m_floating || !m_floatingInner) return;
-                const double t = v.toDouble();
+                const double t = qBound(0.0, v.toDouble(), 1.0);
+                m_slideProgress = t;
                 const int w = m_floating->width();
                 const int h = m_floating->height();
-                const int x = static_cast<int>(-w * (1.0 - t));
+                const int travel = qMin(kSlideTravelPx, w);
+                const int x = -travel + qRound(travel * t);
                 m_floatingInner->setGeometry(x, 0, w, h);
-                m_floating->setWindowOpacity(t);
+                m_floating->setWindowOpacity(0.9 + 0.1 * t);
             });
     connect(m_slideAnim, &QVariantAnimation::finished, this, [this] {
-        if (!m_slidingOut) return;
+            if (!m_slidingOut) {
+            clearFloatingSnapshot();
+            return;
+        }
         m_slidingOut = false;
         if (m_hoverPoll) m_hoverPoll->stop();
         if (m_floating) m_floating->hide();
@@ -205,6 +224,7 @@ void SidebarController::expandAnimated() {
     if (!side) return;
     if (m_anim && m_anim->state() == QAbstractAnimation::Running) return;
 
+    if (m_floating && m_floating->isVisible()) hideFloatingImmediate();
     setHidden(false);
     if (m_hoverZone) m_hoverZone->hide();
 
@@ -216,8 +236,8 @@ void SidebarController::expandAnimated() {
 
     if (!m_anim) {
         m_anim = new QVariantAnimation(this);
-        m_anim->setDuration(180);
-        m_anim->setEasingCurve(QEasingCurve::OutCubic);
+        m_anim->setDuration(kSlideInDurationMs);
+        m_anim->setEasingCurve(responsiveEaseOut());
         connect(m_anim, &QVariantAnimation::valueChanged, this,
                 [this](const QVariant &v) {
                     if (!m_splitter) return;
@@ -240,8 +260,10 @@ void SidebarController::showFloating() {
     if (m_floating->isVisible() && m_slidingOut) {
         // Reverse direction mid-flight.
         m_slidingOut = false;
-        const double startT = m_floating->windowOpacity();
+        const double startT = m_slideProgress;
         m_slideAnim->stop();
+        m_slideAnim->setDuration(kSlideInDurationMs);
+        m_slideAnim->setEasingCurve(responsiveEaseOut());
         m_slideAnim->setStartValue(startT);
         m_slideAnim->setEndValue(1.0);
         m_slideAnim->start();
@@ -249,19 +271,17 @@ void SidebarController::showFloating() {
     }
     if (m_floating->isVisible()) return;
 
+    m_content->setUpdatesEnabled(false);
     m_floatingLayout->addWidget(m_content, 1);
     m_content->show();
 
     positionFloating();
-    // Park the inner offscreen-left within the (fixed-position) window so
-    // the slide-in animates within the rounded panel, not across the
-    // desktop. Window itself stays at its final position the whole time —
-    // mouse Enter/Leave on it stays stable.
     if (m_floatingInner) {
-        m_floatingInner->setGeometry(-m_floating->width(), 0,
+        m_floatingInner->setGeometry(-qMin(kSlideTravelPx, m_floating->width()), 0,
                                       m_floating->width(), m_floating->height());
     }
-    m_floating->setWindowOpacity(0.0);
+    m_slideProgress = 0.0;
+    m_floating->setWindowOpacity(1.0);
     m_floating->show();
     m_floating->raise();
 
@@ -274,8 +294,12 @@ void SidebarController::showFloating() {
     }
 
     if (m_hoverZone) m_hoverZone->hide();
+    prepareFloatingSnapshot();
+    m_content->setUpdatesEnabled(true);
     m_slidingOut = false;
     m_slideAnim->stop();
+    m_slideAnim->setDuration(kSlideInDurationMs);
+    m_slideAnim->setEasingCurve(responsiveEaseOut());
     m_slideAnim->setStartValue(0.0);
     m_slideAnim->setEndValue(1.0);
     m_slideAnim->start();
@@ -287,9 +311,12 @@ void SidebarController::hideFloatingAnimated() {
         hideFloatingImmediate();
         return;
     }
+    prepareFloatingSnapshot();
     m_slidingOut = true;
-    const double startT = m_floating->windowOpacity();
+    const double startT = m_slideProgress;
     m_slideAnim->stop();
+    m_slideAnim->setDuration(kSlideOutDurationMs);
+    m_slideAnim->setEasingCurve(responsiveEaseOut());
     m_slideAnim->setStartValue(startT);
     m_slideAnim->setEndValue(0.0);
     m_slideAnim->start();
@@ -304,7 +331,26 @@ void SidebarController::hideFloatingImmediate() {
     dockContent();
 }
 
+void SidebarController::prepareFloatingSnapshot() {
+    if (!m_content || !m_floatingSnapshot || !m_floatingInner) return;
+    const QPixmap pixmap = m_content->grab();
+    if (pixmap.isNull()) return;
+    m_floatingSnapshot->setPixmap(pixmap);
+    m_floatingSnapshot->setGeometry(m_content->geometry());
+    m_floatingSnapshot->show();
+    m_floatingSnapshot->raise();
+    m_content->hide();
+}
+
+void SidebarController::clearFloatingSnapshot() {
+    if (m_content) m_content->show();
+    if (!m_floatingSnapshot) return;
+    m_floatingSnapshot->clear();
+    m_floatingSnapshot->hide();
+}
+
 void SidebarController::dockContent() {
+    clearFloatingSnapshot();
     if (m_content && m_dockedLayout) {
         const int insertAt = qMax(0, m_dockedLayout->count() - 1);
         m_dockedLayout->insertWidget(insertAt, m_content, 1);
