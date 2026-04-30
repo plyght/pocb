@@ -83,6 +83,8 @@ qt_add_executable(pocb MACOSX_BUNDLE
     src/ui/ChromeWidgets.cpp
     src/ui/ChromeWidgets.hpp
     src/ui/LayoutMetrics.hpp
+    src/tabs/MiniWindowDragPreview.cpp
+    src/tabs/MiniWindowDragPreview.hpp
     src/tabs/TabTree.cpp
     src/tabs/TabTree.hpp
     src/mac/MacIntegration.hpp

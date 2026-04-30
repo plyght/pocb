@@ -2,6 +2,7 @@
 
 #include "FaviconService.hpp"
 #include "LayoutMetrics.hpp"
+#include "MiniWindowDragPreview.hpp"
 #include "MacIntegration.hpp"
 #include "ProfileStore.hpp"
 #include "WebView.hpp"
@@ -437,10 +438,7 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
         if (m_draggingItem && m_dragOverlay) {
             const QPoint global = mouse->globalPosition().toPoint();
             const bool outsideWindow = !m_container->window()->frameGeometry().contains(global);
-            const QPixmap preview = outsideWindow ? miniWindowDragPixmapForItem(m_draggingItem) : dragPixmapForItem(m_draggingItem, true);
-            qobject_cast<QLabel *>(m_dragOverlay)->setPixmap(preview);
-            m_dragOverlay->resize(preview.size() / preview.devicePixelRatio());
-            m_dragOverlay->move(global - (outsideWindow ? QPoint(34, 46) : QPoint(22, 22)));
+            updateTabDragOverlay(true, global);
             if (outsideWindow) clearDropIndicator();
             else {
                 const int index = essentialDropIndex(mouse->pos());
@@ -451,20 +449,14 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
         if (m_pressedItem && (mouse->pos() - m_pressPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_draggingItem = m_pressedItem;
             m_draggingFromEssential = true;
-            const QPixmap preview = dragPixmapForItem(m_draggingItem, true);
-            auto *label = new QLabel(nullptr, Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
-            label->setAttribute(Qt::WA_TranslucentBackground);
-            label->setAttribute(Qt::WA_ShowWithoutActivating);
-            label->setPixmap(preview);
-            label->resize(preview.size() / preview.devicePixelRatio());
-            m_dragOverlay = label;
+            m_dragOverlay = createTabDragOverlay(m_draggingItem, true, false);
             if (m_draggingItem) {
                 m_draggingItem->setHidden(true);
                 syncEssentialGrid();
             }
             m_essentialsViewport->grabMouse();
             m_pressedItem = nullptr;
-            m_dragOverlay->move(mouse->globalPosition().toPoint() - QPoint(22, 22));
+            updateTabDragOverlay(true, mouse->globalPosition().toPoint());
             m_dragOverlay->show();
             return true;
         }
@@ -496,10 +488,7 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
         if (m_draggingItem && m_dragOverlay) {
             const QPoint global = mouse->globalPosition().toPoint();
             const bool outsideWindow = !m_container->window()->frameGeometry().contains(global);
-            const QPixmap preview = outsideWindow ? miniWindowDragPixmapForItem(m_draggingItem) : dragPixmapForItem(m_draggingItem, false);
-            qobject_cast<QLabel *>(m_dragOverlay)->setPixmap(preview);
-            m_dragOverlay->resize(preview.size() / preview.devicePixelRatio());
-            m_dragOverlay->move(global - (outsideWindow ? QPoint(34, 46) : QPoint(qMin(80, preview.width() / 2), preview.height() / 2)));
+            updateTabDragOverlay(false, global);
             if (outsideWindow) clearDropIndicator();
             else if (mouse->pos().y() < 36) showDropIndicator(QRect(m_tabs->mapTo(m_container, QPoint(8, 4)), QSize(44, 44)));
             else if (auto *target = m_tabs->itemAt(mouse->pos())) {
@@ -545,17 +534,11 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
         if (m_pressedItem && (mouse->pos() - m_pressPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_draggingItem = m_pressedItem;
             m_draggingFromEssential = false;
-            const QPixmap preview = dragPixmapForItem(m_draggingItem, false);
-            auto *label = new QLabel(nullptr, Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
-            label->setAttribute(Qt::WA_TranslucentBackground);
-            label->setAttribute(Qt::WA_ShowWithoutActivating);
-            label->setPixmap(preview);
-            label->resize(preview.size() / preview.devicePixelRatio());
-            m_dragOverlay = label;
+            m_dragOverlay = createTabDragOverlay(m_draggingItem, false, false);
             if (m_draggingItem) m_draggingItem->setHidden(true);
             m_tabsViewport->grabMouse();
             m_pressedItem = nullptr;
-            m_dragOverlay->move(mouse->globalPosition().toPoint() - QPoint(qMin(80, preview.width() / 2), preview.height() / 2));
+            updateTabDragOverlay(false, mouse->globalPosition().toPoint());
             m_dragOverlay->show();
             return true;
         }
@@ -902,75 +885,46 @@ QPixmap TabTree::dragPixmapForItem(QTreeWidgetItem *item, bool essential) const 
     return pixmap;
 }
 
-QPixmap TabTree::miniWindowDragPixmapForItem(QTreeWidgetItem *item) const {
-    const QSize size(190, 122);
-    QPixmap pixmap(size * qApp->devicePixelRatio());
-    pixmap.setDevicePixelRatio(qApp->devicePixelRatio());
-    pixmap.fill(Qt::transparent);
-    QPainter painter(&pixmap);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    const QRect outer = QRect(QPoint(), size).adjusted(1, 1, -2, -2);
-    QPainterPath clip;
-    clip.addRoundedRect(QRectF(outer), 10, 10);
-    QColor shell = m_theme.foreground;
-    shell.setAlpha(22);
-    painter.setPen(QPen(m_theme.border, 1));
-    painter.setBrush(shell);
-    painter.drawPath(clip);
-    painter.setClipPath(clip);
-    const QRect sidebarRect(1, 1, 47, size.height() - 2);
-    QColor sidebar = m_theme.foreground;
-    sidebar.setAlpha(15);
-    painter.fillRect(sidebarRect, sidebar);
-    const QRect webCard(49, 6, size.width() - 55, size.height() - 12);
-    QPainterPath webPath;
-    webPath.addRoundedRect(QRectF(webCard), ui::metrics::WebContainerRadius * 0.55, ui::metrics::WebContainerRadius * 0.55);
-    QColor webChrome = QColor(26, 26, 26, 185);
-    painter.fillPath(webPath, webChrome);
-    QColor separator = m_theme.border;
-    separator.setAlpha(90);
-    painter.fillRect(QRect(webCard.left(), webCard.top() + 18, webCard.width(), 1), separator);
-    if (item) {
-        QRect tabRect(8, 32, 28, 16);
-        QColor tabFill = m_theme.foreground;
-        tabFill.setAlpha(36);
-        QColor tabStroke = vibrantColorFromIcon(item->icon(0));
-        if (!tabStroke.isValid()) tabStroke = m_theme.border;
-        tabStroke.setAlpha(150);
-        painter.setClipping(false);
-        painter.setPen(QPen(tabStroke, 1));
-        painter.setBrush(tabFill);
-        painter.drawRoundedRect(tabRect, 4, 4);
-        item->icon(0).paint(&painter, QRect(tabRect.left() + 5, tabRect.top() + 4, 9, 9), Qt::AlignCenter);
-        painter.setPen(m_theme.foreground);
-        QFont miniFont = m_tabs->font();
-        miniFont.setPointSizeF(qMax(6.0, miniFont.pointSizeF() - 3.0));
-        painter.setFont(miniFont);
-        painter.drawText(QRect(tabRect.left() + 17, tabRect.top(), tabRect.width() - 18, tabRect.height()), Qt::AlignVCenter | Qt::AlignLeft, QStringLiteral("·"));
-        painter.setClipPath(clip);
-        WebView *view = m_views.value(item, nullptr);
-        QPixmap shot = view ? view->snapshot(QSize(webCard.width(), webCard.height() - 19)) : QPixmap();
-        const QRect contentRect(webCard.left(), webCard.top() + 19, webCard.width(), webCard.height() - 19);
-        if (!shot.isNull()) {
-            painter.drawPixmap(contentRect, shot, QRect(QPoint(), QSize(qRound(shot.width() / shot.devicePixelRatio()), qRound(shot.height() / shot.devicePixelRatio()))));
-        } else {
-            QColor page = m_theme.foreground;
-            page.setAlpha(245);
-            painter.fillRect(contentRect, page);
-        }
+QWidget *TabTree::createTabDragOverlay(QTreeWidgetItem *item, bool essential, bool outsideWindow) const {
+    if (outsideWindow) {
+        auto *preview = new MiniWindowDragPreview(m_theme, m_tabs, m_views, item);
+        return preview;
     }
-    painter.setClipping(false);
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(255, 95, 87));
-    painter.drawEllipse(QRect(10, 9, 6, 6));
-    painter.setBrush(QColor(255, 189, 46));
-    painter.drawEllipse(QRect(20, 9, 6, 6));
-    painter.setBrush(QColor(40, 200, 64));
-    painter.drawEllipse(QRect(30, 9, 6, 6));
-    painter.setPen(QPen(m_theme.border, 1));
-    painter.setBrush(Qt::NoBrush);
-    painter.drawRoundedRect(outer, 10, 10);
-    return pixmap;
+    const QPixmap pixmap = dragPixmapForItem(item, essential);
+    auto *label = new QLabel(nullptr, Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+    label->setAttribute(Qt::WA_TranslucentBackground);
+    label->setAttribute(Qt::WA_ShowWithoutActivating);
+    label->setPixmap(pixmap);
+    label->resize(pixmap.size() / pixmap.devicePixelRatio());
+    return label;
+}
+
+void TabTree::updateTabDragOverlay(bool essential, const QPoint &global) {
+    if (!m_draggingItem) return;
+    const bool outsideWindow = !m_container->window()->frameGeometry().contains(global);
+    const bool hasNativePreview = dynamic_cast<MiniWindowDragPreview *>(m_dragOverlay) != nullptr;
+    if (!m_dragOverlay || hasNativePreview != outsideWindow) {
+        if (m_dragOverlay) {
+            m_dragOverlay->hide();
+            m_dragOverlay->deleteLater();
+        }
+        m_dragOverlay = createTabDragOverlay(m_draggingItem, essential, outsideWindow);
+        m_dragOverlay->show();
+        if (outsideWindow) mac::makeFloatingVibrantPanel(m_dragOverlay, mac::VibrancyMaterial::Sidebar, 10.0);
+    } else if (auto *label = qobject_cast<QLabel *>(m_dragOverlay)) {
+        const QPixmap preview = dragPixmapForItem(m_draggingItem, essential);
+        label->setPixmap(preview);
+        label->resize(preview.size() / preview.devicePixelRatio());
+    } else if (auto *preview = dynamic_cast<MiniWindowDragPreview *>(m_dragOverlay)) {
+        preview->update();
+    }
+    if (outsideWindow) {
+        m_dragOverlay->resize(m_dragOverlay->sizeHint());
+        m_dragOverlay->move(global - QPoint(34, 46));
+    } else if (auto *label = qobject_cast<QLabel *>(m_dragOverlay)) {
+        const QSize overlaySize = label->size();
+        m_dragOverlay->move(global - (essential ? QPoint(22, 22) : QPoint(qMin(80, overlaySize.width() / 2), overlaySize.height() / 2)));
+    }
 }
 
 void TabTree::finishTabDrop(QTreeWidgetItem *draggedItem, const QPoint &, QObject *, const QPoint &localPos) {

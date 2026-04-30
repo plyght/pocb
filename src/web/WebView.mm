@@ -351,23 +351,27 @@ QString WebView::title() const {
 
 QPixmap WebView::snapshot(const QSize &size) const {
     if (size.isEmpty()) return QPixmap();
+    if (m_impl->wk) {
+        NSView *view = m_impl->wk;
+        const NSRect bounds = view.bounds;
+        if (!NSIsEmptyRect(bounds)) {
+            NSBitmapImageRep *rep = [view bitmapImageRepForCachingDisplayInRect:bounds];
+            if (rep) {
+                [view cacheDisplayInRect:bounds toBitmapImageRep:rep];
+                NSImage *image = [[NSImage alloc] initWithSize:bounds.size];
+                [image addRepresentation:rep];
+                NSData *tiff = [image TIFFRepresentation];
+                if (tiff) {
+                    QImage qImage;
+                    qImage.loadFromData(reinterpret_cast<const uchar *>(tiff.bytes), static_cast<int>(tiff.length));
+                    if (!qImage.isNull()) return QPixmap::fromImage(qImage.scaled(size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
+                }
+            }
+        }
+    }
     QPixmap widgetShot = const_cast<WebView *>(this)->grab();
     if (!widgetShot.isNull()) return widgetShot.scaled(size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
-    if (!m_impl->wk) return QPixmap();
-    NSView *view = m_impl->wk;
-    const NSRect bounds = view.bounds;
-    if (NSIsEmptyRect(bounds)) return QPixmap();
-    NSBitmapImageRep *rep = [view bitmapImageRepForCachingDisplayInRect:bounds];
-    if (!rep) return QPixmap();
-    [view cacheDisplayInRect:bounds toBitmapImageRep:rep];
-    NSImage *image = [[NSImage alloc] initWithSize:bounds.size];
-    [image addRepresentation:rep];
-    NSData *tiff = [image TIFFRepresentation];
-    if (!tiff) return QPixmap();
-    QImage qImage;
-    qImage.loadFromData(reinterpret_cast<const uchar *>(tiff.bytes), static_cast<int>(tiff.length));
-    if (qImage.isNull()) return QPixmap();
-    return QPixmap::fromImage(qImage.scaled(size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
+    return QPixmap();
 }
 
 void *WebView::nativeWebView() const {

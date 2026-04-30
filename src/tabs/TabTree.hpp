@@ -79,7 +79,8 @@ private:
     QTreeWidgetItem *treeItemForEssential(QListWidgetItem *item) const;
     QTreeWidgetItem *itemForView(WebView *view) const;
     QPixmap dragPixmapForItem(QTreeWidgetItem *item, bool essential) const;
-    QPixmap miniWindowDragPixmapForItem(QTreeWidgetItem *item) const;
+    QWidget *createTabDragOverlay(QTreeWidgetItem *item, bool essential, bool outsideWindow) const;
+    void updateTabDragOverlay(bool essential, const QPoint &global);
     void finishTabDrop(QTreeWidgetItem *draggedItem, const QPoint &globalPos, QObject *target, const QPoint &localPos);
     int essentialDropIndex(const QPoint &pos) const;
     void setItemEssentialAt(QTreeWidgetItem *item, int index);
