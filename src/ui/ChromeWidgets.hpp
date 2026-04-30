@@ -18,6 +18,7 @@ public:
     void setBackgroundColor(const QColor &c, bool animate = true);
     QColor backgroundColor() const { return m_bg; }
     void setTopCornerRadius(int px) { m_topCornerRadius = px; update(); }
+    void setTopCornerMask(bool left, bool right) { m_roundTopLeft = left; m_roundTopRight = right; update(); }
 
 protected:
     void paintEvent(QPaintEvent *) override;
@@ -25,6 +26,8 @@ protected:
 private:
     QColor m_bg;
     int m_topCornerRadius = 0;
+    bool m_roundTopLeft = true;
+    bool m_roundTopRight = true;
     QVariantAnimation *m_anim = nullptr;
 };
 

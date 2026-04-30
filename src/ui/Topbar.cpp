@@ -57,12 +57,14 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
         return btn;
     };
 
+    w.sidebar  = makeBtn("sidebar.left",      "Toggle Sidebar");
     w.back     = makeBtn("chevron.backward", "Back");
     w.forward  = makeBtn("chevron.forward",  "Forward");
     w.reload   = makeBtn("arrow.clockwise",  "Reload  (\xE2\x8C\x98R)");
     w.newTab   = makeBtn("plus",             "New Tab  (\xE2\x8C\x98T)");
     w.settings = makeBtn("gearshape",        "Settings");
 
+    row->addWidget(w.sidebar);
     row->addWidget(w.back);
     row->addWidget(w.forward);
     row->addWidget(w.reload);
@@ -142,11 +144,13 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
         "QToolButton { background: transparent; border: none; border-radius: 4px; }"
         "QToolButton:hover { background: rgba(255,255,255,0.10); }"
         "QToolButton:pressed { background: rgba(255,255,255,0.18); }");
-    w.pillMenuBtn->show();
+    w.pillMenuBtn->hide();
     addrRow->addWidget(w.pillMenuBtn);
 
     row->addWidget(addrWrap, 1);
     row->addSpacing(6);
+    w.newTab->hide();
+    w.settings->hide();
     row->addWidget(w.newTab);
     row->addWidget(w.settings);
 

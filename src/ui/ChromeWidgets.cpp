@@ -62,6 +62,8 @@ void ChromeBar::paintEvent(QPaintEvent *) {
     const QRectF r(rect());
     path.addRoundedRect(r, m_topCornerRadius, m_topCornerRadius);
     path.addRect(QRectF(r.left(), r.top() + m_topCornerRadius, r.width(), r.height() - m_topCornerRadius));
+    if (!m_roundTopLeft) path.addRect(QRectF(r.left(), r.top(), m_topCornerRadius, m_topCornerRadius));
+    if (!m_roundTopRight) path.addRect(QRectF(r.right() - m_topCornerRadius, r.top(), m_topCornerRadius, m_topCornerRadius));
     p.fillPath(path, m_bg);
 }
 

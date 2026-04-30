@@ -20,6 +20,10 @@ public:
     void back();
     void forward();
     void reload();
+    void stop();
+    bool canGoBack() const;
+    bool canGoForward() const;
+    bool isLoading() const;
     QUrl url() const;
     QString title() const;
     QPixmap snapshot(const QSize &size) const;
@@ -40,6 +44,7 @@ signals:
     void titleChanged(const QString &title);
     void loadProgress(int progress);
     void loadFinished(bool ok);
+    void navigationStateChanged();
     void newTabRequested(WebView *child, bool background);
     void closeRequested();
     // Emitted after a navigation finishes, with the page's preferred chrome

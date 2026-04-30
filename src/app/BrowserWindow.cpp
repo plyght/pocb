@@ -34,6 +34,7 @@
 #include <QPalette>
 #include <QPainter>
 #include <QFrame>
+#include <QGraphicsOpacityEffect>
 #include <QListWidget>
 #include <QListWidgetItem>
 #include <QMenuBar>
@@ -67,6 +68,71 @@
 #include <QVBoxLayout>
 
 namespace {
+
+void setButtonSymbolSmooth(QToolButton *button, const QString &symbol, double pointSize, const QColor &color) {
+    if (!button) return;
+    const QString previousSymbol = button->property("sfSymbolName").toString();
+    const QColor previousColor = button->property("sfSymbolColor").value<QColor>();
+    if (previousSymbol == symbol && previousColor == color) return;
+    button->setProperty("sfSymbolName", symbol);
+    button->setProperty("sfSymbolColor", color);
+    auto applyIcon = [button, symbol, pointSize, color] {
+        button->setIcon(mac::sfSymbolIcon(symbol, pointSize, color));
+    };
+    if (previousSymbol.isEmpty() || previousSymbol == symbol) {
+        applyIcon();
+        return;
+    }
+    auto *effect = qobject_cast<QGraphicsOpacityEffect *>(button->graphicsEffect());
+    if (!effect) {
+        effect = new QGraphicsOpacityEffect(button);
+        effect->setOpacity(1.0);
+        button->setGraphicsEffect(effect);
+    }
+    auto *out = new QPropertyAnimation(effect, "opacity", button);
+    out->setDuration(45);
+    out->setStartValue(effect->opacity());
+    out->setEndValue(0.35);
+    out->setEasingCurve(QEasingCurve::OutCubic);
+    QObject::connect(out, &QPropertyAnimation::finished, button, [button, effect, applyIcon] {
+        applyIcon();
+        auto *in = new QPropertyAnimation(effect, "opacity", button);
+        in->setDuration(45);
+        in->setStartValue(effect->opacity());
+        in->setEndValue(1.0);
+        in->setEasingCurve(QEasingCurve::OutCubic);
+        QObject::connect(in, &QPropertyAnimation::finished, in, &QObject::deleteLater);
+        in->start();
+    });
+    QObject::connect(out, &QPropertyAnimation::finished, out, &QObject::deleteLater);
+    out->start();
+}
+
+class PillMenuHoverFilter final : public QObject {
+public:
+    PillMenuHoverFilter(QWidget *pill, QToolButton *button, QObject *parent)
+        : QObject(parent), m_pill(pill), m_button(button) {}
+
+    bool eventFilter(QObject *obj, QEvent *event) override {
+        if ((obj != m_pill && obj != m_button) || !m_pill || !m_button) return QObject::eventFilter(obj, event);
+        if (event->type() == QEvent::Enter) {
+            m_button->show();
+        } else if (event->type() == QEvent::Leave) {
+            QTimer::singleShot(0, this, [this] {
+                if (!m_pill || !m_button) return;
+                const QPoint global = QCursor::pos();
+                const bool overPill = m_pill->rect().contains(m_pill->mapFromGlobal(global));
+                const bool overButton = m_button->rect().contains(m_button->mapFromGlobal(global));
+                if (!overPill && !overButton) m_button->hide();
+            });
+        }
+        return QObject::eventFilter(obj, event);
+    }
+
+private:
+    QWidget *m_pill = nullptr;
+    QToolButton *m_button = nullptr;
+};
 
 class SplitPaneHandle final : public QSplitterHandle {
 public:
@@ -351,29 +417,184 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
         auto *layout = new QVBoxLayout(pane);
         layout->setContentsMargins(0, 0, 0, 0);
         layout->setSpacing(0);
-        auto *header = new QWidget(pane);
-        header->setFixedHeight(30);
-        header->setStyleSheet(QString("background: %1; border-top-left-radius: 10px; border-top-right-radius: 10px;").arg(m_theme.raised.name()));
-        auto *row = new QHBoxLayout(header);
-        row->setContentsMargins(10, 0, 6, 0);
-        row->setSpacing(6);
-        auto *title = new QLabel(view->title().isEmpty() ? view->url().toString() : view->title(), header);
-        title->setStyleSheet(QString("color: %1; font-family: '%2'; font-size: %3px;").arg(m_theme.foreground.name(), m_theme.fontFamily, QString::number(m_theme.smallSize)));
-        title->setTextFormat(Qt::PlainText);
-        row->addWidget(title, 1);
-        auto *unsplit = new QToolButton(header);
+        ui::TopbarWidgets toolbar = ui::buildTopbar(pane, m_theme);
+        if (auto *bar = qobject_cast<ui::ChromeBar *>(toolbar.bar)) {
+            bar->setTopCornerRadius(10);
+            bar->setBackgroundColor(m_theme.raised, /*animate=*/false);
+        }
+        auto *addressCtl = new AddressBarController(toolbar.addressBar, toolbar.lockIcon, m_theme, pane);
+        addressCtl->setSearchEngineUrl(m_searchEngine);
+        addressCtl->setDisplayUrl(view->url().toString(), view->url().scheme() == "https");
+        toolbar.searchIcon->setVisible(toolbar.addressBar->text().isEmpty());
+        toolbar.addrWrap->setMouseTracking(true);
+        toolbar.pillMenuBtn->setMouseTracking(true);
+        auto *pillHover = new PillMenuHoverFilter(toolbar.addrWrap, toolbar.pillMenuBtn, pane);
+        toolbar.addrWrap->installEventFilter(pillHover);
+        toolbar.pillMenuBtn->installEventFilter(pillHover);
+        QPointer<WebView> viewGuard(view);
+        connect(addressCtl, &AddressBarController::submitted, this, [this, viewGuard](const QString &text) {
+            if (!viewGuard) return;
+            const QUrl url = urlFromInput(text);
+            if (!handleInternalUrl(url)) viewGuard->load(url);
+            viewGuard->setFocus();
+        });
+        connect(addressCtl, &AddressBarController::escapePressed, view, [viewGuard] {
+            if (viewGuard) viewGuard->setFocus();
+        });
+        connect(toolbar.addressBar, &QLineEdit::textChanged, toolbar.searchIcon, [searchIcon = toolbar.searchIcon](const QString &text) {
+            searchIcon->setVisible(text.isEmpty());
+        });
+        connect(view, &WebView::urlChanged, toolbar.addressBar, [addressCtl, addressBar = toolbar.addressBar, searchIcon = toolbar.searchIcon](const QUrl &url) {
+            addressCtl->setDisplayUrl(url.toString(), url.scheme() == "https");
+            searchIcon->setVisible(addressBar->text().isEmpty());
+        });
+        connect(view, &WebView::loadProgress, toolbar.addrWrap, [addrWrap = toolbar.addrWrap](int progress) {
+            if (auto *pill = qobject_cast<ui::AddrPill *>(addrWrap)) pill->setLoadProgress(progress);
+        });
+        auto applyPaneChrome = [this, toolbar, addressCtl, viewGuard](const QColor &pageColor) {
+            const bool hasColor = pageColor.isValid() && pageColor.alpha() >= 16;
+            const QColor bg = hasColor ? pageColor : QColor(28, 28, 30, 235);
+            const int luma = (bg.red() * 299 + bg.green() * 587 + bg.blue() * 114) / 1000;
+            const bool dark = luma < 140;
+            const QColor fg = dark ? QColor(245, 245, 247) : QColor(28, 28, 30);
+            toolbar.bar->setProperty("chromeFg", fg);
+            auto mixRgb = [](const QColor &from, const QColor &to, double t) {
+                return QColor(qRound(from.red() + (to.red() - from.red()) * t),
+                              qRound(from.green() + (to.green() - from.green()) * t),
+                              qRound(from.blue() + (to.blue() - from.blue()) * t),
+                              from.alpha());
+            };
+            QColor hover = dark ? mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.16)
+                                : mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.10);
+            hover.setAlpha(qMax(220, bg.alpha()));
+            QColor pressed = dark ? mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.24)
+                                  : mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.16);
+            pressed.setAlpha(qMax(230, bg.alpha()));
+            QColor menuHover = dark ? mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.22)
+                                    : mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.28);
+            menuHover.setAlpha(qMax(220, bg.alpha()));
+            QColor menuPressed = dark ? mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.32)
+                                      : mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.40);
+            menuPressed.setAlpha(qMax(230, bg.alpha()));
+            if (auto *bar = qobject_cast<ui::ChromeBar *>(toolbar.bar)) bar->setBackgroundColor(bg, /*animate=*/true);
+            auto reSymbol = [&](QToolButton *btn, const QString &name, double pointSize) {
+                if (btn) btn->setIcon(mac::sfSymbolIcon(name, pointSize, fg));
+            };
+            reSymbol(toolbar.sidebar, "sidebar.left", 14.0);
+            reSymbol(toolbar.back, "chevron.backward", 14.0);
+            reSymbol(toolbar.forward, "chevron.forward", 14.0);
+            setButtonSymbolSmooth(toolbar.reload, viewGuard && viewGuard->isLoading() ? "xmark" : "arrow.clockwise", 14.0, fg);
+            reSymbol(toolbar.newTab, "plus", 14.0);
+            reSymbol(toolbar.settings, "gearshape", 14.0);
+            reSymbol(toolbar.pillMenuBtn, "ellipsis.circle", 12.0);
+            addressCtl->setIconColor(fg);
+            const QString btnQss = QString(
+                "QToolButton { background: transparent; border: none; border-radius: 6px; padding: 0px; }"
+                "QToolButton:hover { background: rgba(%1,%2,%3,%4); }"
+                "QToolButton:pressed { background: rgba(%5,%6,%7,%8); }")
+                .arg(hover.red()).arg(hover.green()).arg(hover.blue()).arg(hover.alphaF(), 0, 'f', 3)
+                .arg(pressed.red()).arg(pressed.green()).arg(pressed.blue()).arg(pressed.alphaF(), 0, 'f', 3);
+            for (auto *btn : {toolbar.sidebar, toolbar.back, toolbar.forward, toolbar.reload, toolbar.newTab, toolbar.settings}) {
+                if (btn) btn->setStyleSheet(btnQss);
+            }
+            if (toolbar.pillMenuBtn) {
+                toolbar.pillMenuBtn->setStyleSheet(QString(
+                    "QToolButton { background: transparent; border: none; border-radius: 6px; padding: 0px; }"
+                    "QToolButton:hover { background: rgba(%1,%2,%3,%4); }"
+                    "QToolButton:pressed { background: rgba(%5,%6,%7,%8); }")
+                    .arg(menuHover.red()).arg(menuHover.green()).arg(menuHover.blue()).arg(menuHover.alphaF(), 0, 'f', 3)
+                    .arg(menuPressed.red()).arg(menuPressed.green()).arg(menuPressed.blue()).arg(menuPressed.alphaF(), 0, 'f', 3));
+            }
+            if (auto *pill = qobject_cast<ui::AddrPill *>(toolbar.addrWrap)) {
+                pill->setIdleColor(bg);
+                pill->setHoverColor(hover);
+            }
+            if (toolbar.addressBar) {
+                toolbar.addressBar->setStyleSheet(QString(
+                    "QLineEdit { background: transparent; border: none; color: %1; font-family: '%2'; font-size: %3px; padding: 0px; }")
+                    .arg(fg.name(), m_theme.fontFamily, QString::number(m_theme.regularSize)));
+            }
+        };
+        applyPaneChrome(view->cachedThemeColor());
+        connect(view, &WebView::themeColorChanged, toolbar.bar, applyPaneChrome);
+        auto syncPaneNav = [toolbar, viewGuard] {
+            if (!viewGuard) return;
+            toolbar.back->setEnabled(viewGuard->canGoBack());
+            toolbar.forward->setEnabled(viewGuard->canGoForward());
+            QColor fg = toolbar.bar->property("chromeFg").value<QColor>();
+            if (!fg.isValid()) fg = QColor(245, 245, 247);
+            setButtonSymbolSmooth(toolbar.reload, viewGuard->isLoading() ? "xmark" : "arrow.clockwise", 14.0, fg);
+        };
+        syncPaneNav();
+        connect(view, &WebView::navigationStateChanged, toolbar.bar, syncPaneNav);
+        connect(toolbar.sidebar, &QToolButton::clicked, this, [this] { if (m_sidebar && m_sidebarWidget) m_sidebar->setHidden(m_sidebarWidget->isVisible()); });
+        connect(toolbar.back, &QToolButton::clicked, view, [viewGuard] { if (viewGuard) viewGuard->back(); });
+        connect(toolbar.forward, &QToolButton::clicked, view, [viewGuard] { if (viewGuard) viewGuard->forward(); });
+        connect(toolbar.reload, &QToolButton::clicked, view, [viewGuard] { if (viewGuard) { if (viewGuard->isLoading()) viewGuard->stop(); else viewGuard->reload(); } });
+        connect(toolbar.newTab, &QToolButton::clicked, this, [this] {
+            m_tabTree->newTab(QUrl("about:blank"));
+            refreshFloatingOmniboxItems();
+            m_floatingOmnibox->showFor(m_stack, QString());
+        });
+        connect(toolbar.settings, &QToolButton::clicked, this, &BrowserWindow::showSettings);
+        connect(toolbar.pillMenuBtn, &QToolButton::clicked, this, [this, viewGuard, button = toolbar.pillMenuBtn] {
+            auto copyUrl = [viewGuard] { if (viewGuard) QApplication::clipboard()->setText(viewGuard->url().toString()); };
+            auto reload = [viewGuard] { if (viewGuard) viewGuard->reload(); };
+            auto newTab = [this] {
+                m_tabTree->newTab(QUrl("about:blank"));
+                refreshFloatingOmniboxItems();
+                m_floatingOmnibox->showFor(m_stack, QString());
+            };
+            auto settings = [this] { showSettings(); };
+            if (mac::showNativePageActionsMenu(button, copyUrl, reload, newTab, settings)) return;
+
+            QMenu menu(this);
+            menu.addAction("Copy URL", this, copyUrl);
+            menu.addAction("Reload", this, reload);
+            menu.addSeparator();
+            menu.addAction("New Tab", this, newTab);
+            menu.addAction("Settings…", this, settings);
+            menu.exec(button->mapToGlobal(QPoint(0, button->height())));
+        });
+        auto *unsplit = new QToolButton(toolbar.bar);
         unsplit->setAutoRaise(true);
         unsplit->setFocusPolicy(Qt::NoFocus);
         unsplit->setCursor(Qt::PointingHandCursor);
         unsplit->setIcon(mac::sfSymbolIcon("rectangle.split.1x2", 12.0, m_theme.foreground));
-        unsplit->setFixedSize(24, 24);
+        unsplit->setFixedSize(28, 28);
         unsplit->setToolTip("Split out tab");
-        unsplit->setStyleSheet(QString("QToolButton { background: transparent; border: none; border-radius: 6px; } QToolButton:hover { background: %1; }").arg(m_theme.hover.name()));
-        row->addWidget(unsplit);
-        layout->addWidget(header);
+        auto updateUnsplitChrome = [this, unsplit](const QColor &pageColor) {
+            const bool hasColor = pageColor.isValid() && pageColor.alpha() >= 16;
+            const QColor bg = hasColor ? pageColor : QColor(28, 28, 30, 235);
+            const int luma = (bg.red() * 299 + bg.green() * 587 + bg.blue() * 114) / 1000;
+            const bool dark = luma < 140;
+            const QColor fg = dark ? QColor(245, 245, 247) : QColor(28, 28, 30);
+            auto mixRgb = [](const QColor &from, const QColor &to, double t) {
+                return QColor(qRound(from.red() + (to.red() - from.red()) * t),
+                              qRound(from.green() + (to.green() - from.green()) * t),
+                              qRound(from.blue() + (to.blue() - from.blue()) * t),
+                              from.alpha());
+            };
+            QColor hover = dark ? mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.16)
+                                : mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.10);
+            hover.setAlpha(qMax(220, bg.alpha()));
+            QColor pressed = dark ? mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.24)
+                                  : mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.16);
+            pressed.setAlpha(qMax(230, bg.alpha()));
+            unsplit->setIcon(mac::sfSymbolIcon("rectangle.split.1x2", 12.0, fg));
+            unsplit->setStyleSheet(QString(
+                "QToolButton { background: transparent; border: none; border-radius: 6px; padding: 0px; }"
+                "QToolButton:hover { background: rgba(%1,%2,%3,%4); }"
+                "QToolButton:pressed { background: rgba(%5,%6,%7,%8); }")
+                .arg(hover.red()).arg(hover.green()).arg(hover.blue()).arg(hover.alphaF(), 0, 'f', 3)
+                .arg(pressed.red()).arg(pressed.green()).arg(pressed.blue()).arg(pressed.alphaF(), 0, 'f', 3));
+        };
+        updateUnsplitChrome(view->cachedThemeColor());
+        connect(view, &WebView::themeColorChanged, unsplit, updateUnsplitChrome);
+        if (auto *row = qobject_cast<QHBoxLayout *>(toolbar.bar->layout())) row->addWidget(unsplit);
+        layout->addWidget(toolbar.bar);
         view->setParent(pane);
         layout->addWidget(view, 1);
-        connect(view, &WebView::titleChanged, title, [title, view](const QString &text) { title->setText(text.isEmpty() ? view->url().toString() : text); });
         auto collapseHostIfNeeded = [this, host] {
             const auto remaining = host->findChildren<WebView *>();
             if (remaining.size() == 1) {
@@ -391,6 +612,8 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
             pane->deleteLater();
             collapseHostIfNeeded();
             static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
+            if (!m_addrInSidebar && m_topbar) m_topbar->show();
+            if (!m_addrInSidebar && m_topSeparator) m_topSeparator->show();
             view->show();
         });
         QPointer<QWidget> paneGuard = pane;
@@ -408,6 +631,8 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
                     m_splitHosts.remove(lastView);
                     hostGuard->deleteLater();
                     static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(lastView);
+                    if (!m_addrInSidebar && m_topbar) m_topbar->show();
+                    if (!m_addrInSidebar && m_topSeparator) m_topSeparator->show();
                     lastView->show();
                 } else if (remaining.isEmpty()) {
                     hostGuard->deleteLater();
@@ -421,10 +646,21 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
     removeExistingPane(second);
     auto *firstPane = makePane(first);
     auto *secondPane = makePane(second);
+    auto setPaneSide = [this](QWidget *pane, bool left) {
+        pane->setStyleSheet(QString("QWidget#SplitPane { background: %1; border: 1px solid transparent; border-top-left-radius: %2px; border-top-right-radius: %3px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }")
+            .arg(m_theme.background.name(), QString::number(left ? 10 : 0), QString::number(left ? 0 : 10)));
+        if (auto *bar = pane->findChild<ui::ChromeBar *>(QString(), Qt::FindDirectChildrenOnly)) {
+            bar->setTopCornerMask(left, !left);
+        }
+    };
     if (firstOnLeft) {
+        setPaneSide(firstPane, true);
+        setPaneSide(secondPane, false);
         paneSplitter->insertWidget(0, firstPane);
         paneSplitter->insertWidget(1, secondPane);
     } else {
+        setPaneSide(secondPane, true);
+        setPaneSide(firstPane, false);
         paneSplitter->insertWidget(0, secondPane);
         paneSplitter->insertWidget(1, firstPane);
     }
@@ -434,6 +670,8 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
     connect(first, &QObject::destroyed, this, [this, first] { m_splitHosts.remove(first); }, Qt::UniqueConnection);
     connect(second, &QObject::destroyed, this, [this, second] { m_splitHosts.remove(second); }, Qt::UniqueConnection);
     static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(host);
+    if (m_topbar) m_topbar->hide();
+    if (m_topSeparator) m_topSeparator->hide();
     first->show();
     second->show();
 }
@@ -510,9 +748,25 @@ void BrowserWindow::updateForCurrentTab() {
     if (!view) return;
     m_tabRecency.removeAll(view);
     m_tabRecency.prepend(view);
-    if (auto *splitHost = m_splitHosts.value(view, nullptr)) static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(splitHost);
-    else static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
+    if (auto *splitHost = m_splitHosts.value(view, nullptr)) {
+        static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(splitHost);
+        if (m_topbar) m_topbar->hide();
+        if (m_topSeparator) m_topSeparator->hide();
+    } else {
+        static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
+        if (!m_addrInSidebar && m_topbar) m_topbar->show();
+        if (!m_addrInSidebar && m_topSeparator) m_topSeparator->show();
+    }
     m_omnibox->setText(view->url().toString());
+    if (m_backBtn) m_backBtn->setEnabled(view->canGoBack());
+    if (m_fwdBtn) m_fwdBtn->setEnabled(view->canGoForward());
+    if (m_reloadBtn) setButtonSymbolSmooth(m_reloadBtn, view->isLoading() ? "xmark" : "arrow.clockwise", 14.0, m_theme.foreground);
+    connect(view, &WebView::navigationStateChanged, this, [this, view] {
+        if (currentView() != view) return;
+        if (m_backBtn) m_backBtn->setEnabled(view->canGoBack());
+        if (m_fwdBtn) m_fwdBtn->setEnabled(view->canGoForward());
+        applyChromeForPageColor(view->cachedThemeColor());
+    }, Qt::UniqueConnection);
     if (m_addressBarCtl) {
         m_addressBarCtl->setDisplayUrl(view->url().toString(), view->url().scheme() == "https");
     }
@@ -522,6 +776,7 @@ void BrowserWindow::updateForCurrentTab() {
 
 QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     ui::TopbarWidgets w = ui::buildTopbar(parent, m_theme);
+    m_sidebarBtn = w.sidebar;
     m_backBtn = w.back;
     m_fwdBtn = w.forward;
     m_reloadBtn = w.reload;
@@ -559,6 +814,13 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     };
     if (m_addressBar && m_addrWrap) {
         m_addressBar->installEventFilter(new FocusPopFilter(m_addrWrap, this));
+    }
+    if (m_addrWrap && m_pillMenuBtn) {
+        m_addrWrap->setMouseTracking(true);
+        m_pillMenuBtn->setMouseTracking(true);
+        auto *pillHover = new PillMenuHoverFilter(m_addrWrap, m_pillMenuBtn, this);
+        m_addrWrap->installEventFilter(pillHover);
+        m_pillMenuBtn->installEventFilter(pillHover);
     }
 
     if (m_pillMenuBtn) {
@@ -603,9 +865,10 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
         if (auto *v = currentView()) v->setFocus();
     });
 
+    connect(m_sidebarBtn, &QToolButton::clicked, this, [this] { if (m_sidebar && m_sidebarWidget) m_sidebar->setHidden(m_sidebarWidget->isVisible()); });
     connect(m_backBtn,   &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->back(); });
     connect(m_fwdBtn,    &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->forward(); });
-    connect(m_reloadBtn, &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->reload(); });
+    connect(m_reloadBtn, &QToolButton::clicked, this, [this] { if (auto *v = currentView()) { if (v->isLoading()) v->stop(); else v->reload(); } });
     connect(m_settingsBtn, &QToolButton::clicked, this, &BrowserWindow::showSettings);
     connect(m_newTabBtn, &QToolButton::clicked, this, [this] {
         m_tabTree->newTab(QUrl("about:blank"));
@@ -1649,6 +1912,12 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
     QColor pressed = dark ? mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.24)
                           : mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.16);
     pressed.setAlpha(qMax(230, bg.alpha()));
+    QColor menuHover = dark ? mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.22)
+                            : mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.28);
+    menuHover.setAlpha(qMax(220, bg.alpha()));
+    QColor menuPressed = dark ? mixRgb(bg, QColor(0, 0, 0, bg.alpha()), 0.32)
+                              : mixRgb(bg, QColor(255, 255, 255, bg.alpha()), 0.40);
+    menuPressed.setAlpha(qMax(230, bg.alpha()));
 
     auto rgba = [](const QColor &c) {
         return QString("rgba(%1,%2,%3,%4)")
@@ -1665,9 +1934,10 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
         if (!btn) return;
         btn->setIcon(mac::sfSymbolIcon(name, pointSize, fg));
     };
+    reSymbol(m_sidebarBtn, "sidebar.left", symPt);
     reSymbol(m_backBtn,    "chevron.backward", symPt);
     reSymbol(m_fwdBtn,     "chevron.forward", symPt);
-    reSymbol(m_reloadBtn,  "arrow.clockwise", symPt);
+    setButtonSymbolSmooth(m_reloadBtn, currentView() && currentView()->isLoading() ? "xmark" : "arrow.clockwise", symPt, fg);
     reSymbol(m_newTabBtn,  "plus", symPt);
     reSymbol(m_settingsBtn,"gearshape", symPt);
     reSymbol(m_pillMenuBtn,"ellipsis.circle", m_addrInSidebar ? 14.0 : 12.0);
@@ -1684,7 +1954,7 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
         "QToolButton:hover { background: %1; }"
         "QToolButton:pressed { background: %2; }")
         .arg(rgba(hover), rgba(pressed));
-    for (QToolButton *btn : {m_backBtn, m_fwdBtn, m_reloadBtn, m_newTabBtn, m_settingsBtn}) {
+    for (QToolButton *btn : {m_sidebarBtn, m_backBtn, m_fwdBtn, m_reloadBtn, m_newTabBtn, m_settingsBtn}) {
         if (btn) btn->setStyleSheet(btnQss);
     }
     if (m_pillMenuBtn) {
@@ -1692,7 +1962,7 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
             "QToolButton { background: transparent; border: none; border-radius: 4px; padding: 0px; }"
             "QToolButton:hover { background: %1; }"
             "QToolButton:pressed { background: %2; }")
-            .arg(rgba(hover), rgba(pressed)));
+            .arg(rgba(menuHover), rgba(menuPressed)));
     }
 
     if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {

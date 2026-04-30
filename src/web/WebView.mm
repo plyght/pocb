@@ -95,12 +95,18 @@ struct WebView::Impl {
     [wk addObserver:self forKeyPath:@"URL" options:NSKeyValueObservingOptionNew context:nullptr];
     [wk addObserver:self forKeyPath:@"title" options:NSKeyValueObservingOptionNew context:nullptr];
     [wk addObserver:self forKeyPath:@"estimatedProgress" options:NSKeyValueObservingOptionNew context:nullptr];
+    [wk addObserver:self forKeyPath:@"canGoBack" options:NSKeyValueObservingOptionNew context:nullptr];
+    [wk addObserver:self forKeyPath:@"canGoForward" options:NSKeyValueObservingOptionNew context:nullptr];
+    [wk addObserver:self forKeyPath:@"loading" options:NSKeyValueObservingOptionNew context:nullptr];
 }
 
 - (void)detachKVO:(WKWebView *)wk {
     @try { [wk removeObserver:self forKeyPath:@"URL"]; } @catch (...) {}
     @try { [wk removeObserver:self forKeyPath:@"title"]; } @catch (...) {}
     @try { [wk removeObserver:self forKeyPath:@"estimatedProgress"]; } @catch (...) {}
+    @try { [wk removeObserver:self forKeyPath:@"canGoBack"]; } @catch (...) {}
+    @try { [wk removeObserver:self forKeyPath:@"canGoForward"]; } @catch (...) {}
+    @try { [wk removeObserver:self forKeyPath:@"loading"]; } @catch (...) {}
 }
 
 - (void)contentMouseDown:(NSGestureRecognizer *)sender {
@@ -122,6 +128,8 @@ struct WebView::Impl {
     } else if ([keyPath isEqualToString:@"estimatedProgress"]) {
         WKWebView *wk = (WKWebView *)object;
         emit o->loadProgress((int)(wk.estimatedProgress * 100.0));
+    } else if ([keyPath isEqualToString:@"canGoBack"] || [keyPath isEqualToString:@"canGoForward"] || [keyPath isEqualToString:@"loading"]) {
+        emit o->navigationStateChanged();
     }
 }
 
@@ -338,6 +346,11 @@ void WebView::loadHtml(const QString &html) {
 void WebView::back()    { if (m_impl->wk) [m_impl->wk goBack]; }
 void WebView::forward() { if (m_impl->wk) [m_impl->wk goForward]; }
 void WebView::reload()  { if (m_impl->wk) [m_impl->wk reload]; }
+void WebView::stop()    { if (m_impl->wk) [m_impl->wk stopLoading]; }
+
+bool WebView::canGoBack() const { return m_impl->wk && m_impl->wk.canGoBack; }
+bool WebView::canGoForward() const { return m_impl->wk && m_impl->wk.canGoForward; }
+bool WebView::isLoading() const { return m_impl->wk && m_impl->wk.loading; }
 
 QUrl WebView::url() const {
     if (!m_impl->wk || !m_impl->wk.URL) return QUrl();

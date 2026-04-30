@@ -11,6 +11,7 @@ namespace ui {
 
 struct TopbarWidgets {
     QWidget *bar = nullptr;
+    QToolButton *sidebar = nullptr;
     QToolButton *back = nullptr;
     QToolButton *forward = nullptr;
     QToolButton *reload = nullptr;

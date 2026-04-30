@@ -101,6 +101,7 @@ private:
     QWidget *m_stack = nullptr;
     QWidget *m_webContainer = nullptr;
     QWidget *m_topbar = nullptr;
+    QToolButton *m_sidebarBtn = nullptr;
     QToolButton *m_backBtn = nullptr;
     QToolButton *m_fwdBtn = nullptr;
     QToolButton *m_reloadBtn = nullptr;
