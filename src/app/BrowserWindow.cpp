@@ -1452,15 +1452,16 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
 
     // Re-render every SF Symbol in the new foreground tone.
     const double symPt = 14.0;
-    auto reSymbol = [&](QToolButton *btn, const QString &name) {
+    auto reSymbol = [&](QToolButton *btn, const QString &name, double pointSize) {
         if (!btn) return;
-        btn->setIcon(mac::sfSymbolIcon(name, symPt, fg));
+        btn->setIcon(mac::sfSymbolIcon(name, pointSize, fg));
     };
-    reSymbol(m_backBtn,    "chevron.backward");
-    reSymbol(m_fwdBtn,     "chevron.forward");
-    reSymbol(m_reloadBtn,  "arrow.clockwise");
-    reSymbol(m_newTabBtn,  "plus");
-    reSymbol(m_settingsBtn,"gearshape");
+    reSymbol(m_backBtn,    "chevron.backward", symPt);
+    reSymbol(m_fwdBtn,     "chevron.forward", symPt);
+    reSymbol(m_reloadBtn,  "arrow.clockwise", symPt);
+    reSymbol(m_newTabBtn,  "plus", symPt);
+    reSymbol(m_settingsBtn,"gearshape", symPt);
+    reSymbol(m_pillMenuBtn,"ellipsis.circle", m_addrInSidebar ? 14.0 : 12.0);
 
     if (m_addressBarCtl) m_addressBarCtl->setIconColor(fg);
 
@@ -1476,6 +1477,13 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
         .arg(rgba(hover), rgba(pressed));
     for (QToolButton *btn : {m_backBtn, m_fwdBtn, m_reloadBtn, m_newTabBtn, m_settingsBtn}) {
         if (btn) btn->setStyleSheet(btnQss);
+    }
+    if (m_pillMenuBtn) {
+        m_pillMenuBtn->setStyleSheet(QString(
+            "QToolButton { background: transparent; border: none; border-radius: 4px; padding: 0px; }"
+            "QToolButton:hover { background: %1; }"
+            "QToolButton:pressed { background: %2; }")
+            .arg(rgba(hover), rgba(pressed)));
     }
 
     if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {

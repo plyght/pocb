@@ -19,6 +19,8 @@
 #include <QUrl>
 #include <QUrlQuery>
 #include <QVBoxLayout>
+#include <QSet>
+#include <algorithm>
 
 namespace {
 // Vicinae LauncherWindow.qml: 60px search row, 14px corner rounding,
@@ -28,6 +30,7 @@ constexpr int kPanelSideInset = 24;
 constexpr int kInputHeight  = 60;
 constexpr int kRowHeight    = 46;
 constexpr int kMaxRows      = 5;
+constexpr int kMaxItems     = 50;
 constexpr int kPanelRadius  = 14;
 constexpr int kInputPadX    = 16;   // SearchBar.qml leftMargin/rightMargin
 constexpr int kListPadV     = 4;    // GenericListView topMargin/bottomMargin
@@ -64,6 +67,57 @@ EngineSuggest engineFor(const QString &host) {
     if (h.contains("startpage"))  return {"www.startpage.com", "/suggestions",
                                           {{"format","opensearch"}, {"segment","startpage.macos"}}, "q"};
     return {"duckduckgo.com", "/ac/", {{"type","list"}}, "q"};
+}
+
+QUrl navigableUrlFor(const QString &text) {
+    const QString trimmed = text.trimmed();
+    if (trimmed.isEmpty() || trimmed.contains(QChar::Space)) return QUrl();
+    QUrl explicitUrl(trimmed);
+    if (explicitUrl.isValid() && !explicitUrl.scheme().isEmpty() && !explicitUrl.host().isEmpty()) return explicitUrl;
+    if (!trimmed.contains('.') && !trimmed.startsWith(QStringLiteral("localhost"))) return QUrl();
+    QUrl url = QUrl::fromUserInput(trimmed);
+    if (url.isValid() && !url.host().isEmpty()) return url;
+    return QUrl();
+}
+
+struct Candidate {
+    QString title;
+    QString value;
+    QIcon icon;
+    int score = 0;
+    int order = 0;
+};
+
+bool isInternalCommand(const QString &value) {
+    return value.startsWith(QStringLiteral("pocb://")) && !value.startsWith(QStringLiteral("pocb://switch-tab?"));
+}
+
+bool isSwitchTab(const QString &value) {
+    return value.startsWith(QStringLiteral("pocb://switch-tab?"));
+}
+
+int localScore(const FloatingOmnibox::LocalItem &item, const QString &query) {
+    if (query.isEmpty()) return item.alwaysShow ? 900 : 0;
+    const QString title = item.title.toLower();
+    const QString value = item.value.toLower();
+    const QString q = query.toLower();
+    if (isSwitchTab(item.value)) {
+        if (title == q || value == q) return 1250;
+        if (title.startsWith(q) || value.startsWith(q)) return 1050;
+        if (title.contains(q) || value.contains(q)) return 700;
+        return 0;
+    }
+    if (isInternalCommand(item.value)) {
+        if (q.size() < 3) return 0;
+        if (title == q) return 850;
+        if (title.startsWith(q)) return 650;
+        if (title.contains(q) || value.contains(q)) return 350;
+        return 0;
+    }
+    if (value == q || title == q) return 1200;
+    if (value.startsWith(q) || title.startsWith(q)) return 1000;
+    if (value.contains(q) || title.contains(q)) return 650;
+    return 0;
 }
 }  // namespace
 
@@ -265,12 +319,14 @@ bool FloatingOmnibox::eventFilter(QObject *obj, QEvent *ev) {
             int row = m_list->currentRow();
             row = (row + 1) % m_list->count();
             m_list->setCurrentRow(row);
+            m_list->scrollToItem(m_list->currentItem(), QAbstractItemView::EnsureVisible);
             return true;
         }
         if (ke->key() == Qt::Key_Up && m_list->count() > 0) {
             int row = m_list->currentRow();
             row = (row <= 0) ? m_list->count() - 1 : row - 1;
             m_list->setCurrentRow(row);
+            m_list->scrollToItem(m_list->currentItem(), QAbstractItemView::EnsureVisible);
             return true;
         }
         if (ke->key() == Qt::Key_Escape) { close(); return true; }
@@ -341,7 +397,7 @@ void FloatingOmnibox::onSuggestionsReceived(QNetworkReply *reply) {
             }
         }
     }
-    if (items.size() > kMaxRows) items = items.mid(0, kMaxRows);
+    if (items.size() > kMaxItems) items = items.mid(0, kMaxItems);
     setSearchSuggestions(items);
 }
 
@@ -363,25 +419,34 @@ void FloatingOmnibox::addItem(const QString &title, const QString &value, const 
 
 void FloatingOmnibox::rebuildSuggestions() {
     m_list->clear();
+    QSet<QString> seenValues;
+    QList<Candidate> candidates;
+    int order = 0;
     const QString query = m_input ? m_input->text().trimmed() : QString();
+    const QUrl navigable = navigableUrlFor(query);
+    if (navigable.isValid()) {
+        const QString value = navigable.toString();
+        candidates.append({value, value, mac::sfSymbolIcon("globe", 13.0, m_theme.muted), 1400, order++});
+    }
     for (const auto &item : m_localItems) {
-        const bool isTabSwitch = item.value.startsWith(QStringLiteral("pocb://switch-tab?"));
-        if (query.isEmpty()) {
-            if (!item.alwaysShow) continue;
-        } else if (isTabSwitch) {
-            if (QString::compare(item.title, query, Qt::CaseInsensitive) != 0 && QString::compare(item.value, query, Qt::CaseInsensitive) != 0) continue;
-        } else if (item.value.startsWith(QStringLiteral("pocb://")) && query.size() < 3) {
-            continue;
-        } else if (!item.title.contains(query, Qt::CaseInsensitive) && !item.value.contains(query, Qt::CaseInsensitive)) {
-            continue;
-        }
-        addItem(item.title, item.value, item.icon);
-        if (m_list->count() >= kMaxRows) break;
+        const int score = localScore(item, query);
+        if (score <= 0) continue;
+        candidates.append({item.title, item.value, item.icon.isNull() ? mac::sfSymbolIcon("globe", 13.0, m_theme.muted) : item.icon, score, order++});
     }
     for (const auto &s : m_searchSuggestions) {
-        if (m_list->count() >= kMaxRows) break;
         if (s.isEmpty()) continue;
-        addItem(s, s);
+        candidates.append({s, s, mac::sfSymbolIcon("magnifyingglass", 13.0, m_theme.muted), 300, order++});
+    }
+    std::stable_sort(candidates.begin(), candidates.end(), [](const Candidate &a, const Candidate &b) {
+        if (a.score != b.score) return a.score > b.score;
+        return a.order < b.order;
+    });
+    for (const auto &candidate : candidates) {
+        if (m_list->count() >= kMaxItems) break;
+        const QString key = candidate.value.startsWith(QStringLiteral("pocb://")) ? candidate.value : QUrl::fromUserInput(candidate.value).toString();
+        if (seenValues.contains(key)) continue;
+        addItem(candidate.title, candidate.value, candidate.icon);
+        seenValues.insert(key);
     }
     if (m_list->count() == 0) {
         m_list->hide();
