@@ -3,6 +3,9 @@
 
 #ifdef __APPLE__
 #import <AppKit/AppKit.h>
+#import <AppKit/NSGlassEffectView.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 #include <QWidget>
 
 namespace {
@@ -32,6 +35,56 @@ NSComparisonResult compareBehindVibrancySubviews(__kindof NSView *a, __kindof NS
     const BOOL bv = [b isKindOfClass:[NSVisualEffectView class]] && [b.identifier isEqualToString:@"PocbBehindVibrancy"];
     if (av == bv) return NSOrderedSame;
     return av ? NSOrderedAscending : NSOrderedDescending;
+}
+static char kPocbLiquidGlassSiblingKey;
+NSGlassEffectView *findGlassEffectView(NSView *view) {
+    if ([view isKindOfClass:NSGlassEffectView.class]) return (NSGlassEffectView *)view;
+    for (NSView *subview in view.subviews) {
+        if (NSGlassEffectView *glass = findGlassEffectView(subview)) return glass;
+    }
+    return nil;
+}
+
+NSView *makeGlassView(NSRect frame, double cornerRadius) {
+    NSView *backdrop = nil;
+    if (@available(macOS 26.0, *)) {
+        NSGlassEffectView *glass = [[NSGlassEffectView alloc] initWithFrame:NSMakeRect(0, 0, frame.size.width, frame.size.height)];
+        glass.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        glass.cornerRadius = cornerRadius;
+        glass.style = NSGlassEffectViewStyleRegular;
+        glass.tintColor = nil;
+
+        Class adaptiveClass = NSClassFromString(@"NSAdaptiveAppearanceView");
+        if (adaptiveClass) {
+            NSView *adaptive = [[adaptiveClass alloc] initWithFrame:frame];
+            adaptive.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+            SEL setWindowServerAware = sel_registerName("setWindowServerAware:");
+            if ([adaptive respondsToSelector:setWindowServerAware]) {
+                ((void(*)(id,SEL,BOOL))objc_msgSend)(adaptive, setWindowServerAware, YES);
+            }
+            SEL setAnimates = sel_registerName("setAnimatesAppearanceTransitions:");
+            if ([adaptive respondsToSelector:setAnimates]) {
+                ((void(*)(id,SEL,BOOL))objc_msgSend)(adaptive, setAnimates, YES);
+            }
+            [adaptive addSubview:glass];
+            backdrop = adaptive;
+        } else {
+            glass.frame = frame;
+            backdrop = glass;
+        }
+    } else {
+        backdrop = makeVev(frame, mac::VibrancyMaterial::Popover, NSVisualEffectBlendingModeWithinWindow);
+    }
+    backdrop.identifier = @"PocbLiquidGlassSibling";
+    if (!findGlassEffectView(backdrop)) {
+        backdrop.wantsLayer = YES;
+        backdrop.layer.cornerRadius = cornerRadius;
+        backdrop.layer.masksToBounds = YES;
+        if (@available(macOS 10.15, *)) {
+            [backdrop.layer setValue:@"continuous" forKey:@"cornerCurve"];
+        }
+    }
+    return backdrop;
 }
 }  // namespace
 #endif
@@ -110,9 +163,105 @@ void preventWindowActivation(QWidget *window) {
     nsw.level = NSFloatingWindowLevel;
     nsw.collectionBehavior |= NSWindowCollectionBehaviorFullScreenAuxiliary;
     nsw.ignoresMouseEvents = NO;
+    nsw.styleMask |= NSWindowStyleMaskNonactivatingPanel;
     [nsw setCanHide:NO];
+    if (nsw.isKeyWindow) {
+        NSWindow *owner = nsw.parentWindow ?: NSApp.mainWindow;
+        if (owner && owner != nsw) [owner makeKeyWindow];
+    }
 #else
     (void)window;
+#endif
+}
+
+void hideCursorUntilMouseMoves() {
+#ifdef __APPLE__
+    [NSCursor setHiddenUntilMouseMoves:YES];
+#endif
+}
+
+void applyLiquidGlassBehind(QWidget *widget, double cornerRadius) {
+#ifdef __APPLE__
+    if (!widget) return;
+    widget->winId();
+    NSView *view = (__bridge NSView *)reinterpret_cast<void *>(widget->winId());
+    if (!view) return;
+    view.wantsLayer = YES;
+    view.layer.backgroundColor = NSColor.clearColor.CGColor;
+    view.layer.cornerRadius = cornerRadius;
+    view.layer.masksToBounds = YES;
+    if (@available(macOS 10.15, *)) {
+        [view.layer setValue:@"continuous" forKey:@"cornerCurve"];
+    }
+    for (NSView *sub in view.subviews) {
+        if ([sub.identifier isEqualToString:@"PocbLiquidGlassBehind"]) {
+            sub.frame = view.bounds;
+            return;
+        }
+    }
+    NSView *backdrop = nil;
+    if (@available(macOS 26.0, *)) {
+        NSGlassEffectView *glass = [[NSGlassEffectView alloc] initWithFrame:view.bounds];
+        glass.identifier = @"PocbLiquidGlassBehind";
+        glass.cornerRadius = cornerRadius;
+        glass.style = NSGlassEffectViewStyleRegular;
+        glass.tintColor = nil;
+        backdrop = glass;
+    } else {
+        NSVisualEffectView *visual = makeVev(view.bounds, VibrancyMaterial::Popover, NSVisualEffectBlendingModeWithinWindow);
+        visual.identifier = @"PocbLiquidGlassBehind";
+        backdrop = visual;
+    }
+    backdrop.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    backdrop.wantsLayer = YES;
+    backdrop.layer.cornerRadius = cornerRadius;
+    backdrop.layer.masksToBounds = YES;
+    if (@available(macOS 10.15, *)) {
+        [backdrop.layer setValue:@"continuous" forKey:@"cornerCurve"];
+    }
+    [view addSubview:backdrop positioned:NSWindowBelow relativeTo:nil];
+#else
+    (void)widget; (void)cornerRadius;
+#endif
+}
+
+void applyLiquidGlassSiblingBehind(QWidget *widget, double cornerRadius) {
+#ifdef __APPLE__
+    if (!widget) return;
+    widget->winId();
+    NSView *widgetView = (__bridge NSView *)reinterpret_cast<void *>(widget->winId());
+    if (!widgetView || !widgetView.window.contentView) return;
+    NSView *content = widgetView.window.contentView;
+    NSView *glass = objc_getAssociatedObject(widgetView, &kPocbLiquidGlassSiblingKey);
+    const NSRect frame = [content convertRect:widgetView.bounds fromView:widgetView];
+    if (!glass) {
+        glass = makeGlassView(frame, cornerRadius);
+        objc_setAssociatedObject(widgetView, &kPocbLiquidGlassSiblingKey, glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [content addSubview:glass positioned:NSWindowBelow relativeTo:widgetView];
+    }
+    glass.frame = frame;
+    glass.hidden = NO;
+    if (NSGlassEffectView *glassEffect = findGlassEffectView(glass)) {
+        glassEffect.appearance = nil;
+        ((void(*)(id,SEL,id))objc_msgSend)(glassEffect, @selector(setTintColor:), nil);
+        ((void(*)(id,SEL,NSInteger))objc_msgSend)(glassEffect, @selector(setStyle:), NSGlassEffectViewStyleRegular);
+    }
+    [content addSubview:glass positioned:NSWindowBelow relativeTo:widgetView];
+#else
+    (void)widget; (void)cornerRadius;
+#endif
+}
+
+void hideLiquidGlassSibling(QWidget *widget) {
+#ifdef __APPLE__
+    if (!widget) return;
+    widget->winId();
+    NSView *widgetView = (__bridge NSView *)reinterpret_cast<void *>(widget->winId());
+    if (!widgetView) return;
+    NSView *glass = objc_getAssociatedObject(widgetView, &kPocbLiquidGlassSiblingKey);
+    if (glass) glass.hidden = YES;
+#else
+    (void)widget;
 #endif
 }
 

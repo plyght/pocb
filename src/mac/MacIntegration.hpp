@@ -45,6 +45,10 @@ void enableWindowVibrancy(QWidget *window, VibrancyMaterial material = VibrancyM
 // (Qt::WA_TranslucentBackground + transparent stylesheet) so the blur is visible.
 void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material = VibrancyMaterial::Sidebar);
 
+void applyLiquidGlassBehind(QWidget *widget, double cornerRadius);
+void applyLiquidGlassSiblingBehind(QWidget *widget, double cornerRadius);
+void hideLiquidGlassSibling(QWidget *widget);
+
 // Configure a top-level QWidget as a translucent rounded floating panel:
 // flips the underlying NSWindow to non-opaque/clearColor, rounds the
 // contentView's CALayer to `cornerRadius` with masksToBounds, and adds a
@@ -63,6 +67,8 @@ void makeTransparentFloatingPanel(QWidget *window, double cornerRadius);
 // Useful for suggestion popups that must not steal the insertion cursor from
 // the text field that spawned them.
 void preventWindowActivation(QWidget *window);
+
+void hideCursorUntilMouseMoves();
 
 // Make the NSWindow's titlebar transparent and hide its title text, so the
 // behind-window vibrancy reads through the titlebar area as well. The

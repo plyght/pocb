@@ -6,7 +6,6 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPixmap>
-#include <QRegion>
 #include <QVBoxLayout>
 #include <QSettings>
 #include <QEvent>
@@ -38,11 +37,10 @@ namespace {
 // rounded corners since AppKit clips to the square frame.
 class AddrPopupFrame : public QWidget {
 public:
-    explicit AddrPopupFrame(const QColor &fill, const QColor &border)
-        : m_fill(fill), m_border(border) {
+    explicit AddrPopupFrame(QWidget *parent, const QColor &fill, const QColor &border)
+        : QWidget(parent), m_fill(fill), m_border(border) {
         setAttribute(Qt::WA_TranslucentBackground);
         setAttribute(Qt::WA_NoSystemBackground);
-        setAttribute(Qt::WA_ShowWithoutActivating);
         setAutoFillBackground(false);
     }
 
@@ -58,13 +56,6 @@ protected:
         pen.setWidthF(1.0);
         p.setPen(pen);
         p.drawPath(path);
-    }
-
-    void resizeEvent(QResizeEvent *e) override {
-        QWidget::resizeEvent(e);
-        QPainterPath path;
-        path.addRoundedRect(QRectF(rect()), 12.0, 12.0);
-        setMask(QRegion(path.toFillPolygon().toPolygon()));
     }
 
 private:
@@ -117,6 +108,7 @@ AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, con
     m_debounce->setInterval(80);
     connect(m_debounce, &QTimer::timeout, this, &AddressBarController::fetchSuggestions);
     connect(m_bar, &QLineEdit::textEdited, this, [this](const QString &t) {
+        mac::hideCursorUntilMouseMoves();
         m_pendingQuery = t.trimmed();
         m_statusText.clear();
         if (m_pendingQuery.isEmpty()) { hidePopup(); return; }
@@ -217,6 +209,7 @@ bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
     } else if (ev->type() == QEvent::FocusOut) {
         return QObject::eventFilter(obj, ev);
     } else if (ev->type() == QEvent::KeyPress) {
+        mac::hideCursorUntilMouseMoves();
         auto *ke = static_cast<QKeyEvent *>(ev);
         if (ke->key() == Qt::Key_Escape) {
             endEditing(/*restoreUrl=*/true, m_savedUrl);
@@ -443,25 +436,29 @@ void AddressBarController::populatePopup(const QStringList &items) {
         // widget itself sits inside as a transparent child, so its rows
         // can be painted/styled independently of the panel chrome.
         QColor fill = m_theme.panel;
-        fill.setAlphaF(0.38);
+        fill.setAlphaF(0.0);
         QColor border = m_theme.border;
         border.setAlpha(105);
-        m_popup = new AddrPopupFrame(fill, border);
-        m_popup->setParent(m_bar ? m_bar->window() : nullptr);
-        m_popup->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint | Qt::WindowDoesNotAcceptFocus);
+        m_popup = new AddrPopupFrame(m_bar ? m_bar->window() : nullptr, fill, border);
         m_popup->setAttribute(Qt::WA_TranslucentBackground);
-        m_popup->setAttribute(Qt::WA_ShowWithoutActivating);
         m_popup->setAttribute(Qt::WA_NoSystemBackground);
         m_popup->setAutoFillBackground(false);
         m_popup->setFocusPolicy(Qt::NoFocus);
+
+        m_popupGlass = new QWidget(m_popup);
+        m_popupGlass->setObjectName("AddrPopupGlass");
+        m_popupGlass->setAttribute(Qt::WA_TranslucentBackground);
+        m_popupGlass->setAttribute(Qt::WA_NoSystemBackground);
+        m_popupGlass->setAutoFillBackground(false);
+        m_popupGlass->lower();
 
         auto *vbox = new QVBoxLayout(m_popup);
         vbox->setContentsMargins(0, 0, 0, 0);
         vbox->setSpacing(0);
 
         m_popupList = new QListWidget(m_popup);
-        m_popupList->setAttribute(Qt::WA_NativeWindow);
         vbox->addWidget(m_popupList);
+        m_popupList->raise();
 
         m_popupList->setObjectName("AddrPopup");
         m_popupList->setFrameShape(QFrame::NoFrame);
@@ -471,7 +468,6 @@ void AddressBarController::populatePopup(const QStringList &items) {
         m_popupList->setAttribute(Qt::WA_TranslucentBackground);
         m_popupList->setAttribute(Qt::WA_NoSystemBackground);
         m_popupList->setAutoFillBackground(false);
-        m_popupList->viewport()->setAttribute(Qt::WA_NativeWindow);
         m_popupList->viewport()->setAttribute(Qt::WA_TranslucentBackground);
         m_popupList->viewport()->setAttribute(Qt::WA_NoSystemBackground);
         m_popupList->viewport()->setAutoFillBackground(false);
@@ -561,13 +557,14 @@ void AddressBarController::positionPopup() {
 void AddressBarController::showPopup() {
     if (!m_popup) return;
     positionPopup();
+    if (m_popupGlass) {
+        m_popupGlass->setGeometry(m_popup->rect());
+        m_popupGlass->lower();
+    }
     if (!m_popup->isVisible()) m_popup->show();
-    mac::makeFloatingVibrantPanel(m_popup, mac::VibrancyMaterial::Popover, 12.0);
-    mac::preventWindowActivation(m_popup);
+    mac::applyLiquidGlassSiblingBehind(m_popup, 12.0);
     mac::roundWidgetCorners(m_popup, 12.0, false);
     if (m_popupList) {
-        m_popupList->winId();
-        m_popupList->viewport()->winId();
         m_popupList->raise();
         m_popupList->viewport()->raise();
     }
@@ -576,5 +573,6 @@ void AddressBarController::showPopup() {
 }
 
 void AddressBarController::hidePopup() {
+    if (m_popup) mac::hideLiquidGlassSibling(m_popup);
     if (m_popup && m_popup->isVisible()) m_popup->hide();
 }

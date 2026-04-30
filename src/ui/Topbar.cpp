@@ -8,6 +8,7 @@
 #include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPalette>
 #include <QStyleFactory>
 #include <QToolButton>
 #include <QWidget>
@@ -120,6 +121,12 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
         .arg(theme.foreground.name(),
              theme.fontFamily,
              QString::number(theme.regularSize)));
+    QPalette addressPalette = w.addressBar->palette();
+    addressPalette.setColor(QPalette::Text, theme.foreground);
+    addressPalette.setColor(QPalette::Base, Qt::transparent);
+    addressPalette.setColor(QPalette::Highlight, theme.accent);
+    addressPalette.setColor(QPalette::HighlightedText, theme.background);
+    w.addressBar->setPalette(addressPalette);
     addrRow->addWidget(w.addressBar, 1);
 
     // Ellipsis menu button on the right edge of the pill.

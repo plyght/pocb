@@ -31,6 +31,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPalette>
 #include <QFrame>
 #include <QListWidget>
 #include <QListWidgetItem>
@@ -1007,6 +1008,12 @@ void BrowserWindow::setupUi() {
                     "  padding: 0px;"
                     "}" )
                     .arg(m_theme.foreground.name(), m_theme.fontFamily));
+                QPalette addressPalette = m_addressBar->palette();
+                addressPalette.setColor(QPalette::Text, m_theme.foreground);
+                addressPalette.setColor(QPalette::Base, Qt::transparent);
+                addressPalette.setColor(QPalette::Highlight, m_theme.accent);
+                addressPalette.setColor(QPalette::HighlightedText, m_theme.background);
+                m_addressBar->setPalette(addressPalette);
                 m_addressBar->setContentsMargins(0, 0, 0, 0);
                 m_addressBar->setTextMargins(0, 0, 0, 0);
             }

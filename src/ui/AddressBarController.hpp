@@ -71,6 +71,7 @@ private:
     QPointer<QNetworkReply> m_inflight;
     QTimer *m_debounce = nullptr;
     QWidget *m_popup = nullptr;
+    QWidget *m_popupGlass = nullptr;
     QListWidget *m_popupList = nullptr;
     QString m_pendingQuery;
     QString m_savedUrl;
