@@ -33,6 +33,7 @@ public:
     QTreeWidgetItem *currentItem() const;
     QList<WebView *> views() const;
     void selectView(WebView *view);
+    void markViewsSplit(WebView *first, WebView *second);
 
     WebView *newTabForExtension(const QUrl &url = QUrl(), bool background = false,
                                 QTreeWidgetItem *parentItem = nullptr);
@@ -57,7 +58,9 @@ signals:
     void themeColorChanged(const QColor &color);
     void contentMouseDown();
     void tabDetachRequested(WebView *view, const QUrl &url, const QPoint &globalPos);
-    void tabSplitRequested(WebView *first, WebView *second, bool firstOnLeft);
+    void tabSplitRequested(WebView *first, WebView *second, const QPoint &globalPos);
+    void tabSplitPreviewRequested(WebView *dragged, WebView *target, const QPoint &globalPos);
+    void tabSplitPreviewEnded();
 
 private:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -82,6 +85,7 @@ private:
     QWidget *createTabDragOverlay(QTreeWidgetItem *item, bool essential, bool outsideWindow) const;
     void updateTabDragOverlay(bool essential, const QPoint &global);
     void finishTabDrop(QTreeWidgetItem *draggedItem, const QPoint &globalPos, QObject *target, const QPoint &localPos);
+    void selectFallbackForDraggedItem(QTreeWidgetItem *item);
     int essentialDropIndex(const QPoint &pos) const;
     void setItemEssentialAt(QTreeWidgetItem *item, int index);
     void showDropIndicator(const QRect &rect);
@@ -99,6 +103,7 @@ private:
     QHash<QTreeWidgetItem *, WebView *> m_views;
     QHash<QListWidgetItem *, QTreeWidgetItem *> m_essentialItems;
     QTreeWidgetItem *m_currentEssentialItem = nullptr;
+    QList<QTreeWidgetItem *> m_tabHistory;
     QTreeWidgetItem *m_pressedItem = nullptr;
     QPoint m_pressPos;
     QWidget *m_dropIndicator = nullptr;

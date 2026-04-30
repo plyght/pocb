@@ -78,7 +78,9 @@ private:
     void refreshFloatingOmniboxItems();
     void rememberCurrentPage();
     void detachTabToWindow(WebView *view, const QUrl &url, const QPoint &globalPos);
-    void splitTabs(WebView *first, WebView *second, bool firstOnLeft);
+    void splitTabs(WebView *first, WebView *second, const QPoint &globalPos);
+    void showSplitPreview(WebView *dragged, WebView *target, const QPoint &globalPos);
+    void hideSplitPreview();
     bool handleInternalUrl(const QUrl &url);
     struct RecentPage {
         QString title;
@@ -140,5 +142,9 @@ private:
     SidebarController *m_sidebar = nullptr;
     QList<WebView *> m_tabRecency;
     QHash<WebView *, QWidget *> m_splitHosts;
+    QWidget *m_splitPreview = nullptr;
+    WebView *m_splitPreviewTarget = nullptr;
+    bool m_splitPreviewLeft = false;
+    bool m_splitPreviewActive = false;
     QList<RecentPage> m_recentPages;
 };

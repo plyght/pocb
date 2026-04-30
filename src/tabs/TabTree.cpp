@@ -35,6 +35,7 @@
 #include <QWindow>
 #include <QVBoxLayout>
 #include <cmath>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -68,6 +69,11 @@ enum TabRoles {
     UnreadRole = Qt::UserRole + 2,
     OriginalUrlRole = Qt::UserRole + 3,
     EssentialBorderRole = Qt::UserRole + 4,
+    SplitGroupRole = Qt::UserRole + 5,
+    SplitSideRole = Qt::UserRole + 6,
+    SplitPartnerTextRole = Qt::UserRole + 7,
+    SplitPartnerIconRole = Qt::UserRole + 8,
+    SplitPartnerItemRole = Qt::UserRole + 9,
 };
 
 enum TabPinState {
@@ -86,21 +92,29 @@ public:
         const auto *tree = option.widget ? qobject_cast<const QTreeWidget *>(option.widget) : nullptr;
         const bool selected = tree && tree->currentIndex() == index;
         const bool hovered = option.state.testFlag(QStyle::State_MouseOver);
-        const int depth = itemDepth(tree, index);
+        const bool split = index.data(SplitGroupRole).toBool();
+        const int depth = split ? 0 : itemDepth(tree, index);
         const int viewportWidth = option.widget ? option.widget->width() : 0;
         const QRect closeRect = closeButtonRect(option.rect, viewportWidth);
+        QRect rowRect = option.rect;
+        rowRect.setLeft(6 + depth * 18);
+        if (viewportWidth > 0) rowRect.setRight(viewportWidth - 6);
 
         painter->save();
         painter->setRenderHint(QPainter::Antialiasing, true);
-        if (selected || hovered) {
-            QColor fill = m_theme.background.lightness() < 128 ? QColor(255, 255, 255) : QColor(0, 0, 0);
-            fill.setAlpha(selected ? 22 : 12);
-            QRect rowRect = option.rect;
-            rowRect.setLeft(6 + depth * 18);
-            if (viewportWidth > 0) rowRect.setRight(viewportWidth - 6);
+        QColor fill = m_theme.background.lightness() < 128 ? QColor(255, 255, 255) : QColor(0, 0, 0);
+        if (selected || hovered || split) {
+            fill.setAlpha(selected ? 26 : (hovered ? 15 : 9));
             painter->setPen(Qt::NoPen);
             painter->setBrush(fill);
             painter->drawRoundedRect(rowRect.adjusted(0, 3, 0, -3), 6, 6);
+        }
+        if (split) {
+            QColor line = m_theme.foreground;
+            line.setAlpha(42);
+            const int x = rowRect.center().x();
+            painter->setPen(QPen(line, 1));
+            painter->drawLine(QPoint(x, rowRect.top() + 8), QPoint(x, rowRect.bottom() - 8));
         }
 
         const int pinState = index.data(PinStateRole).toInt();
@@ -117,23 +131,32 @@ public:
                                        dotSize));
         }
 
-        const QVariant decoration = index.data(Qt::DecorationRole);
-        QRect textRect = option.rect.adjusted(16 + depth * 18, 0, -28, 0);
-        if (decoration.canConvert<QIcon>()) {
-            const QIcon icon = qvariant_cast<QIcon>(decoration);
-            const QRect iconRect(textRect.left(), option.rect.top() + (option.rect.height() - 14) / 2, 14, 14);
-            icon.paint(painter, iconRect, Qt::AlignCenter);
-            textRect.setLeft(iconRect.right() + 7);
-        }
-
         QColor textColor = m_theme.foreground;
         if (unread) textColor = textColor.lighter(m_theme.background.lightness() < 128 ? 135 : 85);
         painter->setPen(textColor);
         QFont textFont = option.font;
         if (unread) textFont.setWeight(QFont::DemiBold);
         painter->setFont(textFont);
-        const QString text = option.fontMetrics.elidedText(index.data(Qt::DisplayRole).toString(), Qt::ElideRight, textRect.width());
-        painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, text);
+        auto drawTab = [&](const QRect &area, const QVariant &decoration, const QString &label) {
+            QRect textRect = area.adjusted(10, 0, -8, 0);
+            if (decoration.canConvert<QIcon>()) {
+                const QIcon icon = qvariant_cast<QIcon>(decoration);
+                const QRect iconRect(textRect.left(), option.rect.top() + (option.rect.height() - 14) / 2, 14, 14);
+                icon.paint(painter, iconRect, Qt::AlignCenter);
+                textRect.setLeft(iconRect.right() + 7);
+            }
+            const QString text = option.fontMetrics.elidedText(label, Qt::ElideRight, textRect.width());
+            painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, text);
+        };
+        if (split) {
+            QRect leftRect = rowRect.adjusted(0, 0, -(rowRect.width() / 2), 0);
+            QRect rightRect = rowRect.adjusted(rowRect.width() / 2, 0, 0, 0);
+            drawTab(leftRect, index.data(Qt::DecorationRole), index.data(Qt::DisplayRole).toString());
+            drawTab(rightRect, index.data(SplitPartnerIconRole), index.data(SplitPartnerTextRole).toString());
+        } else {
+            QRect textRect = option.rect.adjusted(16 + depth * 18, 0, -28, 0);
+            drawTab(textRect.adjusted(-10, 0, 0, 0), index.data(Qt::DecorationRole), index.data(Qt::DisplayRole).toString());
+        }
         painter->restore();
 
         if (!selected && !hovered) return;
@@ -348,6 +371,10 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
                         if (itemDomain.startsWith("www.")) itemDomain.remove(0, 4);
                         if (itemDomain == domain) it.key()->setIcon(0, icon);
                     }
+                    for (auto it = m_views.constBegin(); it != m_views.constEnd(); ++it) {
+                        auto *partner = reinterpret_cast<QTreeWidgetItem *>(it.key()->data(0, SplitPartnerItemRole).value<quintptr>());
+                        if (partner) it.key()->setData(0, SplitPartnerIconRole, partner->icon(0));
+                    }
                 });
     }
 }
@@ -373,8 +400,36 @@ void TabTree::selectView(WebView *view) {
     }
 }
 
+void TabTree::markViewsSplit(WebView *first, WebView *second) {
+    auto *firstItem = itemForView(first);
+    auto *secondItem = itemForView(second);
+    if (!firstItem || !secondItem || firstItem == secondItem) return;
+    firstItem->setData(0, SplitGroupRole, true);
+    firstItem->setData(0, SplitSideRole, 0);
+    firstItem->setData(0, SplitPartnerTextRole, secondItem->text(0));
+    firstItem->setData(0, SplitPartnerIconRole, secondItem->icon(0));
+    firstItem->setData(0, SplitPartnerItemRole, QVariant::fromValue<quintptr>(reinterpret_cast<quintptr>(secondItem)));
+    secondItem->setData(0, SplitGroupRole, true);
+    secondItem->setData(0, SplitSideRole, 1);
+    if (auto *parent = secondItem->parent()) parent->removeChild(secondItem);
+    else {
+        const int existing = m_tabs->indexOfTopLevelItem(secondItem);
+        if (existing >= 0) m_tabs->takeTopLevelItem(existing);
+    }
+    secondItem->setHidden(true);
+    if (auto *parent = firstItem->parent()) parent->removeChild(firstItem);
+    else {
+        const int existing = m_tabs->indexOfTopLevelItem(firstItem);
+        if (existing >= 0) m_tabs->takeTopLevelItem(existing);
+    }
+    m_tabs->addTopLevelItem(firstItem);
+    m_tabs->viewport()->update();
+}
+
 void TabTree::selectItem(QTreeWidgetItem *item) {
     if (!item) return;
+    m_tabHistory.removeAll(item);
+    m_tabHistory.prepend(item);
     markItemUnread(item, false);
     if (item->data(0, PinStateRole).toInt() == EssentialTab) {
         m_currentEssentialItem = item;
@@ -438,17 +493,32 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
         if (m_draggingItem && m_dragOverlay) {
             const QPoint global = mouse->globalPosition().toPoint();
             const bool outsideWindow = !m_container->window()->frameGeometry().contains(global);
-            updateTabDragOverlay(true, global);
+            const bool overEssentials = m_essentials->viewport()->rect().contains(mouse->pos());
+            updateTabDragOverlay(overEssentials, global);
             if (outsideWindow) clearDropIndicator();
-            else {
+            else if (overEssentials) {
+                emit tabSplitPreviewEnded();
                 const int index = essentialDropIndex(mouse->pos());
                 showDropIndicator(QRect(m_essentials->mapTo(m_container, QPoint((index % 4) * 50 + 2, (index / 4) * 50 + 2)), QSize(44, 44)));
+            } else if (m_tabs->viewport()->rect().contains(m_tabs->viewport()->mapFromGlobal(global))) {
+                emit tabSplitPreviewEnded();
+                const QPoint tabPos = m_tabs->viewport()->mapFromGlobal(global);
+                if (tabPos.y() < 36) showDropIndicator(QRect(m_tabs->mapTo(m_container, QPoint(8, 4)), QSize(44, 44)));
+                else if (auto *target = m_tabs->itemAt(tabPos)) {
+                    const QRect row = m_tabs->visualItemRect(target);
+                    const bool before = tabPos.y() < row.center().y();
+                    showDropIndicator(QRect(m_tabs->mapTo(m_container, QPoint(row.left() + 8, before ? row.top() : row.bottom())), QSize(qMax(32, row.width() - 16), 2)));
+                }
+            } else {
+                clearDropIndicator();
+                if (auto *draggedView = m_views.value(m_draggingItem, nullptr)) emit tabSplitPreviewRequested(draggedView, currentView(), global);
             }
             return true;
         }
         if (m_pressedItem && (mouse->pos() - m_pressPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_draggingItem = m_pressedItem;
             m_draggingFromEssential = true;
+            selectFallbackForDraggedItem(m_draggingItem);
             m_dragOverlay = createTabDragOverlay(m_draggingItem, true, false);
             if (m_draggingItem) {
                 m_draggingItem->setHidden(true);
@@ -490,11 +560,17 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
             const bool outsideWindow = !m_container->window()->frameGeometry().contains(global);
             updateTabDragOverlay(false, global);
             if (outsideWindow) clearDropIndicator();
-            else if (mouse->pos().y() < 36) showDropIndicator(QRect(m_tabs->mapTo(m_container, QPoint(8, 4)), QSize(44, 44)));
-            else if (auto *target = m_tabs->itemAt(mouse->pos())) {
+            else if (mouse->pos().y() < 36) {
+                emit tabSplitPreviewEnded();
+                showDropIndicator(QRect(m_tabs->mapTo(m_container, QPoint(8, 4)), QSize(44, 44)));
+            } else if (auto *target = m_tabs->itemAt(mouse->pos())) {
+                emit tabSplitPreviewEnded();
                 const QRect row = m_tabs->visualItemRect(target);
                 const bool before = mouse->pos().y() < row.center().y();
                 showDropIndicator(QRect(m_tabs->mapTo(m_container, QPoint(row.left() + 8, before ? row.top() : row.bottom())), QSize(qMax(32, row.width() - 16), 2)));
+            } else {
+                clearDropIndicator();
+                if (auto *draggedView = m_views.value(m_draggingItem, nullptr)) emit tabSplitPreviewRequested(draggedView, currentView(), global);
             }
             return true;
         }
@@ -524,6 +600,13 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
                     closeItem(item);
                     return true;
                 }
+                if (item->data(0, SplitGroupRole).toBool() && mouse->pos().x() > m_tabs->visualItemRect(item).center().x()) {
+                    auto *partner = reinterpret_cast<QTreeWidgetItem *>(item->data(0, SplitPartnerItemRole).value<quintptr>());
+                    if (partner && m_views.contains(partner)) {
+                        selectItem(partner);
+                        return true;
+                    }
+                }
                 m_pressedItem = item;
                 m_pressPos = mouse->pos();
             }
@@ -534,6 +617,7 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
         if (m_pressedItem && (mouse->pos() - m_pressPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_draggingItem = m_pressedItem;
             m_draggingFromEssential = false;
+            selectFallbackForDraggedItem(m_draggingItem);
             m_dragOverlay = createTabDragOverlay(m_draggingItem, false, false);
             if (m_draggingItem) m_draggingItem->setHidden(true);
             m_tabsViewport->grabMouse();
@@ -577,6 +661,7 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
         }
         m_draggingItem = nullptr;
         clearDropIndicator();
+        emit tabSplitPreviewEnded();
         syncEssentialGrid();
         return true;
     }
@@ -723,8 +808,15 @@ void TabTree::markItemUnread(QTreeWidgetItem *item, bool unread) {
 void TabTree::deleteItemRecursive(QTreeWidgetItem *item) {
     if (!item) return;
     while (item->childCount() > 0) deleteItemRecursive(item->child(0));
+    m_tabHistory.removeAll(item);
     auto *view = m_views.take(item);
-    if (view) view->deleteLater();
+    if (view) {
+        if (auto *stackLayout = m_stack ? qobject_cast<QStackedLayout *>(m_stack->layout()) : nullptr) {
+            stackLayout->removeWidget(view);
+        }
+        view->setParent(nullptr);
+        view->deleteLater();
+    }
     if (m_currentEssentialItem == item) m_currentEssentialItem = nullptr;
     delete item;
     syncEssentialGrid();
@@ -927,29 +1019,39 @@ void TabTree::updateTabDragOverlay(bool essential, const QPoint &global) {
     }
 }
 
-void TabTree::finishTabDrop(QTreeWidgetItem *draggedItem, const QPoint &, QObject *, const QPoint &localPos) {
+void TabTree::finishTabDrop(QTreeWidgetItem *draggedItem, const QPoint &globalPos, QObject *, const QPoint &localPos) {
     if (!draggedItem || !m_tabs) return;
     if (localPos.y() < 36) {
         setItemEssentialAt(draggedItem, essentialCount());
         mac::performHapticFeedback();
         return;
     }
-    if (draggedItem->data(0, PinStateRole).toInt() == EssentialTab) {
+    const bool wasEssential = draggedItem->data(0, PinStateRole).toInt() == EssentialTab;
+    auto *target = m_tabs->itemAt(localPos);
+    if ((!target || target == draggedItem) && !m_tabs->viewport()->rect().contains(localPos)) {
+        if (wasEssential) setItemPinState(draggedItem, NormalTab);
+        auto *draggedView = m_views.value(draggedItem, nullptr);
+        auto *targetView = currentView();
+        if (draggedView && targetView && draggedView != targetView) {
+            emit tabSplitRequested(draggedView, targetView, globalPos);
+        }
+        return;
+    }
+    if (wasEssential) {
         setItemPinState(draggedItem, NormalTab);
         mac::performHapticFeedback();
         return;
     }
-    auto *target = m_tabs->itemAt(localPos);
     if (!target || target == draggedItem) return;
     const QRect row = m_tabs->visualItemRect(target);
     auto *draggedView = m_views.value(draggedItem, nullptr);
     auto *targetView = m_views.value(target, nullptr);
     if (draggedView && targetView && localPos.x() > row.left() + row.width() * 0.62) {
-        emit tabSplitRequested(draggedView, targetView, false);
+        emit tabSplitRequested(draggedView, targetView, m_tabs->viewport()->mapToGlobal(QPoint(row.right(), row.center().y())));
         return;
     }
     if (draggedView && targetView && localPos.x() < row.left() + row.width() * 0.38) {
-        emit tabSplitRequested(draggedView, targetView, true);
+        emit tabSplitRequested(draggedView, targetView, m_tabs->viewport()->mapToGlobal(QPoint(row.left(), row.center().y())));
         return;
     }
     const int state = draggedItem->data(0, PinStateRole).toInt();
@@ -970,6 +1072,21 @@ void TabTree::finishTabDrop(QTreeWidgetItem *draggedItem, const QPoint &, QObjec
     draggedItem->setData(0, PinStateRole, state);
     syncEssentialGrid();
     m_tabs->viewport()->update();
+}
+
+void TabTree::selectFallbackForDraggedItem(QTreeWidgetItem *item) {
+    if (!item || currentItem() != item) return;
+    for (auto *candidate : std::as_const(m_tabHistory)) {
+        if (!candidate || candidate == item || !m_views.contains(candidate)) continue;
+        selectItem(candidate);
+        return;
+    }
+    for (int i = 0; i < m_tabs->topLevelItemCount(); ++i) {
+        auto *candidate = m_tabs->topLevelItem(i);
+        if (!candidate || candidate == item || candidate->data(0, PinStateRole).toInt() == EssentialTab) continue;
+        selectItem(candidate);
+        return;
+    }
 }
 
 void TabTree::showDropIndicator(const QRect &rect) {
@@ -1004,6 +1121,13 @@ void TabTree::rebuildForProfile() {
 void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {
     connect(view, &WebView::titleChanged, this, [this, view, item](const QString &title) {
         item->setText(0, title.isEmpty() ? "New tab" : title);
+        for (auto it = m_views.constBegin(); it != m_views.constEnd(); ++it) {
+            if (reinterpret_cast<QTreeWidgetItem *>(it.key()->data(0, SplitPartnerItemRole).value<quintptr>()) == item) {
+                it.key()->setData(0, SplitPartnerTextRole, item->text(0));
+                m_tabs->viewport()->update();
+                break;
+            }
+        }
         if (view != currentView()) markItemUnread(item, true);
         emit currentTabChanged();
     });
@@ -1035,7 +1159,8 @@ void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {
         emit currentTabChanged();
     });
     connect(view, &WebView::contentMouseDown, this, [this, view] {
-        if (view == currentView()) emit contentMouseDown();
+        selectView(view);
+        emit contentMouseDown();
     });
     connect(view, &WebView::newTabRequested, this, [this, item](WebView *child, bool background) {
         adoptChildView(child, item, background);

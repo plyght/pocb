@@ -32,6 +32,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPalette>
+#include <QPainter>
 #include <QFrame>
 #include <QListWidget>
 #include <QListWidgetItem>
@@ -42,6 +43,7 @@
 #include <QNetworkRequest>
 #include <QProgressBar>
 #include <QPropertyAnimation>
+#include <QPointer>
 #include <QPixmap>
 #include <QDir>
 #include <QShortcut>
@@ -50,6 +52,7 @@
 #include <QUrlQuery>
 #include <QSettings>
 #include <QSplitter>
+#include <QSplitterHandle>
 #include <QStandardPaths>
 #include <QStackedLayout>
 #include <QStatusBar>
@@ -62,6 +65,52 @@
 #include <QEasingCurve>
 #include <QEvent>
 #include <QVBoxLayout>
+
+namespace {
+
+class SplitPaneHandle final : public QSplitterHandle {
+public:
+    SplitPaneHandle(Qt::Orientation orientation, QSplitter *parent, const Theme &theme)
+        : QSplitterHandle(orientation, parent), m_theme(theme) {
+        setAttribute(Qt::WA_TranslucentBackground);
+        setAutoFillBackground(false);
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing, false);
+        QColor line = m_theme.foreground;
+        line.setAlpha(42);
+        painter.setPen(QPen(line, 1));
+        if (orientation() == Qt::Horizontal) {
+            const int x = width() / 2;
+            painter.drawLine(QPoint(x, 0), QPoint(x, height()));
+        } else {
+            const int y = height() / 2;
+            painter.drawLine(QPoint(0, y), QPoint(width(), y));
+        }
+    }
+
+private:
+    Theme m_theme;
+};
+
+class SplitPaneSplitter final : public QSplitter {
+public:
+    SplitPaneSplitter(Qt::Orientation orientation, const Theme &theme, QWidget *parent)
+        : QSplitter(orientation, parent), m_theme(theme) {}
+
+protected:
+    QSplitterHandle *createHandle() override {
+        return new SplitPaneHandle(orientation(), this, m_theme);
+    }
+
+private:
+    Theme m_theme;
+};
+
+}  // namespace
 
 BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     setAttribute(Qt::WA_TranslucentBackground);
@@ -200,32 +249,190 @@ void BrowserWindow::detachTabToWindow(WebView *view, const QUrl &url, const QPoi
     if (m_tabTree->currentView() == view) m_tabTree->closeCurrent();
 }
 
-void BrowserWindow::splitTabs(WebView *first, WebView *second, bool firstOnLeft) {
+void BrowserWindow::hideSplitPreview() {
+    if (!m_splitPreviewActive) {
+        if (m_splitPreview) m_splitPreview->hide();
+        return;
+    }
+    m_splitPreviewActive = false;
+    m_splitPreviewTarget = nullptr;
+    m_splitPreviewLeft = false;
+    if (auto *stackLayout = m_stack ? qobject_cast<QStackedLayout *>(m_stack->layout()) : nullptr) {
+        stackLayout->setContentsMargins(0, 0, 0, 0);
+        stackLayout->invalidate();
+        m_stack->updateGeometry();
+        if (auto *current = stackLayout->currentWidget()) current->setGeometry(m_stack->rect());
+    }
+    if (m_splitPreview) m_splitPreview->hide();
+}
+
+void BrowserWindow::showSplitPreview(WebView *dragged, WebView *target, const QPoint &globalPos) {
+    if (!m_stack || !dragged || !target || dragged == target) {
+        hideSplitPreview();
+        return;
+    }
+    const QPoint local = m_stack->mapFromGlobal(globalPos);
+    if (!m_stack->rect().contains(local)) {
+        hideSplitPreview();
+        return;
+    }
+    if (!m_splitPreview) {
+        m_splitPreview = new QWidget(m_stack);
+        m_splitPreview->setAttribute(Qt::WA_TransparentForMouseEvents);
+    } else if (m_splitPreview->parentWidget() != m_stack) {
+        m_splitPreview->setParent(m_stack);
+    }
+    const QRect bounds = m_stack->rect();
+    const bool left = local.x() < bounds.center().x();
+    const int previewWidth = qMax(160, bounds.width() / 2);
+    QRect previewRect = bounds;
+    if (left) previewRect.setWidth(previewWidth);
+    else previewRect.setLeft(bounds.right() - previewWidth + 1);
+    if (m_splitPreviewActive && m_splitPreviewTarget == target && m_splitPreviewLeft == left && m_splitPreview->geometry() == previewRect) return;
+    m_splitPreviewActive = true;
+    m_splitPreviewTarget = target;
+    m_splitPreviewLeft = left;
+    if (auto *stackLayout = qobject_cast<QStackedLayout *>(m_stack->layout())) {
+        if (left) stackLayout->setContentsMargins(previewWidth, 0, 0, 0);
+        else stackLayout->setContentsMargins(0, 0, previewWidth, 0);
+        stackLayout->invalidate();
+        m_stack->updateGeometry();
+        stackLayout->activate();
+    }
+    m_splitPreview->setGeometry(previewRect);
+    const QString material = QColor(m_theme.background.red(), m_theme.background.green(), m_theme.background.blue(), 132).name(QColor::HexArgb);
+    const QString line = QColor(m_theme.foreground.red(), m_theme.foreground.green(), m_theme.foreground.blue(), 42).name(QColor::HexArgb);
+    m_splitPreview->setStyleSheet(left
+        ? QString("background: %1; border-right: 1px solid %2;").arg(material, line)
+        : QString("background: %1; border-left: 1px solid %2;").arg(material, line));
+    m_splitPreview->show();
+    m_splitPreview->raise();
+}
+
+void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &globalPos) {
+    hideSplitPreview();
     if (!first || !second || first == second || !m_stack) return;
+    const QPoint stackPos = m_stack->mapFromGlobal(globalPos);
+    const bool firstOnLeft = stackPos.x() < m_stack->rect().center().x();
     QWidget *host = m_splitHosts.value(first, nullptr);
     if (!host) host = m_splitHosts.value(second, nullptr);
+    QSplitter *paneSplitter = nullptr;
     if (!host) {
         host = new QWidget(m_stack);
         auto *layout = new QHBoxLayout(host);
         layout->setContentsMargins(0, 0, 0, 0);
-        layout->setSpacing(1);
+        layout->setSpacing(0);
+        paneSplitter = new SplitPaneSplitter(Qt::Horizontal, m_theme, host);
+        paneSplitter->setObjectName("SplitPaneSplitter");
+        paneSplitter->setHandleWidth(9);
+        paneSplitter->setChildrenCollapsible(false);
+        layout->addWidget(paneSplitter);
         static_cast<QStackedLayout *>(m_stack->layout())->addWidget(host);
-    }
-    auto *layout = qobject_cast<QHBoxLayout *>(host->layout());
-    if (!layout) return;
-    first->setParent(host);
-    second->setParent(host);
-    layout->removeWidget(first);
-    layout->removeWidget(second);
-    if (firstOnLeft) {
-        layout->insertWidget(0, first, 1);
-        layout->insertWidget(1, second, 1);
     } else {
-        layout->insertWidget(0, second, 1);
-        layout->insertWidget(1, first, 1);
+        paneSplitter = host->findChild<QSplitter *>("SplitPaneSplitter");
+    }
+    if (!paneSplitter) return;
+
+    auto removeExistingPane = [paneSplitter](WebView *view) {
+        for (auto *pane : paneSplitter->findChildren<QWidget *>("SplitPane", Qt::FindDirectChildrenOnly)) {
+            if (pane->findChild<WebView *>(QString(), Qt::FindDirectChildrenOnly) == view) {
+                view->setParent(nullptr);
+                pane->setParent(nullptr);
+                pane->deleteLater();
+                return;
+            }
+        }
+    };
+
+    auto makePane = [this, host](WebView *view) {
+        auto *pane = new QWidget(host);
+        pane->setObjectName("SplitPane");
+        pane->setStyleSheet(QString("QWidget#SplitPane { background: %1; border: 1px solid transparent; border-radius: 10px; }").arg(m_theme.background.name()));
+        auto *layout = new QVBoxLayout(pane);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(0);
+        auto *header = new QWidget(pane);
+        header->setFixedHeight(30);
+        header->setStyleSheet(QString("background: %1; border-top-left-radius: 10px; border-top-right-radius: 10px;").arg(m_theme.raised.name()));
+        auto *row = new QHBoxLayout(header);
+        row->setContentsMargins(10, 0, 6, 0);
+        row->setSpacing(6);
+        auto *title = new QLabel(view->title().isEmpty() ? view->url().toString() : view->title(), header);
+        title->setStyleSheet(QString("color: %1; font-family: '%2'; font-size: %3px;").arg(m_theme.foreground.name(), m_theme.fontFamily, QString::number(m_theme.smallSize)));
+        title->setTextFormat(Qt::PlainText);
+        row->addWidget(title, 1);
+        auto *unsplit = new QToolButton(header);
+        unsplit->setAutoRaise(true);
+        unsplit->setFocusPolicy(Qt::NoFocus);
+        unsplit->setCursor(Qt::PointingHandCursor);
+        unsplit->setIcon(mac::sfSymbolIcon("rectangle.split.1x2", 12.0, m_theme.foreground));
+        unsplit->setFixedSize(24, 24);
+        unsplit->setToolTip("Split out tab");
+        unsplit->setStyleSheet(QString("QToolButton { background: transparent; border: none; border-radius: 6px; } QToolButton:hover { background: %1; }").arg(m_theme.hover.name()));
+        row->addWidget(unsplit);
+        layout->addWidget(header);
+        view->setParent(pane);
+        layout->addWidget(view, 1);
+        connect(view, &WebView::titleChanged, title, [title, view](const QString &text) { title->setText(text.isEmpty() ? view->url().toString() : text); });
+        auto collapseHostIfNeeded = [this, host] {
+            const auto remaining = host->findChildren<WebView *>();
+            if (remaining.size() == 1) {
+                auto *lastView = remaining.first();
+                lastView->setParent(m_stack);
+                static_cast<QStackedLayout *>(m_stack->layout())->addWidget(lastView);
+                m_splitHosts.remove(lastView);
+                host->deleteLater();
+            }
+        };
+        connect(unsplit, &QToolButton::clicked, this, [this, host, pane, view, collapseHostIfNeeded] {
+            view->setParent(m_stack);
+            static_cast<QStackedLayout *>(m_stack->layout())->addWidget(view);
+            m_splitHosts.remove(view);
+            pane->deleteLater();
+            collapseHostIfNeeded();
+            static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
+            view->show();
+        });
+        QPointer<QWidget> paneGuard = pane;
+        QPointer<QWidget> hostGuard = host;
+        connect(view, &QObject::destroyed, this, [this, paneGuard, hostGuard] {
+            if (paneGuard) paneGuard->deleteLater();
+            if (!hostGuard) return;
+            QTimer::singleShot(0, this, [this, hostGuard] {
+                if (!hostGuard) return;
+                const auto remaining = hostGuard->findChildren<WebView *>();
+                if (remaining.size() == 1) {
+                    auto *lastView = remaining.first();
+                    lastView->setParent(m_stack);
+                    static_cast<QStackedLayout *>(m_stack->layout())->addWidget(lastView);
+                    m_splitHosts.remove(lastView);
+                    hostGuard->deleteLater();
+                    static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(lastView);
+                    lastView->show();
+                } else if (remaining.isEmpty()) {
+                    hostGuard->deleteLater();
+                }
+            });
+        }, Qt::UniqueConnection);
+        return pane;
+    };
+
+    removeExistingPane(first);
+    removeExistingPane(second);
+    auto *firstPane = makePane(first);
+    auto *secondPane = makePane(second);
+    if (firstOnLeft) {
+        paneSplitter->insertWidget(0, firstPane);
+        paneSplitter->insertWidget(1, secondPane);
+    } else {
+        paneSplitter->insertWidget(0, secondPane);
+        paneSplitter->insertWidget(1, firstPane);
     }
     m_splitHosts.insert(first, host);
     m_splitHosts.insert(second, host);
+    if (m_tabTree) m_tabTree->markViewsSplit(first, second);
+    connect(first, &QObject::destroyed, this, [this, first] { m_splitHosts.remove(first); }, Qt::UniqueConnection);
+    connect(second, &QObject::destroyed, this, [this, second] { m_splitHosts.remove(second); }, Qt::UniqueConnection);
     static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(host);
     first->show();
     second->show();
@@ -851,6 +1058,8 @@ void BrowserWindow::setupUi() {
     m_tabTree->setHomePage(m_homePage);
     connect(m_tabTree, &TabTree::tabDetachRequested, this, &BrowserWindow::detachTabToWindow);
     connect(m_tabTree, &TabTree::tabSplitRequested, this, &BrowserWindow::splitTabs);
+    connect(m_tabTree, &TabTree::tabSplitPreviewRequested, this, &BrowserWindow::showSplitPreview);
+    connect(m_tabTree, &TabTree::tabSplitPreviewEnded, this, &BrowserWindow::hideSplitPreview);
     pageLayout->addWidget(m_tabTree->widget(), 1);
     m_profileSwitcher = buildProfileSwitcher(m_sidebarPage);
     pageLayout->addWidget(m_profileSwitcher, 0, Qt::AlignLeft | Qt::AlignBottom);
