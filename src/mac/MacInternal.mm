@@ -20,6 +20,7 @@ NSWindow *nsWindowOf(QWidget *w) {
 #include "MacIntegration.hpp"
 #import <AppKit/AppKit.h>
 #import <AppKit/NSGlassEffectView.h>
+#import <objc/message.h>
 #import <objc/runtime.h>
 
 #include <vector>
@@ -105,18 +106,34 @@ static void pocbPinSubview(NSView *subview, NSView *container) {
     ]];
 }
 
-static void pocbClearMenuBackgroundViews(NSView *view) {
-    if (!view) return;
-    view.wantsLayer = YES;
-    view.layer.opaque = NO;
-    view.layer.backgroundColor = NSColor.clearColor.CGColor;
-    if ([view isKindOfClass:NSVisualEffectView.class]) {
-        NSVisualEffectView *effect = (NSVisualEffectView *)view;
-        effect.material = NSVisualEffectMaterialMenu;
-        effect.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-        effect.state = NSVisualEffectStateActive;
+static NSView *pocbAdaptiveGlassMenuBackground(NSRect frame) {
+    if (@available(macOS 26.0, *)) {
+        NSGlassEffectView *glass = [[NSGlassEffectView alloc] initWithFrame:frame];
+        glass.cornerRadius = 13.0;
+        glass.style = NSGlassEffectViewStyleRegular;
+        glass.tintColor = nil;
+        glass.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        return glass;
     }
-    for (NSView *subview in view.subviews) pocbClearMenuBackgroundViews(subview);
+    return nil;
+}
+
+static void pocbApplyClearGlassToOpenMenuWindows(void) {
+    if (@available(macOS 26.0, *)) {
+        for (NSWindow *window in NSApp.windows) {
+            NSString *className = NSStringFromClass(window.class);
+            if (![className containsString:@"Menu"] && window.level != NSPopUpMenuWindowLevel) continue;
+            NSView *content = window.contentView;
+            if (!content || objc_getAssociatedObject(window, @selector(pocbInstallClearMenuGlassObserver))) continue;
+            window.opaque = NO;
+            window.backgroundColor = NSColor.clearColor;
+            window.hasShadow = YES;
+            NSView *glass = pocbAdaptiveGlassMenuBackground(content.bounds);
+            if (!glass) continue;
+            [content addSubview:glass positioned:NSWindowBelow relativeTo:nil];
+            objc_setAssociatedObject(window, @selector(pocbInstallClearMenuGlassObserver), glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+    }
 }
 
 static id pocbInstallClearMenuGlassObserver(void) {
@@ -125,26 +142,9 @@ static id pocbInstallClearMenuGlassObserver(void) {
                                                                object:nil
                                                                 queue:NSOperationQueue.mainQueue
                                                            usingBlock:^(__unused NSNotification *note) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                for (NSWindow *window in NSApp.windows) {
-                    NSString *className = NSStringFromClass(window.class);
-                    if (![className containsString:@"Menu"] && window.level != NSPopUpMenuWindowLevel) continue;
-                    NSView *content = window.contentView;
-                    if (!content || objc_getAssociatedObject(window, @selector(pocbInstallClearMenuGlassObserver))) continue;
-                    window.opaque = NO;
-                    window.backgroundColor = NSColor.clearColor;
-                    window.hasShadow = YES;
-                    pocbClearMenuBackgroundViews(content);
-                    NSGlassEffectView *glass = [[NSGlassEffectView alloc] initWithFrame:content.bounds];
-                    glass.cornerRadius = 13.0;
-                    glass.style = NSGlassEffectViewStyleClear;
-                    glass.tintColor = NSColor.clearColor;
-                    glass.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-                    glass.translatesAutoresizingMaskIntoConstraints = YES;
-                    [content addSubview:glass positioned:NSWindowBelow relativeTo:nil];
-                    objc_setAssociatedObject(window, @selector(pocbInstallClearMenuGlassObserver), glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-                }
-            });
+            dispatch_async(dispatch_get_main_queue(), ^{ pocbApplyClearGlassToOpenMenuWindows(); });
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.01 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ pocbApplyClearGlassToOpenMenuWindows(); });
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.04 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ pocbApplyClearGlassToOpenMenuWindows(); });
         }];
     }
     return nil;
@@ -286,6 +286,7 @@ bool showNativeContextMenu(QWidget *anchor,
     target.callbacks = &callbacks;
 
     NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
+    id glassObserver = pocbInstallClearMenuGlassObserver();
     callbackIndex = 0;
     for (int i = 0; i < titles.size(); ++i) {
         const QString title = titles.at(i);
@@ -303,6 +304,7 @@ bool showNativeContextMenu(QWidget *anchor,
     const NSPoint windowPoint = [view.window convertPointFromScreen:screenPoint];
     const NSPoint point = [view convertPoint:windowPoint fromView:nil];
     [menu popUpMenuPositioningItem:nil atLocation:point inView:view];
+    if (glassObserver) [NSNotificationCenter.defaultCenter removeObserver:glassObserver];
     target.callbacks = nullptr;
     return true;
 }
@@ -336,6 +338,7 @@ bool showNativePageActionsMenu(QWidget *anchor,
     target.callbacks = &callbacks;
 
     NSMenu *menu = [[NSMenu alloc] initWithTitle:@""];
+    id glassObserver = pocbInstallClearMenuGlassObserver();
     auto addItem = ^(NSString *title, NSString *symbolName, NSInteger tag) {
         NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:title action:@selector(invoke:) keyEquivalent:@""];
         if (@available(macOS 11.0, *)) item.image = [NSImage imageWithSystemSymbolName:symbolName accessibilityDescription:nil];
@@ -352,6 +355,7 @@ bool showNativePageActionsMenu(QWidget *anchor,
 
     const NSPoint point = NSMakePoint(NSMidX(view.bounds), NSMinY(view.bounds));
     [menu popUpMenuPositioningItem:nil atLocation:point inView:view];
+    if (glassObserver) [NSNotificationCenter.defaultCenter removeObserver:glassObserver];
     target.callbacks = nullptr;
     return true;
 }

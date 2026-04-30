@@ -6,6 +6,8 @@
 #include <QWidget>
 
 #import <AppKit/AppKit.h>
+#import <AppKit/NSGlassEffectView.h>
+#import <objc/runtime.h>
 
 namespace {
 
@@ -67,6 +69,51 @@ NSButton *footerIconButton(NSString *name, id target, SEL action) {
     [button.widthAnchor constraintEqualToConstant:26.0].active = YES;
     [button.heightAnchor constraintEqualToConstant:26.0].active = YES;
     return button;
+}
+
+NSView *nativeRegularGlassView(NSRect frame, CGFloat cornerRadius) {
+    if (@available(macOS 26.0, *)) {
+        NSGlassEffectView *glass = [[NSGlassEffectView alloc] initWithFrame:frame];
+        glass.cornerRadius = cornerRadius;
+        glass.style = NSGlassEffectViewStyleRegular;
+        glass.tintColor = nil;
+        glass.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        return glass;
+    }
+    return nil;
+}
+
+void clearPopoverBacking(NSView *view) {
+    if (!view) return;
+    view.wantsLayer = YES;
+    view.layer.opaque = NO;
+    view.layer.backgroundColor = NSColor.clearColor.CGColor;
+    if ([view isKindOfClass:NSVisualEffectView.class]) {
+        NSVisualEffectView *effect = (NSVisualEffectView *)view;
+        effect.material = NSVisualEffectMaterialPopover;
+        effect.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+        effect.state = NSVisualEffectStateActive;
+    }
+    if ([view isKindOfClass:NSScrollView.class]) {
+        NSScrollView *scroll = (NSScrollView *)view;
+        scroll.drawsBackground = NO;
+        scroll.backgroundColor = NSColor.clearColor;
+        scroll.contentView.drawsBackground = NO;
+        scroll.contentView.backgroundColor = NSColor.clearColor;
+    }
+    if ([view isKindOfClass:NSClipView.class]) {
+        NSClipView *clip = (NSClipView *)view;
+        clip.drawsBackground = NO;
+        clip.backgroundColor = NSColor.clearColor;
+    }
+    if ([view isKindOfClass:NSBox.class]) {
+        NSBox *box = (NSBox *)view;
+        if (box.boxType != NSBoxSeparator) {
+            box.fillColor = NSColor.clearColor;
+            box.transparent = YES;
+        }
+    }
+    for (NSView *subview in view.subviews) clearPopoverBacking(subview);
 }
 
 }  // namespace
@@ -239,9 +286,25 @@ bool showNativeProfilePopover(QWidget *anchor, ProfileStore &profiles) {
     ProfilePopoverController *controller = [[ProfilePopoverController alloc] init];
     controller.profiles = &profiles;
     controller.popover = popover;
-    popover.contentViewController = controller;
     popover.contentSize = NSMakeSize(292, 330);
+    popover.contentViewController = controller;
     [popover showRelativeToRect:view.bounds ofView:view preferredEdge:NSRectEdgeMaxY];
+    if (@available(macOS 26.0, *)) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            NSWindow *window = popover.contentViewController.view.window;
+            window.opaque = NO;
+            window.backgroundColor = NSColor.clearColor;
+            clearPopoverBacking(window.contentView);
+            clearPopoverBacking(popover.contentViewController.view);
+            if (!objc_getAssociatedObject(window, @selector(showNativeProfilePopover:))) {
+                NSView *glass = nativeRegularGlassView(window.contentView.bounds, 16.0);
+                if (glass) {
+                    [window.contentView addSubview:glass positioned:NSWindowBelow relativeTo:nil];
+                    objc_setAssociatedObject(window, @selector(showNativeProfilePopover:), glass, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                }
+            }
+        });
+    }
     return true;
 }
 
