@@ -77,6 +77,8 @@ private:
     void showCopiedLinkPopup();
     void refreshFloatingOmniboxItems();
     void rememberCurrentPage();
+    void detachTabToWindow(WebView *view, const QUrl &url, const QPoint &globalPos);
+    void splitTabs(WebView *first, WebView *second, bool firstOnLeft);
     bool handleInternalUrl(const QUrl &url);
     struct RecentPage {
         QString title;
@@ -137,5 +139,6 @@ private:
     QHBoxLayout *m_toolbarLayout = nullptr;
     SidebarController *m_sidebar = nullptr;
     QList<WebView *> m_tabRecency;
+    QHash<WebView *, QWidget *> m_splitHosts;
     QList<RecentPage> m_recentPages;
 };

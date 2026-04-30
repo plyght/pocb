@@ -1,7 +1,10 @@
 #pragma once
 
 #include <QIcon>
+#include <QPoint>
 #include <QString>
+#include <QStringList>
+#include <QVector>
 
 #include <functional>
 
@@ -87,10 +90,18 @@ void enableHighRefreshRate(QWidget *window);
 // native NSText/WKWebView views handle them. No-op off macOS.
 void sendStandardEditAction(const char *selector);
 
+void performHapticFeedback();
+
 bool showNativePageActionsMenu(QWidget *anchor,
                                std::function<void()> copyUrl,
                                std::function<void()> reload,
                                std::function<void()> newTab,
                                std::function<void()> settings);
+
+bool showNativeContextMenu(QWidget *anchor,
+                           const QPoint &globalPos,
+                           const QStringList &titles,
+                           const QVector<bool> &enabled,
+                           std::vector<std::function<void()>> callbacks);
 
 }  // namespace mac

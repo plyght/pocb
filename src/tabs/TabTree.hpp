@@ -5,12 +5,17 @@
 #include <QColor>
 #include <QHash>
 #include <QList>
+#include <QPointer>
 #include <QObject>
 #include <QString>
+#include <QPoint>
 #include <QUrl>
 
 class FaviconService;
 class ProfileStore;
+class QPoint;
+class QListWidget;
+class QListWidgetItem;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QWidget;
@@ -22,7 +27,8 @@ public:
     TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stack,
             const Theme &theme, QWidget *sidebarParent, QObject *parent);
 
-    QTreeWidget *widget() const { return m_tabs; }
+    QWidget *widget() const { return m_container; }
+    QTreeWidget *treeWidget() const { return m_tabs; }
     WebView *currentView() const;
     QTreeWidgetItem *currentItem() const;
     QList<WebView *> views() const;
@@ -50,6 +56,8 @@ signals:
     // QColor when the page exposes nothing useful.
     void themeColorChanged(const QColor &color);
     void contentMouseDown();
+    void tabDetachRequested(WebView *view, const QUrl &url, const QPoint &globalPos);
+    void tabSplitRequested(WebView *first, WebView *second, bool firstOnLeft);
 
 private:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -57,12 +65,44 @@ private:
     void adoptChildView(WebView *child, QTreeWidgetItem *parentItem, bool background);
     void selectItem(QTreeWidgetItem *item);
     void closeItem(QTreeWidgetItem *item);
+    void closeChildren(QTreeWidgetItem *item);
+    void duplicateItem(QTreeWidgetItem *item);
+    void showContextMenu(QTreeWidgetItem *item, const QPoint &globalPos);
+    void setItemPinState(QTreeWidgetItem *item, int state);
+    void markItemUnread(QTreeWidgetItem *item, bool unread);
+    void deleteItemRecursive(QTreeWidgetItem *item);
+    int essentialCount() const;
+    void resetPinnedItem(QTreeWidgetItem *item);
+    void replacePinnedUrl(QTreeWidgetItem *item);
+    void insertTopLevelForState(QTreeWidgetItem *item, int state);
+    void syncEssentialGrid();
+    QTreeWidgetItem *treeItemForEssential(QListWidgetItem *item) const;
+    QTreeWidgetItem *itemForView(WebView *view) const;
+    QPixmap dragPixmapForItem(QTreeWidgetItem *item, bool essential) const;
+    QPixmap miniWindowDragPixmapForItem(QTreeWidgetItem *item) const;
+    void finishTabDrop(QTreeWidgetItem *draggedItem, const QPoint &globalPos, QObject *target, const QPoint &localPos);
+    int essentialDropIndex(const QPoint &pos) const;
+    void setItemEssentialAt(QTreeWidgetItem *item, int index);
+    void showDropIndicator(const QRect &rect);
+    void clearDropIndicator();
 
     ProfileStore *m_profiles = nullptr;
     FaviconService *m_favicons = nullptr;
     QWidget *m_stack = nullptr;
+    QWidget *m_container = nullptr;
     Theme m_theme;
+    QListWidget *m_essentials = nullptr;
     QTreeWidget *m_tabs = nullptr;
+    QPointer<QWidget> m_essentialsViewport;
+    QPointer<QWidget> m_tabsViewport;
     QHash<QTreeWidgetItem *, WebView *> m_views;
+    QHash<QListWidgetItem *, QTreeWidgetItem *> m_essentialItems;
+    QTreeWidgetItem *m_currentEssentialItem = nullptr;
+    QTreeWidgetItem *m_pressedItem = nullptr;
+    QPoint m_pressPos;
+    QWidget *m_dropIndicator = nullptr;
+    QWidget *m_dragOverlay = nullptr;
+    QTreeWidgetItem *m_draggingItem = nullptr;
+    bool m_draggingFromEssential = false;
     QString m_homePage = "https://search.brave.com";
 };

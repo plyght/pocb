@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QColor>
+#include <QPixmap>
 #include <QUrl>
 #include <QWidget>
 
@@ -21,6 +22,7 @@ public:
     void reload();
     QUrl url() const;
     QString title() const;
+    QPixmap snapshot(const QSize &size) const;
     void *nativeWebView() const;
 
     // Internal: install an externally-created WKWebView (used by the

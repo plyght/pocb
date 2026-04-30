@@ -187,6 +187,49 @@ void BrowserWindow::loadFromOmnibox() {
     if (auto *view = currentView()) view->load(url);
 }
 
+void BrowserWindow::detachTabToWindow(WebView *view, const QUrl &url, const QPoint &globalPos) {
+    if (!view || !m_tabTree) return;
+    auto *window = new BrowserWindow;
+    const QSize windowSize = size().isValid() ? size() : QSize(ui::metrics::WindowDefaultWidth, ui::metrics::WindowDefaultHeight);
+    window->resize(windowSize);
+    window->move(globalPos - QPoint(80, 48));
+    window->show();
+    if (auto *newView = window->currentView()) newView->load(url);
+    m_tabTree->selectView(view);
+    if (m_tabTree->currentView() == view) m_tabTree->closeCurrent();
+}
+
+void BrowserWindow::splitTabs(WebView *first, WebView *second, bool firstOnLeft) {
+    if (!first || !second || first == second || !m_stack) return;
+    QWidget *host = m_splitHosts.value(first, nullptr);
+    if (!host) host = m_splitHosts.value(second, nullptr);
+    if (!host) {
+        host = new QWidget(m_stack);
+        auto *layout = new QHBoxLayout(host);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(1);
+        static_cast<QStackedLayout *>(m_stack->layout())->addWidget(host);
+    }
+    auto *layout = qobject_cast<QHBoxLayout *>(host->layout());
+    if (!layout) return;
+    first->setParent(host);
+    second->setParent(host);
+    layout->removeWidget(first);
+    layout->removeWidget(second);
+    if (firstOnLeft) {
+        layout->insertWidget(0, first, 1);
+        layout->insertWidget(1, second, 1);
+    } else {
+        layout->insertWidget(0, second, 1);
+        layout->insertWidget(1, first, 1);
+    }
+    m_splitHosts.insert(first, host);
+    m_splitHosts.insert(second, host);
+    static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(host);
+    first->show();
+    second->show();
+}
+
 void BrowserWindow::showCopiedLinkPopup() {
     QWidget *host = m_webContainer ? m_webContainer : m_stack;
     if (!host) host = this;
@@ -259,7 +302,8 @@ void BrowserWindow::updateForCurrentTab() {
     if (!view) return;
     m_tabRecency.removeAll(view);
     m_tabRecency.prepend(view);
-    static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
+    if (auto *splitHost = m_splitHosts.value(view, nullptr)) static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(splitHost);
+    else static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
     m_omnibox->setText(view->url().toString());
     if (m_addressBarCtl) {
         m_addressBarCtl->setDisplayUrl(view->url().toString(), view->url().scheme() == "https");
@@ -432,7 +476,7 @@ QStringList BrowserWindow::orderedProfiles() const {
 void BrowserWindow::updateCurrentProfileSnapshot() {
     if (!m_tabTree || !m_tabTree->widget()) return;
     QStringList titles;
-    auto *tree = m_tabTree->widget();
+    auto *tree = m_tabTree->treeWidget();
     for (int i = 0; i < tree->topLevelItemCount(); ++i) {
         if (auto *item = tree->topLevelItem(i)) titles.append(item->text(0).isEmpty() ? QStringLiteral("New tab") : item->text(0));
     }
@@ -651,11 +695,13 @@ void BrowserWindow::refreshFloatingOmniboxItems() {
         if (!url.isValid() || url.isEmpty() || url.scheme() == QStringLiteral("about") || url.scheme() == QStringLiteral("data")) return;
         items.append({title.isEmpty() ? url.toString() : title, url.toString(), iconForUrl(url), false});
     };
+    const QList<WebView *> liveTabs = m_tabTree ? m_tabTree->views() : QList<WebView *>();
+    for (int i = m_tabRecency.size() - 1; i >= 0; --i) {
+        if (!liveTabs.contains(m_tabRecency.at(i))) m_tabRecency.removeAt(i);
+    }
     QList<WebView *> orderedTabs = m_tabRecency;
-    if (m_tabTree) {
-        for (auto *view : m_tabTree->views()) {
-            if (view && !orderedTabs.contains(view)) orderedTabs.append(view);
-        }
+    for (auto *view : liveTabs) {
+        if (view && !orderedTabs.contains(view)) orderedTabs.append(view);
     }
     int defaultTabCount = 0;
     for (auto *view : orderedTabs) {
@@ -802,6 +848,8 @@ void BrowserWindow::setupUi() {
     // host (`m_stack`) and the surrounding sidebar chrome stay here.
     m_tabTree = new TabTree(m_profiles, m_favicons, m_stack, m_theme, m_sidebarPage, this);
     m_tabTree->setHomePage(m_homePage);
+    connect(m_tabTree, &TabTree::tabDetachRequested, this, &BrowserWindow::detachTabToWindow);
+    connect(m_tabTree, &TabTree::tabSplitRequested, this, &BrowserWindow::splitTabs);
     pageLayout->addWidget(m_tabTree->widget(), 1);
     m_profileSwitcher = buildProfileSwitcher(m_sidebarPage);
     pageLayout->addWidget(m_profileSwitcher, 0, Qt::AlignLeft | Qt::AlignBottom);
@@ -1155,7 +1203,7 @@ void BrowserWindow::setupActions() {
                                    [this] { m_tabTree->closeCurrent(); }));
     tabsMenu->addSeparator();
     auto navTab = [this](int dir) {
-        auto *tree = m_tabTree->widget();
+        auto *tree = m_tabTree->treeWidget();
         if (!tree) return;
         auto *cur = m_tabTree->currentItem();
         if (!cur) return;

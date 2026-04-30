@@ -7,6 +7,7 @@
 #import <WebKit/WKWebView.h>
 #import <WebKit/WKWebViewConfiguration.h>
 
+#include <QImage>
 #include <QPointer>
 #include <QRegularExpression>
 #import <WebKit/WKWebsiteDataStore.h>
@@ -346,6 +347,27 @@ QUrl WebView::url() const {
 QString WebView::title() const {
     if (!m_impl->wk || !m_impl->wk.title) return QString();
     return QString::fromNSString(m_impl->wk.title);
+}
+
+QPixmap WebView::snapshot(const QSize &size) const {
+    if (size.isEmpty()) return QPixmap();
+    QPixmap widgetShot = const_cast<WebView *>(this)->grab();
+    if (!widgetShot.isNull()) return widgetShot.scaled(size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    if (!m_impl->wk) return QPixmap();
+    NSView *view = m_impl->wk;
+    const NSRect bounds = view.bounds;
+    if (NSIsEmptyRect(bounds)) return QPixmap();
+    NSBitmapImageRep *rep = [view bitmapImageRepForCachingDisplayInRect:bounds];
+    if (!rep) return QPixmap();
+    [view cacheDisplayInRect:bounds toBitmapImageRep:rep];
+    NSImage *image = [[NSImage alloc] initWithSize:bounds.size];
+    [image addRepresentation:rep];
+    NSData *tiff = [image TIFFRepresentation];
+    if (!tiff) return QPixmap();
+    QImage qImage;
+    qImage.loadFromData(reinterpret_cast<const uchar *>(tiff.bytes), static_cast<int>(tiff.length));
+    if (qImage.isNull()) return QPixmap();
+    return QPixmap::fromImage(qImage.scaled(size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
 }
 
 void *WebView::nativeWebView() const {
