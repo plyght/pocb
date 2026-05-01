@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QRegularExpression>
 #include <QSettings>
 #include <QStandardPaths>
@@ -33,6 +34,8 @@ static BrowserWindow *g_browserWindow = nullptr;
 static NSView *g_popupAnchor = nil;
 static WKWebExtensionController *g_extensionController = nil;
 static NSMutableArray<WKWebExtensionContext *> *g_extensionContexts = nil;
+static NSMutableDictionary<NSValue *, id> *g_extensionTabs = nil;
+static id g_extensionWindow = nil;
 
 @interface PocbExtensionTab : NSObject <WKWebExtensionTab>
 @property(nonatomic, assign) WebView *view;
@@ -47,14 +50,26 @@ static NSMutableArray<WKWebExtensionContext *> *g_extensionContexts = nil;
 @interface PocbExtensionDelegate : NSObject <WKWebExtensionControllerDelegate>
 @end
 
+static PocbExtensionWindow *pocbExtensionWindow() {
+    if (!g_extensionWindow) g_extensionWindow = [PocbExtensionWindow new];
+    return g_extensionWindow;
+}
+
 static PocbExtensionTab *pocbTabForView(WebView *view) {
     if (!view) return nil;
-    PocbExtensionTab *tab = [PocbExtensionTab new];
-    tab.view = view;
+    if (!g_extensionTabs) g_extensionTabs = [NSMutableDictionary dictionary];
+    NSValue *key = [NSValue valueWithPointer:view];
+    PocbExtensionTab *tab = g_extensionTabs[key];
+    if (!tab) {
+        tab = [PocbExtensionTab new];
+        tab.view = view;
+        g_extensionTabs[key] = tab;
+    }
     return tab;
 }
 
 @implementation PocbExtensionTab
+- (id<WKWebExtensionWindow>)windowForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return g_browserWindow ? pocbExtensionWindow() : nil; }
 - (WKWebView *)webViewForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return (__bridge WKWebView *)self.view->nativeWebView(); }
 - (NSString *)titleForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return self.view->title().toNSString(); }
 - (NSUInteger)indexInWindowForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return g_browserWindow ? (NSUInteger)g_browserWindow->extensionViews().indexOf(self.view) : NSNotFound; }
@@ -77,8 +92,8 @@ static PocbExtensionTab *pocbTabForView(WebView *view) {
 @end
 
 @implementation PocbExtensionWindow
-- (NSArray<id<WKWebExtensionTab>> *)tabsForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; NSMutableArray *tabs = [NSMutableArray array]; if (!g_browserWindow) return tabs; for (WebView *view : g_browserWindow->extensionViews()) { PocbExtensionTab *tab = [PocbExtensionTab new]; tab.view = view; [tabs addObject:tab]; } return tabs; }
-- (id<WKWebExtensionTab>)activeTabForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; if (!g_browserWindow || !g_browserWindow->extensionCurrentView()) return nil; PocbExtensionTab *tab = [PocbExtensionTab new]; tab.view = g_browserWindow->extensionCurrentView(); return tab; }
+- (NSArray<id<WKWebExtensionTab>> *)tabsForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; NSMutableArray *tabs = [NSMutableArray array]; if (!g_browserWindow) return tabs; for (WebView *view : g_browserWindow->extensionViews()) [tabs addObject:pocbTabForView(view)]; return tabs; }
+- (id<WKWebExtensionTab>)activeTabForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return g_browserWindow ? pocbTabForView(g_browserWindow->extensionCurrentView()) : nil; }
 - (WKWebExtensionWindowType)windowTypeForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return WKWebExtensionWindowTypeNormal; }
 - (WKWebExtensionWindowState)windowStateForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return g_browserWindow && g_browserWindow->isFullScreen() ? WKWebExtensionWindowStateFullscreen : WKWebExtensionWindowStateNormal; }
 - (CGRect)frameForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return g_browserWindow ? CGRectMake(g_browserWindow->x(), g_browserWindow->y(), g_browserWindow->width(), g_browserWindow->height()) : CGRectZero; }
@@ -91,13 +106,13 @@ static PocbExtensionTab *pocbTabForView(WebView *view) {
 @end
 
 @implementation PocbExtensionDelegate
-- (NSArray<id<WKWebExtensionWindow>> *)webExtensionController:(WKWebExtensionController *)controller openWindowsForExtensionContext:(WKWebExtensionContext *)extensionContext { (void)controller; (void)extensionContext; return g_browserWindow ? @[ [PocbExtensionWindow new] ] : @[]; }
-- (id<WKWebExtensionWindow>)webExtensionController:(WKWebExtensionController *)controller focusedWindowForExtensionContext:(WKWebExtensionContext *)extensionContext { (void)controller; (void)extensionContext; return g_browserWindow ? [PocbExtensionWindow new] : nil; }
+- (NSArray<id<WKWebExtensionWindow>> *)webExtensionController:(WKWebExtensionController *)controller openWindowsForExtensionContext:(WKWebExtensionContext *)extensionContext { (void)controller; (void)extensionContext; return g_browserWindow ? @[ pocbExtensionWindow() ] : @[]; }
+- (id<WKWebExtensionWindow>)webExtensionController:(WKWebExtensionController *)controller focusedWindowForExtensionContext:(WKWebExtensionContext *)extensionContext { (void)controller; (void)extensionContext; return g_browserWindow ? pocbExtensionWindow() : nil; }
 - (void)webExtensionController:(WKWebExtensionController *)controller openNewTabUsingConfiguration:(WKWebExtensionTabConfiguration *)configuration forExtensionContext:(WKWebExtensionContext *)extensionContext completionHandler:(void (^)(id<WKWebExtensionTab>, NSError *))completionHandler { (void)controller; NSURL *url = configuration.url; BOOL shouldActivate = configuration.shouldBeActive; NSLog(@"pocb extension requested tab url=%@ active=%@", url.absoluteString, shouldActivate ? @"YES" : @"NO"); WebView *view = nullptr; BOOL extensionURL = [url.scheme containsString:@"extension"]; if (g_browserWindow && url && extensionURL && extensionContext.webViewConfiguration) { WKWebView *wk = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:extensionContext.webViewConfiguration]; view = g_browserWindow->extensionAdoptNativeTab((__bridge_retained void *)wk, !shouldActivate); [wk loadRequest:[NSURLRequest requestWithURL:url]]; } else { view = g_browserWindow ? g_browserWindow->extensionCreateTab(url ? QUrl(QString::fromNSString(url.absoluteString)) : QUrl(), !shouldActivate) : nullptr; } if (!view) { completionHandler(nil, [NSError errorWithDomain:@"pocb.extensions" code:1 userInfo:@{NSLocalizedDescriptionKey:@"No browser window is available"}]); return; } PocbExtensionTab *tab = [PocbExtensionTab new]; tab.view = view; completionHandler(tab, nil); }
 - (void)webExtensionController:(WKWebExtensionController *)controller openNewWindowUsingConfiguration:(WKWebExtensionWindowConfiguration *)configuration forExtensionContext:(WKWebExtensionContext *)extensionContext completionHandler:(void (^)(id<WKWebExtensionWindow>, NSError *))completionHandler { (void)controller; (void)configuration; (void)extensionContext; if (!g_browserWindow) { completionHandler(nil, [NSError errorWithDomain:@"pocb.extensions" code:2 userInfo:@{NSLocalizedDescriptionKey:@"No browser window is available"}]); return; } g_browserWindow->extensionCreateTab(QUrl(), false); completionHandler([PocbExtensionWindow new], nil); }
 - (void)webExtensionController:(WKWebExtensionController *)controller openOptionsPageForExtensionContext:(WKWebExtensionContext *)extensionContext completionHandler:(void (^)(NSError *))completionHandler { (void)controller; if (!g_browserWindow || !extensionContext.optionsPageURL) { completionHandler([NSError errorWithDomain:@"pocb.extensions" code:3 userInfo:@{NSLocalizedDescriptionKey:@"No options page is available"}]); return; } g_browserWindow->extensionCreateTab(QUrl(QString::fromNSString(extensionContext.optionsPageURL.absoluteString)), false); completionHandler(nil); }
-- (void)webExtensionController:(WKWebExtensionController *)controller didUpdateAction:(WKWebExtensionAction *)action forExtensionContext:(WKWebExtensionContext *)context { (void)controller; if (!g_browserWindow) return; QString key = QString::fromNSString(context.webExtension.displayName ?: context.webExtension.version ?: @"extension"); QString label = QString::fromNSString(action.label.length ? action.label : (context.webExtension.displayName ?: @"Extension")); QIcon icon; NSImage *image = [action iconForSize:CGSizeMake(32, 32)] ?: [context.webExtension iconForSize:CGSizeMake(32, 32)]; if (image) { CGImageRef cg = [image CGImageForProposedRect:nil context:nil hints:nil]; if (cg) { NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithCGImage:cg]; NSData *data = [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}]; QPixmap pixmap; if (data.length && pixmap.loadFromData(reinterpret_cast<const uchar *>(data.bytes), static_cast<uint>(data.length), "PNG")) icon = QIcon(pixmap); } } if (icon.isNull()) { for (const auto &extension : ChromeExtensionManager::configuredExtensions()) { if (label.contains(extension.name, Qt::CaseInsensitive) || key.contains(extension.name, Qt::CaseInsensitive) || extension.name.contains(QStringLiteral("Ghostery"), Qt::CaseInsensitive)) { if (!extension.iconPath.isEmpty()) icon = QIcon(extension.iconPath); break; } } } g_browserWindow->extensionSetAction(key, label, icon, [context](QWidget *button) { if (!button) return; button->winId(); g_popupAnchor = (__bridge NSView *)reinterpret_cast<void *>(button->winId()); PocbExtensionTab *tab = [PocbExtensionTab new]; tab.view = g_browserWindow ? g_browserWindow->extensionCurrentView() : nullptr; [context performActionForTab:tab]; }); }
-- (void)webExtensionController:(WKWebExtensionController *)controller presentPopupForAction:(WKWebExtensionAction *)action forExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)controller; (void)context; if (!action.presentsPopup || !action.popupPopover) { completionHandler([NSError errorWithDomain:@"pocb.extensions" code:4 userInfo:@{NSLocalizedDescriptionKey:@"No popup is available"}]); return; } static PocbExtensionPopupDelegate *popupDelegate = nil; if (!popupDelegate) popupDelegate = [PocbExtensionPopupDelegate new]; action.popupWebView.UIDelegate = popupDelegate; NSView *anchor = g_popupAnchor; if (!anchor && g_browserWindow) { g_browserWindow->winId(); anchor = (__bridge NSView *)reinterpret_cast<void *>(g_browserWindow->winId()); } if (!anchor) { completionHandler([NSError errorWithDomain:@"pocb.extensions" code:5 userInfo:@{NSLocalizedDescriptionKey:@"No browser view is available"}]); return; } [action.popupPopover showRelativeToRect:anchor.bounds ofView:anchor preferredEdge:NSMinYEdge]; completionHandler(nil); }
+- (void)webExtensionController:(WKWebExtensionController *)controller didUpdateAction:(WKWebExtensionAction *)action forExtensionContext:(WKWebExtensionContext *)context { (void)controller; if (!g_browserWindow) return; QString key = QString::fromNSString(context.webExtension.displayName ?: context.webExtension.version ?: @"extension"); QString label = QString::fromNSString(action.label.length ? action.label : (context.webExtension.displayName ?: @"Extension")); QIcon icon; NSImage *image = [action iconForSize:CGSizeMake(32, 32)] ?: [context.webExtension iconForSize:CGSizeMake(32, 32)]; if (image) { CGImageRef cg = [image CGImageForProposedRect:nil context:nil hints:nil]; if (cg) { NSBitmapImageRep *rep = [[NSBitmapImageRep alloc] initWithCGImage:cg]; NSData *data = [rep representationUsingType:NSBitmapImageFileTypePNG properties:@{}]; QPixmap pixmap; if (data.length && pixmap.loadFromData(reinterpret_cast<const uchar *>(data.bytes), static_cast<uint>(data.length), "PNG")) icon = QIcon(pixmap); } } if (icon.isNull()) { for (const auto &extension : ChromeExtensionManager::configuredExtensions()) { if (label.contains(extension.name, Qt::CaseInsensitive) || key.contains(extension.name, Qt::CaseInsensitive) || extension.name.contains(QStringLiteral("Ghostery"), Qt::CaseInsensitive)) { if (!extension.iconPath.isEmpty()) icon = QIcon(extension.iconPath); break; } } } g_browserWindow->extensionSetAction(key, label, icon, [context](QWidget *button) { if (!button) return; button->winId(); g_popupAnchor = (__bridge NSView *)reinterpret_cast<void *>(button->winId()); PocbExtensionTab *tab = g_browserWindow ? pocbTabForView(g_browserWindow->extensionCurrentView()) : nil; if (g_extensionController && g_browserWindow) { PocbExtensionWindow *window = pocbExtensionWindow(); [g_extensionController didFocusWindow:window]; if (tab) [g_extensionController didActivateTab:tab previousActiveTab:nil]; } if (tab) [context userGesturePerformedInTab:tab]; [context performActionForTab:tab]; }); }
+- (void)webExtensionController:(WKWebExtensionController *)controller presentPopupForAction:(WKWebExtensionAction *)action forExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)controller; (void)context; if (!action.presentsPopup || !action.popupPopover) { completionHandler([NSError errorWithDomain:@"pocb.extensions" code:4 userInfo:@{NSLocalizedDescriptionKey:@"No popup is available"}]); return; } static PocbExtensionPopupDelegate *popupDelegate = nil; if (!popupDelegate) popupDelegate = [PocbExtensionPopupDelegate new]; action.popupWebView.UIDelegate = popupDelegate; NSView *anchor = g_popupAnchor; if (!anchor && g_browserWindow) { g_browserWindow->winId(); anchor = (__bridge NSView *)reinterpret_cast<void *>(g_browserWindow->winId()); } if (!anchor) { completionHandler([NSError errorWithDomain:@"pocb.extensions" code:5 userInfo:@{NSLocalizedDescriptionKey:@"No browser view is available"}]); return; } [action.popupPopover showRelativeToRect:anchor.bounds ofView:anchor preferredEdge:NSMinYEdge]; NSURL *activeURL = nil; if (g_browserWindow && g_browserWindow->extensionCurrentView()) { QUrl qurl = g_browserWindow->extensionCurrentView()->url(); if (qurl.isValid()) activeURL = [NSURL URLWithString:qurl.toString().toNSString()]; } if (activeURL && ([activeURL.scheme isEqualToString:@"http"] || [activeURL.scheme isEqualToString:@"https"])) { NSString *pageURL = [activeURL.absoluteString stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"]; pageURL = [pageURL stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"]; NSString *seed = [NSString stringWithFormat:@"(function(){var page='%@';function run(){try{if(!globalThis.chrome||!chrome.storage)return;var u=new URL(page);var host=u.hostname;var parts=host.split('.');var stats={domain:parts.slice(Math.max(0,parts.length-2)).join('.'),hostname:host,trackers:[]};var ids=['1'];try{chrome.tabs&&chrome.tabs.query&&chrome.tabs.query({active:true,currentWindow:true},function(tabs){try{var tab=tabs&&tabs[0]||{};if(tab.id!=null)ids.push(String(tab.id));seed(ids);}catch(e){seed(ids);}});}catch(e){seed(ids);}function seed(keys){var area=chrome.storage.session||chrome.storage.local;if(!area)return;area.get(['tabStats:v1'],function(existing){try{var next=existing&&existing['tabStats:v1']||{};next.entries=next.entries||{};next.ttl=next.ttl||{};keys.forEach(function(id){next.entries[id]=next.entries[id]||stats;next.ttl[id]=Date.now()+86400000;});area.set({'tabStats:v1':next});}catch(e){console.error('pocb Ghostery seed failed',e);}});}}catch(e){console.error('pocb Ghostery seed failed',e);}}run();setTimeout(run,150);setTimeout(run,600);})();", pageURL]; [action.popupWebView evaluateJavaScript:seed completionHandler:^(id result, NSError *error) { (void)result; if (error) NSLog(@"pocb Ghostery popup seed error: %@", error.localizedDescription); }]; } completionHandler(nil); }
 - (void)webExtensionController:(WKWebExtensionController *)controller promptForPermissions:(NSSet<WKWebExtensionPermission> *)permissions inTab:(id<WKWebExtensionTab>)tab forExtensionContext:(WKWebExtensionContext *)extensionContext completionHandler:(void (^)(NSSet<WKWebExtensionPermission> *, NSDate *))completionHandler { (void)controller; (void)tab; (void)extensionContext; completionHandler(permissions, [NSDate distantFuture]); }
 - (void)webExtensionController:(WKWebExtensionController *)controller promptForPermissionToAccessURLs:(NSSet<NSURL *> *)urls inTab:(id<WKWebExtensionTab>)tab forExtensionContext:(WKWebExtensionContext *)extensionContext completionHandler:(void (^)(NSSet<NSURL *> *, NSDate *))completionHandler { (void)controller; (void)tab; (void)extensionContext; completionHandler(urls, [NSDate distantFuture]); }
 - (void)webExtensionController:(WKWebExtensionController *)controller promptForPermissionMatchPatterns:(NSSet<WKWebExtensionMatchPattern *> *)matchPatterns inTab:(id<WKWebExtensionTab>)tab forExtensionContext:(WKWebExtensionContext *)extensionContext completionHandler:(void (^)(NSSet<WKWebExtensionMatchPattern *> *, NSDate *))completionHandler { (void)controller; (void)tab; (void)extensionContext; completionHandler(matchPatterns, [NSDate distantFuture]); }
@@ -109,7 +124,7 @@ void ChromeExtensionManager::setBrowserWindow(BrowserWindow *window) {
     g_browserWindow = window;
     if (@available(macOS 15.4, *)) {
         if (g_extensionController && g_browserWindow) {
-            PocbExtensionWindow *extensionWindow = [PocbExtensionWindow new];
+            PocbExtensionWindow *extensionWindow = pocbExtensionWindow();
             [g_extensionController didOpenWindow:extensionWindow];
             [g_extensionController didFocusWindow:extensionWindow];
         }
@@ -137,6 +152,7 @@ void ChromeExtensionManager::notifyTabChanged(WebView *view) {
 void ChromeExtensionManager::notifyTabClosed(WebView *view) {
     if (@available(macOS 15.4, *)) {
         if (g_extensionController && view) [g_extensionController didCloseTab:pocbTabForView(view) windowIsClosing:NO];
+        if (view && g_extensionTabs) [g_extensionTabs removeObjectForKey:[NSValue valueWithPointer:view]];
     }
 }
 
@@ -172,7 +188,9 @@ QList<ChromeExtensionManager::ExtensionInfo> ChromeExtensionManager::configuredE
         if (manifestFile.open(QIODevice::ReadOnly)) {
             const QJsonObject manifest = QJsonDocument::fromJson(manifestFile.readAll()).object();
             const QString manifestName = manifest.value(QStringLiteral("name")).toString().trimmed();
+            const QString shortName = manifest.value(QStringLiteral("short_name")).toString().trimmed();
             if (!manifestName.isEmpty() && !manifestName.startsWith(QStringLiteral("__MSG_"))) info.name = manifestName;
+            else if (!shortName.isEmpty() && !shortName.startsWith(QStringLiteral("__MSG_"))) info.name = shortName;
             auto pickIcon = [&root](const QJsonValue &value) {
                 if (value.isString()) {
                     const QString candidate = root.filePath(value.toString());
@@ -288,7 +306,7 @@ void *ChromeExtensionManager::nativeController() {
                     WKWebExtensionAction *defaultAction = [context actionForTab:nil];
                     if (defaultAction) [delegate webExtensionController:controller didUpdateAction:defaultAction forExtensionContext:context];
                     if (g_browserWindow) {
-                        PocbExtensionWindow *window = [PocbExtensionWindow new];
+                        PocbExtensionWindow *window = pocbExtensionWindow();
                         [controller didOpenWindow:window];
                         [controller didFocusWindow:window];
                         WebView *active = g_browserWindow->extensionCurrentView();

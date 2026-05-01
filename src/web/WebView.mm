@@ -228,19 +228,18 @@ WebView::WebView(WebKitProfile *profile, QWidget *parent)
         if (profile->dataStore()) {
             cfg.websiteDataStore = (__bridge WKWebsiteDataStore *)profile->dataStore();
         }
+        const QString extensionBootstrap = ChromeExtensionManager::bootstrapScript();
+        if (!extensionBootstrap.trimmed().isEmpty()) {
+            WKUserContentController *content = cfg.userContentController ?: [[WKUserContentController alloc] init];
+            WKUserScript *script = [[WKUserScript alloc] initWithSource:extensionBootstrap.toNSString()
+                                                          injectionTime:WKUserScriptInjectionTimeAtDocumentStart
+                                                       forMainFrameOnly:NO];
+            [content addUserScript:script];
+            cfg.userContentController = content;
+        }
         if (@available(macOS 15.4, *)) {
             if (void *controller = ChromeExtensionManager::nativeController()) {
                 cfg.webExtensionController = (__bridge WKWebExtensionController *)controller;
-            }
-        } else {
-            const QString extensionBootstrap = ChromeExtensionManager::bootstrapScript();
-            if (!extensionBootstrap.trimmed().isEmpty()) {
-                WKUserContentController *content = [[WKUserContentController alloc] init];
-                WKUserScript *script = [[WKUserScript alloc] initWithSource:extensionBootstrap.toNSString()
-                                                              injectionTime:WKUserScriptInjectionTimeAtDocumentStart
-                                                           forMainFrameOnly:NO];
-                [content addUserScript:script];
-                cfg.userContentController = content;
             }
         }
         WKWebView *wk = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:cfg];
