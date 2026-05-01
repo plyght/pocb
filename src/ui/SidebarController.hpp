@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QPointer>
+#include <QRect>
 #include <functional>
 
 class QLabel;
@@ -62,4 +63,5 @@ private:
     bool m_floatingChromeApplied = false;
     double m_slideProgress = 0.0;
     bool m_nativeFloatingAnimation = false;
+    QRect m_floatingBaseGeometry;
 };

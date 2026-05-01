@@ -77,12 +77,24 @@ private:
     void showCopiedLinkPopup();
     void refreshFloatingOmniboxItems();
     void rememberCurrentPage();
+    QList<QUrl> restoredSessionForProfile(const QString &profileName) const;
+    void saveSessionForProfile(const QString &profileName) const;
+    void reopenLastClosedTab();
     void detachTabToWindow(WebView *view, const QUrl &url, const QPoint &globalPos);
     void splitTabs(WebView *first, WebView *second, const QPoint &globalPos);
     void showSplitPreview(WebView *dragged, WebView *target, const QPoint &globalPos);
     void hideSplitPreview();
+    void showTabSwitcher(int direction);
+    void advanceTabSwitcher(int direction);
+    void acceptTabSwitcher();
+    void hideTabSwitcher();
+    QList<WebView *> orderedSwitchableTabs() const;
     bool handleInternalUrl(const QUrl &url);
     struct RecentPage {
+        QString title;
+        QUrl url;
+    };
+    struct ClosedTab {
         QString title;
         QUrl url;
     };
@@ -142,10 +154,16 @@ private:
     QHBoxLayout *m_toolbarLayout = nullptr;
     SidebarController *m_sidebar = nullptr;
     QList<WebView *> m_tabRecency;
+    QWidget *m_tabSwitcher = nullptr;
+    QList<WebView *> m_tabSwitcherTabs;
+    int m_tabSwitcherIndex = 0;
+    QTimer *m_tabSwitcherOpenTimer = nullptr;
+    bool m_tabSwitcherPending = false;
     QHash<WebView *, QWidget *> m_splitHosts;
     QWidget *m_splitPreview = nullptr;
     WebView *m_splitPreviewTarget = nullptr;
     bool m_splitPreviewLeft = false;
     bool m_splitPreviewActive = false;
     QList<RecentPage> m_recentPages;
+    QList<ClosedTab> m_closedTabs;
 };

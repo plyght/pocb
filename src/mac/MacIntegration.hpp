@@ -99,6 +99,12 @@ void sendStandardEditAction(const char *selector);
 
 void performHapticFeedback();
 
+void installTabSwitcherKeyMonitor(QWidget *window,
+                                  std::function<void()> next,
+                                  std::function<void()> previous,
+                                  std::function<bool()> accept,
+                                  std::function<bool()> cancel);
+
 void animateWindowFrame(QWidget *window,
                         const QRect &from,
                         const QRect &to,
@@ -108,6 +114,8 @@ void animateWindowFrame(QWidget *window,
 bool showNativePageActionsMenu(QWidget *anchor,
                                std::function<void()> copyUrl,
                                std::function<void()> reload,
+                               std::function<void()> bookmark,
+                               const QString &bookmarkTitle,
                                std::function<void()> newTab,
                                std::function<void()> settings);
 

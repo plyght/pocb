@@ -482,6 +482,7 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
                 if (auto *item = treeItemForEssential(gridItem)) {
                     m_pressedItem = item;
                     m_pressPos = mouse->pos();
+                    m_pressGlobalPos = mouse->globalPosition().toPoint();
                     selectItem(item);
                     return true;
                 }
@@ -515,7 +516,7 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
             }
             return true;
         }
-        if (m_pressedItem && (mouse->pos() - m_pressPos).manhattanLength() >= QApplication::startDragDistance()) {
+        if (m_pressedItem && mouse->buttons().testFlag(Qt::LeftButton) && (mouse->globalPosition().toPoint() - m_pressGlobalPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_draggingItem = m_pressedItem;
             m_draggingFromEssential = true;
             selectFallbackForDraggedItem(m_draggingItem);
@@ -609,12 +610,13 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
                 }
                 m_pressedItem = item;
                 m_pressPos = mouse->pos();
+                m_pressGlobalPos = mouse->globalPosition().toPoint();
             }
         }
     }
     if (watched == m_tabsViewport && event->type() == QEvent::MouseMove) {
         auto *mouse = static_cast<QMouseEvent *>(event);
-        if (m_pressedItem && (mouse->pos() - m_pressPos).manhattanLength() >= QApplication::startDragDistance()) {
+        if (m_pressedItem && mouse->buttons().testFlag(Qt::LeftButton) && (mouse->globalPosition().toPoint() - m_pressGlobalPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_draggingItem = m_pressedItem;
             m_draggingFromEssential = false;
             selectFallbackForDraggedItem(m_draggingItem);
@@ -640,6 +642,15 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
             drag->acceptProposedAction();
             return true;
         }
+    }
+    if ((watched == m_tabsViewport || watched == m_essentialsViewport) && event->type() == QEvent::MouseButtonRelease && !m_draggingItem && m_pressedItem) {
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        if (mouse->button() == Qt::LeftButton) {
+            if (watched == m_tabsViewport && m_tabs->itemAt(mouse->pos()) == m_pressedItem) selectItem(m_pressedItem);
+            m_pressedItem = nullptr;
+            return true;
+        }
+        m_pressedItem = nullptr;
     }
     if ((watched == m_tabsViewport || watched == m_essentialsViewport) && event->type() == QEvent::MouseButtonRelease && m_draggingItem) {
         auto *mouse = static_cast<QMouseEvent *>(event);
@@ -723,10 +734,73 @@ void TabTree::closeCurrent() {
     closeItem(currentItem());
 }
 
+QList<QUrl> TabTree::tabUrls() const {
+    QList<QUrl> urls;
+    for (auto it = m_views.constBegin(); it != m_views.constEnd(); ++it) {
+        if (!it.value()) continue;
+        const QUrl url = it.value()->url();
+        if (!url.isValid() || url.isEmpty() || url.scheme() == QStringLiteral("about") || url.scheme() == QStringLiteral("data")) continue;
+        urls.append(url);
+    }
+    return urls;
+}
+
+void TabTree::restoreTabs(const QList<QUrl> &urls) {
+    m_views.clear();
+    m_tabs->clear();
+    m_currentEssentialItem = nullptr;
+    m_tabHistory.clear();
+    const auto children = m_stack->findChildren<WebView *>();
+    for (auto *child : children) child->deleteLater();
+    const QList<QUrl> targets = urls.isEmpty() ? QList<QUrl>{QUrl(m_homePage)} : urls;
+    bool first = true;
+    for (const QUrl &url : targets) {
+        newTab(url.isValid() && !url.isEmpty() ? url : QUrl(m_homePage), !first);
+        first = false;
+    }
+}
+
+void TabTree::reopenUrl(const QUrl &url) {
+    newTab(url.isValid() && !url.isEmpty() ? url : QUrl(m_homePage), false);
+}
+
 void TabTree::closeItem(QTreeWidgetItem *item) {
     if (!item) return;
+    const bool wasCurrent = item == currentItem();
+    if (auto *view = m_views.value(item, nullptr)) {
+        const QUrl url = view->url();
+        if (url.isValid() && !url.isEmpty() && url.scheme() != QStringLiteral("about") && url.scheme() != QStringLiteral("data")) {
+            emit tabClosed(url, view->title().isEmpty() ? url.toString() : view->title());
+        }
+    }
     deleteItemRecursive(item);
     if (m_tabs->topLevelItemCount() == 0) newTab(QUrl(m_homePage));
+    if (wasCurrent && !m_views.isEmpty()) {
+        QTreeWidgetItem *fallback = nullptr;
+        for (auto *candidate : std::as_const(m_tabHistory)) {
+            if (candidate && m_views.contains(candidate)) {
+                fallback = candidate;
+                break;
+            }
+        }
+        if (!fallback) {
+            std::function<QTreeWidgetItem *(QTreeWidgetItem *)> firstLiveChild = [&](QTreeWidgetItem *parent) -> QTreeWidgetItem * {
+                if (!parent) return nullptr;
+                if (m_views.contains(parent)) return parent;
+                for (int i = 0; i < parent->childCount(); ++i) {
+                    if (auto *child = firstLiveChild(parent->child(i))) return child;
+                }
+                return nullptr;
+            };
+            for (int i = 0; i < m_tabs->topLevelItemCount() && !fallback; ++i) {
+                fallback = firstLiveChild(m_tabs->topLevelItem(i));
+            }
+        }
+        if (fallback) {
+            selectItem(fallback);
+            return;
+        }
+    }
     emit currentTabChanged();
 }
 
@@ -1109,13 +1183,8 @@ void TabTree::clearDropIndicator() {
     if (m_dropIndicator) m_dropIndicator->hide();
 }
 
-void TabTree::rebuildForProfile() {
-    const QUrl activeUrl = currentView() ? currentView()->url() : QUrl(m_homePage);
-    m_views.clear();
-    m_tabs->clear();
-    const auto children = m_stack->findChildren<WebView *>();
-    for (auto *child : children) child->deleteLater();
-    newTab(activeUrl);
+void TabTree::rebuildForProfile(const QList<QUrl> &urls) {
+    restoreTabs(urls);
 }
 
 void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {
@@ -1154,7 +1223,20 @@ void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {
         if (view != currentView()) return;
         emit themeColorChanged(c);
     });
-    connect(view, &WebView::loadFinished, this, [this, view, item](bool) {
+    connect(view, &WebView::loadFinished, this, [this, view, item](bool ok) {
+        if (!ok && view) {
+            const QUrl failedUrl = view->url();
+            const QString escapedUrl = failedUrl.toString().toHtmlEscaped();
+            view->loadHtml(QStringLiteral(
+                "<!doctype html><html><head><meta charset=\"utf-8\"><style>"
+                "html,body{margin:0;height:100%;background:#1a1a1a;color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;}"
+                "body{display:grid;place-items:center;}main{width:min(520px,calc(100vw - 64px));}"
+                "h1{font-size:24px;font-weight:650;margin:0 0 10px;}p{color:#a1a1aa;line-height:1.5;margin:0 0 18px;}"
+                "button,a{appearance:none;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(255,255,255,.08);color:#f5f5f7;padding:9px 13px;text-decoration:none;font:inherit;margin-right:8px;}"
+                "code{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d4d4d8;margin:14px 0 20px;}"
+                "</style></head><body><main><h1>Can't open this page</h1><p>pocb couldn't load the requested address. Check the URL or try again.</p><code>%1</code><button onclick=\"location.href='%2'\">Retry</button><a href=\"%2\">Open URL</a></main></body></html>")
+                .arg(escapedUrl, escapedUrl));
+        }
         if (view != currentView()) markItemUnread(item, true);
         emit currentTabChanged();
     });

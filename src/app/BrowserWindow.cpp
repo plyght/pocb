@@ -33,6 +33,7 @@
 #include <QLineEdit>
 #include <QPalette>
 #include <QPainter>
+#include <QPainterPath>
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
 #include <QListWidget>
@@ -64,6 +65,9 @@
 #include <QVariantAnimation>
 #include <QWheelEvent>
 #include <QEasingCurve>
+#include <QGuiApplication>
+#include <QScreen>
+#include <QWindow>
 #include <QEvent>
 #include <QVBoxLayout>
 
@@ -182,6 +186,104 @@ private:
     Theme m_theme;
 };
 
+class TabSwitcherPopup final : public QWidget {
+public:
+    TabSwitcherPopup(const Theme &theme, QWidget *parent)
+        : QWidget(parent, Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint), m_theme(theme) {
+        setAttribute(Qt::WA_TranslucentBackground);
+        setAttribute(Qt::WA_ShowWithoutActivating);
+        setFocusPolicy(Qt::NoFocus);
+    }
+
+    void setTabs(const QList<WebView *> &tabs) {
+        m_tabs = tabs;
+        m_thumbnails.clear();
+        const QSize thumbSize(184, 104);
+        for (auto *tab : m_tabs) m_thumbnails.append(tab ? tab->snapshot(thumbSize) : QPixmap());
+        resize(sizeHint());
+        update();
+    }
+
+    void setCurrentIndex(int index) {
+        m_index = qBound(0, index, qMax(0, m_tabs.size() - 1));
+        update();
+    }
+
+    QSize sizeHint() const override {
+        const int count = qMin(7, qMax(1, m_tabs.size()));
+        return QSize(count * 210 + 28, 178);
+    }
+
+protected:
+    void paintEvent(QPaintEvent *) override {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+        QColor fill = m_theme.background;
+        fill.setAlpha(218);
+        QColor stroke = m_theme.border;
+        stroke.setAlpha(110);
+        painter.setPen(QPen(stroke, 1));
+        painter.setBrush(fill);
+        painter.drawRoundedRect(rect().adjusted(0, 0, -1, -1), 20, 20);
+
+        const int count = qMin(7, m_tabs.size());
+        const int cardW = 194;
+        const int cardH = 142;
+        const int gap = 16;
+        int x = (width() - count * cardW - (count - 1) * gap) / 2;
+        const int y = 18;
+        for (int i = 0; i < count; ++i) {
+            const bool active = i == m_index;
+            QRect card(x, y, cardW, cardH);
+            QColor cardFill = m_theme.foreground;
+            cardFill.setAlpha(active ? 34 : 16);
+            QColor cardStroke = m_theme.foreground;
+            cardStroke.setAlpha(active ? 105 : 32);
+            painter.setPen(QPen(cardStroke, active ? 1.4 : 1.0));
+            painter.setBrush(cardFill);
+            painter.drawRoundedRect(card, 14, 14);
+
+            QRect shotRect = card.adjusted(8, 8, -8, -42);
+            painter.setClipPath([shotRect] {
+                QPainterPath path;
+                path.addRoundedRect(shotRect, 10, 10);
+                return path;
+            }());
+            if (i < m_thumbnails.size() && !m_thumbnails.at(i).isNull()) {
+                painter.drawPixmap(shotRect, m_thumbnails.at(i));
+            } else {
+                QColor empty = m_theme.foreground;
+                empty.setAlpha(18);
+                painter.fillRect(shotRect, empty);
+            }
+            painter.setClipping(false);
+
+            if (auto *tab = m_tabs.at(i)) {
+                QRect iconRect(card.left() + 12, card.bottom() - 29, 16, 16);
+                const QIcon icon = tab->windowIcon();
+                if (!icon.isNull()) icon.paint(&painter, iconRect);
+                QFont titleFont = font();
+                titleFont.setPointSizeF(11.5);
+                titleFont.setWeight(active ? QFont::DemiBold : QFont::Normal);
+                painter.setFont(titleFont);
+                QColor text = m_theme.foreground;
+                text.setAlpha(active ? 235 : 176);
+                painter.setPen(text);
+                QString title = tab->title().trimmed();
+                if (title.isEmpty()) title = QStringLiteral("New tab");
+                painter.drawText(QRect(card.left() + 34, card.bottom() - 32, card.width() - 46, 22), Qt::AlignVCenter | Qt::AlignLeft, painter.fontMetrics().elidedText(title, Qt::ElideRight, card.width() - 48));
+            }
+            x += cardW + gap;
+        }
+    }
+
+private:
+    Theme m_theme;
+    QList<WebView *> m_tabs;
+    QList<QPixmap> m_thumbnails;
+    int m_index = 0;
+};
+
 }  // namespace
 
 BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
@@ -214,7 +316,7 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     // the window is visible (no one-frame flash at the default position).
     winId();
     mac::integrateUnifiedToolbar(this, nullptr, /*compact=*/true);
-    m_tabTree->newTab(QUrl(m_homePage));
+    if (m_tabTree) m_tabTree->restoreTabs(restoredSessionForProfile(m_profiles.currentName()));
 }
 
 void BrowserWindow::moveEvent(QMoveEvent *e) {
@@ -234,7 +336,9 @@ void BrowserWindow::resizeEvent(QResizeEvent *e) {
 }
 
 void BrowserWindow::closeEvent(QCloseEvent *e) {
-    QSettings().setValue("ui/windowGeometry", saveGeometry());
+    QSettings settings;
+    settings.setValue("ui/windowGeometry", saveGeometry());
+    saveSessionForProfile(m_profiles.currentName());
     QMainWindow::closeEvent(e);
 }
 
@@ -556,11 +660,19 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
                 m_floatingOmnibox->showFor(m_stack, QString());
             };
             auto settings = [this] { showSettings(); };
-            if (mac::showNativePageActionsMenu(button, copyUrl, reload, newTab, settings)) return;
+            auto bookmark = [this, viewGuard] {
+                if (!viewGuard) return;
+                if (m_bookmarks.contains(m_profiles.currentName(), viewGuard->url())) m_bookmarks.removeBookmark(m_profiles.currentName(), viewGuard->url());
+                else m_bookmarks.addBookmark(m_profiles.currentName(), viewGuard->title(), viewGuard->url());
+                refreshFloatingOmniboxItems();
+            };
+            const QString bookmarkTitle = viewGuard && m_bookmarks.contains(m_profiles.currentName(), viewGuard->url()) ? QStringLiteral("Remove Bookmark") : QStringLiteral("Bookmark This Page");
+            if (mac::showNativePageActionsMenu(button, copyUrl, reload, bookmark, bookmarkTitle, newTab, settings)) return;
 
             QMenu menu(this);
             menu.addAction("Copy URL", this, copyUrl);
             menu.addAction("Reload", this, reload);
+            menu.addAction(bookmarkTitle, this, bookmark);
             menu.addSeparator();
             menu.addAction("New Tab", this, newTab);
             menu.addAction("Settings…", this, settings);
@@ -736,6 +848,7 @@ void BrowserWindow::showCopiedLinkPopup() {
 }
 
 void BrowserWindow::showSettings() {
+    saveSessionForProfile(m_profiles.currentName());
     QString homePage = m_homePage;
     QString searchEngine = m_searchEngine;
     bool showFullUrl = QSettings().value("ui/showFullUrl", false).toBool();
@@ -846,14 +959,19 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
             };
             auto settings = [this] { showSettings(); };
             auto bookmark = [this] {
-                if (auto *v = currentView()) m_bookmarks.addBookmark(m_profiles.currentName(), v->title(), v->url());
+                if (auto *v = currentView()) {
+                    if (m_bookmarks.contains(m_profiles.currentName(), v->url())) m_bookmarks.removeBookmark(m_profiles.currentName(), v->url());
+                    else m_bookmarks.addBookmark(m_profiles.currentName(), v->title(), v->url());
+                    refreshFloatingOmniboxItems();
+                }
             };
-            if (mac::showNativePageActionsMenu(m_pillMenuBtn, copyUrl, reload, newTab, settings)) return;
+            const QString bookmarkTitle = currentView() && m_bookmarks.contains(m_profiles.currentName(), currentView()->url()) ? QStringLiteral("Remove Bookmark") : QStringLiteral("Bookmark This Page");
+            if (mac::showNativePageActionsMenu(m_pillMenuBtn, copyUrl, reload, bookmark, bookmarkTitle, newTab, settings)) return;
 
             QMenu menu(this);
             menu.addAction("Copy URL", this, copyUrl);
             menu.addAction("Reload", this, reload);
-            menu.addAction("Bookmark This Page", this, bookmark);
+            menu.addAction(bookmarkTitle, this, bookmark);
             menu.addSeparator();
             menu.addAction("New Tab", this, newTab);
             menu.addAction("Settings…", this, settings);
@@ -946,6 +1064,7 @@ void BrowserWindow::switchProfileRelative(int direction) {
     const int current = qMax(0, list.indexOf(m_profiles.currentName()));
     const int next = qBound(0, current + direction, list.size() - 1);
     if (next == current || next < 0 || next >= list.size()) return;
+    saveSessionForProfile(m_profiles.currentName());
     animateProfileSwitcher(direction);
     m_profiles.setCurrentProfile(list.at(next));
 }
@@ -1092,7 +1211,10 @@ void BrowserWindow::showProfileMenu() {
         auto *action = menu.addAction(mac::sfSymbolIcon(m_profiles.iconName(name), 13.0, m_theme.foreground), name);
         action->setCheckable(true);
         action->setChecked(name == m_profiles.currentName());
-        connect(action, &QAction::triggered, this, [this, name] { m_profiles.setCurrentProfile(name); });
+        connect(action, &QAction::triggered, this, [this, name] {
+            saveSessionForProfile(m_profiles.currentName());
+            m_profiles.setCurrentProfile(name);
+        });
     }
     menu.addSeparator();
     menu.addAction("Manage Profiles…", this, &BrowserWindow::showSettings);
@@ -1136,12 +1258,49 @@ bool BrowserWindow::handleInternalUrl(const QUrl &url) {
             QApplication::clipboard()->setText(v->url().toString());
             showCopiedLinkPopup();
         }
+    } else if (command == QStringLiteral("reopen-closed-tab")) {
+        reopenLastClosedTab();
+    } else if (command == QStringLiteral("toggle-bookmark")) {
+        if (auto *v = currentView()) {
+            if (m_bookmarks.contains(m_profiles.currentName(), v->url())) m_bookmarks.removeBookmark(m_profiles.currentName(), v->url());
+            else m_bookmarks.addBookmark(m_profiles.currentName(), v->title(), v->url());
+            refreshFloatingOmniboxItems();
+        }
     } else if (command == QStringLiteral("switch-tab")) {
         bool ok = false;
         const quintptr ptr = url.query().toULongLong(&ok, 16);
         if (ok && m_tabTree) m_tabTree->selectView(reinterpret_cast<WebView *>(ptr));
     }
     return true;
+}
+
+QList<QUrl> BrowserWindow::restoredSessionForProfile(const QString &profileName) const {
+    QSettings settings;
+    const QString key = QStringLiteral("sessions/%1/urls").arg(profileName);
+    QList<QUrl> urls;
+    const QStringList stored = settings.value(key).toStringList();
+    for (const QString &value : stored) {
+        const QUrl url(value);
+        if (url.isValid() && !url.isEmpty()) urls.append(url);
+    }
+    return urls;
+}
+
+void BrowserWindow::saveSessionForProfile(const QString &profileName) const {
+    if (!m_tabTree || profileName.trimmed().isEmpty()) return;
+    QStringList values;
+    for (const QUrl &url : m_tabTree->tabUrls()) values.append(url.toString());
+    QSettings().setValue(QStringLiteral("sessions/%1/urls").arg(profileName), values);
+}
+
+void BrowserWindow::reopenLastClosedTab() {
+    while (!m_closedTabs.isEmpty()) {
+        const ClosedTab tab = m_closedTabs.takeFirst();
+        if (!tab.url.isValid() || tab.url.isEmpty()) continue;
+        if (m_tabTree) m_tabTree->reopenUrl(tab.url);
+        refreshFloatingOmniboxItems();
+        return;
+    }
 }
 
 void BrowserWindow::rememberCurrentPage() {
@@ -1163,12 +1322,14 @@ void BrowserWindow::refreshFloatingOmniboxItems() {
     auto addCommand = [this, &items](const QString &title, const QString &url, const QString &symbol) {
         items.append({title, url, mac::sfSymbolIcon(symbol, 13.0, m_theme.foreground), false});
     };
-    addCommand("Settings", "pocb://settings", "gearshape");
-    addCommand("Close Sidebar", "pocb://close-sidebar", "sidebar.left");
-    addCommand("Toggle Sidebar", "pocb://toggle-sidebar", "sidebar.left");
-    addCommand("New Tab", "pocb://new-tab", "plus");
-    addCommand("Close Tab", "pocb://close-tab", "xmark");
-    addCommand("Copy Current URL", "pocb://copy-url", "link");
+    addCommand("Command · Settings", "pocb://settings", "gearshape");
+    addCommand("Command · Close Sidebar", "pocb://close-sidebar", "sidebar.left");
+    addCommand("Command · Toggle Sidebar", "pocb://toggle-sidebar", "sidebar.left");
+    addCommand("Command · New Tab", "pocb://new-tab", "plus");
+    addCommand("Command · Close Tab", "pocb://close-tab", "xmark");
+    addCommand("Command · Reopen Closed Tab", "pocb://reopen-closed-tab", "arrow.uturn.backward");
+    addCommand("Command · Toggle Bookmark", "pocb://toggle-bookmark", "star");
+    addCommand("Command · Copy Current URL", "pocb://copy-url", "link");
     auto iconForUrl = [this](const QUrl &url) {
         if (m_favicons) {
             if (const QPixmap pm = m_favicons->cached(url); !pm.isNull()) return QIcon(pm);
@@ -1178,7 +1339,7 @@ void BrowserWindow::refreshFloatingOmniboxItems() {
     };
     auto addUrlItem = [&items, &iconForUrl](const QString &title, const QUrl &url) {
         if (!url.isValid() || url.isEmpty() || url.scheme() == QStringLiteral("about") || url.scheme() == QStringLiteral("data")) return;
-        items.append({title.isEmpty() ? url.toString() : title, url.toString(), iconForUrl(url), false});
+        items.append({QStringLiteral("Page · ") + (title.isEmpty() ? url.toString() : title), url.toString(), iconForUrl(url), false});
     };
     const QList<WebView *> liveTabs = m_tabTree ? m_tabTree->views() : QList<WebView *>();
     for (int i = m_tabRecency.size() - 1; i >= 0; --i) {
@@ -1194,14 +1355,17 @@ void BrowserWindow::refreshFloatingOmniboxItems() {
         const QUrl url = view->url();
         if (!url.isValid() || url.isEmpty() || url.scheme() == QStringLiteral("about") || url.scheme() == QStringLiteral("data")) continue;
         const QString title = view->title().isEmpty() ? url.toString() : view->title();
-        items.append({title, QStringLiteral("pocb://switch-tab?") + QString::number(reinterpret_cast<quintptr>(view), 16), iconForUrl(url), defaultTabCount < 3});
+        items.append({QStringLiteral("Tab · ") + title, QStringLiteral("pocb://switch-tab?") + QString::number(reinterpret_cast<quintptr>(view), 16), iconForUrl(url), defaultTabCount < 3});
         ++defaultTabCount;
+    }
+    for (const ClosedTab &tab : m_closedTabs) {
+        if (tab.url.isValid() && !tab.url.isEmpty()) items.append({QStringLiteral("Closed · ") + (tab.title.isEmpty() ? tab.url.toString() : tab.title), tab.url.toString(), mac::sfSymbolIcon("arrow.uturn.backward", 13.0, m_theme.muted), false});
+    }
+    for (const Bookmark &bookmark : m_bookmarks.bookmarks(m_profiles.currentName())) {
+        items.append({QStringLiteral("Bookmark · ") + (bookmark.title.isEmpty() ? bookmark.url.toString() : bookmark.title), bookmark.url.toString(), iconForUrl(bookmark.url), false});
     }
     for (const RecentPage &page : m_recentPages) {
         addUrlItem(page.title, page.url);
-    }
-    for (const Bookmark &bookmark : m_bookmarks.bookmarks(m_profiles.currentName())) {
-        addUrlItem(bookmark.title, bookmark.url);
     }
     m_floatingOmnibox->setLocalItems(items);
 }
@@ -1518,6 +1682,7 @@ void BrowserWindow::setupUi() {
 
     connect(m_splitter, &QSplitter::splitterMoved, this, [this, sidebar](int pos, int) {
         if (!m_splitter) return;
+        if (m_splitter->property("sidebarAnimating").toBool()) return;
         const int collapseThreshold = ui::metrics::sidebarCollapseThreshold(sidebar->minimumWidth());
         if (pos < collapseThreshold) {
             if (sidebar->isVisible()) m_sidebar->setHidden(true);
@@ -1547,6 +1712,12 @@ void BrowserWindow::setupUi() {
         updateForCurrentTab();
         updateCurrentProfileSnapshot();
         refreshFloatingOmniboxItems();
+        saveSessionForProfile(m_profiles.currentName());
+    });
+    connect(m_tabTree, &TabTree::tabClosed, this, [this](const QUrl &url, const QString &title) {
+        m_closedTabs.prepend({title, url});
+        while (m_closedTabs.size() > 20) m_closedTabs.removeLast();
+        refreshFloatingOmniboxItems();
     });
     connect(m_tabTree, &TabTree::loadProgress, this, [this](int progress) {
         if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
@@ -1559,7 +1730,7 @@ void BrowserWindow::setupUi() {
         if (m_addressBarCtl && m_addressBarCtl->isEditing()) m_addressBarCtl->cancelEditing();
     });
     connect(&m_profiles, &ProfileStore::currentProfileChanged, this, [this] {
-        m_tabTree->rebuildForProfile();
+        m_tabTree->rebuildForProfile(restoredSessionForProfile(m_profiles.currentName()));
         updateProfileSwitcher();
     });
     connect(&m_profiles, &ProfileStore::profilesChanged, this, [this] {
@@ -1690,42 +1861,67 @@ void BrowserWindow::setupActions() {
                                    openBlankTabWithOmnibox));
     tabsMenu->addAction(makeAction("Close Tab", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_K),
                                    [this] { m_tabTree->closeCurrent(); }));
+    tabsMenu->addAction(makeAction("Reopen Closed Tab", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_T),
+                                   [this] { reopenLastClosedTab(); }));
     tabsMenu->addSeparator();
-    auto navTab = [this](int dir) {
-        auto *tree = m_tabTree->treeWidget();
-        if (!tree) return;
-        auto *cur = m_tabTree->currentItem();
-        if (!cur) return;
-        QTreeWidgetItem *next = (dir > 0) ? tree->itemBelow(cur) : tree->itemAbove(cur);
-        if (!next) {
-            const int n = tree->topLevelItemCount();
-            if (n == 0) return;
-            next = tree->topLevelItem(dir > 0 ? 0 : n - 1);
-        }
-        if (next) tree->setCurrentItem(next);
-    };
-    tabsMenu->addAction(makeAction("Select Next Tab",
-                                   QKeySequence(Qt::CTRL | Qt::Key_Tab),
-                                   [navTab] { navTab(+1); }));
-    tabsMenu->addAction(makeAction("Select Previous Tab",
-                                   QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Tab),
-                                   [navTab] { navTab(-1); }));
+    auto showNextTabSwitcher = [this] { showTabSwitcher(+1); };
+    auto showPreviousTabSwitcher = [this] { showTabSwitcher(-1); };
+    auto *nextTabAction = makeAction("Select Next Tab",
+                                     QKeySequence(Qt::CTRL | Qt::Key_Tab),
+                                     showNextTabSwitcher);
+    nextTabAction->setShortcutContext(Qt::ApplicationShortcut);
+    addAction(nextTabAction);
+    tabsMenu->addAction(nextTabAction);
+    auto *previousTabAction = makeAction("Select Previous Tab",
+                                         QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Tab),
+                                         showPreviousTabSwitcher);
+    previousTabAction->setShortcutContext(Qt::ApplicationShortcut);
+    addAction(previousTabAction);
+    tabsMenu->addAction(previousTabAction);
+    auto *nextTabShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Tab), this);
+    nextTabShortcut->setContext(Qt::ApplicationShortcut);
+    connect(nextTabShortcut, &QShortcut::activated, this, showNextTabSwitcher);
+    auto *previousTabShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Tab), this);
+    previousTabShortcut->setContext(Qt::ApplicationShortcut);
+    connect(previousTabShortcut, &QShortcut::activated, this, showPreviousTabSwitcher);
+    auto *previousBacktabShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Backtab), this);
+    previousBacktabShortcut->setContext(Qt::ApplicationShortcut);
+    connect(previousBacktabShortcut, &QShortcut::activated, this, showPreviousTabSwitcher);
+    mac::installTabSwitcherKeyMonitor(this,
+                                      showNextTabSwitcher,
+                                      showPreviousTabSwitcher,
+                                      [this] {
+                                          const bool active = m_tabSwitcherPending || (m_tabSwitcher && m_tabSwitcher->isVisible());
+                                          if (active) acceptTabSwitcher();
+                                          return active;
+                                      },
+                                      [this] {
+                                          const bool active = m_tabSwitcherPending || (m_tabSwitcher && m_tabSwitcher->isVisible());
+                                          if (active) hideTabSwitcher();
+                                          return active;
+                                      });
 
-    // ── Bookmarks (placeholders — bookmark store not yet implemented) ──
+    // ── Bookmarks ─────────────────────────────────────────────────────
     auto *bookmarksMenu = mb->addMenu("Bookmarks");
     auto addCurrentBookmark = [this] {
-        if (auto *v = currentView()) m_bookmarks.addBookmark(m_profiles.currentName(), v->title(), v->url());
+        if (auto *v = currentView()) {
+            if (m_bookmarks.contains(m_profiles.currentName(), v->url())) m_bookmarks.removeBookmark(m_profiles.currentName(), v->url());
+            else m_bookmarks.addBookmark(m_profiles.currentName(), v->title(), v->url());
+            refreshFloatingOmniboxItems();
+        }
     };
     auto rebuildBookmarksMenu = [this, bookmarksMenu, addCurrentBookmark] {
         bookmarksMenu->clear();
-        auto *bookmarkPage = bookmarksMenu->addAction("Bookmark This Page");
-        bookmarkPage->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_D));
-        connect(bookmarkPage, &QAction::triggered, this, addCurrentBookmark);
+        bool canBookmark = false;
+        bool isBookmarked = false;
         if (auto *v = currentView()) {
-            bookmarkPage->setEnabled(v->url().isValid() && !v->url().isEmpty() && v->url().scheme() != "about" && v->url().scheme() != "data");
-        } else {
-            bookmarkPage->setEnabled(false);
+            canBookmark = v->url().isValid() && !v->url().isEmpty() && v->url().scheme() != "about" && v->url().scheme() != "data";
+            isBookmarked = canBookmark && m_bookmarks.contains(m_profiles.currentName(), v->url());
         }
+        auto *bookmarkPage = bookmarksMenu->addAction(isBookmarked ? "Remove Bookmark" : "Bookmark This Page");
+        bookmarkPage->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_D));
+        bookmarkPage->setEnabled(canBookmark);
+        connect(bookmarkPage, &QAction::triggered, this, addCurrentBookmark);
         bookmarksMenu->addSeparator();
         const QVector<Bookmark> items = m_bookmarks.bookmarks(m_profiles.currentName());
         if (items.isEmpty()) {
@@ -1737,10 +1933,6 @@ void BrowserWindow::setupActions() {
                 open->setToolTip(bookmark.url.toString());
                 connect(open, &QAction::triggered, this, [this, url = bookmark.url] {
                     if (auto *v = currentView()) v->load(url);
-                });
-                auto *remove = bookmarksMenu->addAction(QString("Remove “%1”").arg(bookmark.title));
-                connect(remove, &QAction::triggered, this, [this, url = bookmark.url] {
-                    m_bookmarks.removeBookmark(m_profiles.currentName(), url);
                 });
             }
         }
@@ -1778,7 +1970,11 @@ void BrowserWindow::setupActions() {
         for (const QString &name : list) {
             auto *a = profilesMenu->addAction(name);
             a->setCheckable(true);
-            connect(a, &QAction::triggered, this, [this, name] { m_profiles.setCurrentProfile(name); });
+            a->setChecked(name == m_profiles.currentName());
+            connect(a, &QAction::triggered, this, [this, name] {
+                saveSessionForProfile(m_profiles.currentName());
+                m_profiles.setCurrentProfile(name);
+            });
         }
         if (!list.isEmpty()) profilesMenu->addSeparator();
         auto *manage = profilesMenu->addAction("Manage Profiles…");
@@ -1816,7 +2012,91 @@ void BrowserWindow::setupActions() {
 }
 
 
+QList<WebView *> BrowserWindow::orderedSwitchableTabs() const {
+    const QList<WebView *> liveTabs = m_tabTree ? m_tabTree->views() : QList<WebView *>();
+    QList<WebView *> ordered;
+    for (auto *view : m_tabRecency) {
+        if (view && liveTabs.contains(view) && !ordered.contains(view)) ordered.append(view);
+    }
+    for (auto *view : liveTabs) {
+        if (view && !ordered.contains(view)) ordered.append(view);
+    }
+    return ordered;
+}
+
+void BrowserWindow::showTabSwitcher(int direction) {
+    if (!m_tabTree) return;
+    const QList<WebView *> tabs = orderedSwitchableTabs();
+    if (tabs.size() < 2) return;
+    if (m_tabSwitcher && m_tabSwitcher->isVisible()) {
+        advanceTabSwitcher(direction);
+        return;
+    }
+    m_tabSwitcherTabs = tabs;
+    m_tabSwitcherIndex = qBound(0, direction > 0 ? 1 : tabs.size() - 1, tabs.size() - 1);
+    m_tabSwitcherPending = true;
+    if (!m_tabSwitcherOpenTimer) {
+        m_tabSwitcherOpenTimer = new QTimer(this);
+        m_tabSwitcherOpenTimer->setSingleShot(true);
+        connect(m_tabSwitcherOpenTimer, &QTimer::timeout, this, [this] {
+            if (!m_tabSwitcherPending || m_tabSwitcherTabs.isEmpty()) return;
+            if (!m_tabSwitcher) m_tabSwitcher = new TabSwitcherPopup(m_theme, this);
+            auto *popup = static_cast<TabSwitcherPopup *>(m_tabSwitcher);
+            popup->setTabs(m_tabSwitcherTabs);
+            popup->setCurrentIndex(m_tabSwitcherIndex);
+            const QRect screen = (windowHandle() && windowHandle()->screen()) ? windowHandle()->screen()->availableGeometry() : QGuiApplication::primaryScreen()->availableGeometry();
+            popup->move(screen.center() - QPoint(popup->width() / 2, popup->height() / 2));
+            popup->show();
+            mac::makeFloatingVibrantPanel(popup, mac::VibrancyMaterial::HUDWindow, 20.0);
+            popup->raise();
+        });
+    }
+    m_tabSwitcherOpenTimer->start(0);
+}
+
+void BrowserWindow::advanceTabSwitcher(int direction) {
+    if (m_tabSwitcherTabs.isEmpty()) return;
+    m_tabSwitcherIndex = (m_tabSwitcherIndex + (direction > 0 ? 1 : -1) + m_tabSwitcherTabs.size()) % m_tabSwitcherTabs.size();
+    if (m_tabSwitcher) static_cast<TabSwitcherPopup *>(m_tabSwitcher)->setCurrentIndex(m_tabSwitcherIndex);
+}
+
+void BrowserWindow::acceptTabSwitcher() {
+    if (m_tabSwitcherOpenTimer) m_tabSwitcherOpenTimer->stop();
+    if (!m_tabSwitcherTabs.isEmpty()) {
+        WebView *target = m_tabSwitcherTabs.value(m_tabSwitcherIndex);
+        if (target && m_tabTree) m_tabTree->selectView(target);
+    }
+    hideTabSwitcher();
+}
+
+void BrowserWindow::hideTabSwitcher() {
+    m_tabSwitcherPending = false;
+    if (m_tabSwitcherOpenTimer) m_tabSwitcherOpenTimer->stop();
+    if (m_tabSwitcher) m_tabSwitcher->hide();
+    m_tabSwitcherTabs.clear();
+    m_tabSwitcherIndex = 0;
+}
+
 bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
+    if (ev->type() == QEvent::ShortcutOverride || ev->type() == QEvent::KeyPress) {
+        auto *key = static_cast<QKeyEvent *>(ev);
+        if ((key->key() == Qt::Key_Tab || key->key() == Qt::Key_Backtab) && (key->modifiers() & Qt::ControlModifier)) {
+            key->accept();
+            if (ev->type() == QEvent::KeyPress) showTabSwitcher((key->modifiers() & Qt::ShiftModifier) || key->key() == Qt::Key_Backtab ? -1 : +1);
+            return true;
+        }
+    }
+    if (ev->type() == QEvent::KeyRelease && (m_tabSwitcherPending || (m_tabSwitcher && m_tabSwitcher->isVisible()))) {
+        auto *key = static_cast<QKeyEvent *>(ev);
+        if (key->key() == Qt::Key_Control) {
+            acceptTabSwitcher();
+            return true;
+        }
+        if (key->key() == Qt::Key_Escape) {
+            hideTabSwitcher();
+            return true;
+        }
+    }
     if (obj == m_sidebarViewport && ev->type() == QEvent::Resize) {
         setSidebarSwipeOffset(0);
         if (m_sidebarPreviewTabs) m_sidebarPreviewTabs->setColumnWidth(0, m_sidebarViewport->width());

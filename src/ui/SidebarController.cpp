@@ -120,11 +120,12 @@ SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
                 if (!m_floating || !m_floatingInner) return;
                 const double t = qBound(0.0, v.toDouble(), 1.0);
                 m_slideProgress = t;
-                const int w = m_floating->width();
-                const int h = m_floating->height();
-                const int travel = qMin(kSlideTravelPx, w);
-                const int x = -travel + qRound(travel * t);
-                m_floatingInner->setGeometry(x, 0, w, h);
+                if (!m_floatingBaseGeometry.isValid()) m_floatingBaseGeometry = m_floating->geometry();
+                const int travel = qMin(kSlideTravelPx, m_floatingBaseGeometry.width());
+                QRect frame = m_floatingBaseGeometry;
+                frame.translate(-travel + qRound(travel * t), 0);
+                m_floating->setGeometry(frame);
+                m_floatingInner->setGeometry(0, 0, frame.width(), frame.height());
                 m_floating->setWindowOpacity(0.9 + 0.1 * t);
             });
     connect(m_slideAnim, &QVariantAnimation::finished, this, [this] {
@@ -211,11 +212,9 @@ void SidebarController::positionFloating() {
     const int minimum = side ? side->minimumWidth() : ui::metrics::SidebarMinimumWidth;
     const int width = qBound(minimum, saved, ui::metrics::SidebarMaximumWidth);
     const QRect geometry = ui::metrics::floatingSidebarRect(m_window, width);
-    m_floating->setGeometry(geometry);
-    if (m_floatingInner) {
-        // Preserve current x offset (mid-animation) but match new size.
-        m_floatingInner->setGeometry(m_floatingInner->x(), 0, width, geometry.height());
-    }
+    m_floatingBaseGeometry = geometry;
+    if (!m_slideAnim || m_slideAnim->state() != QAbstractAnimation::Running) m_floating->setGeometry(geometry);
+    if (m_floatingInner) m_floatingInner->setGeometry(0, 0, width, geometry.height());
 }
 
 void SidebarController::expandAnimated() {
@@ -225,14 +224,20 @@ void SidebarController::expandAnimated() {
     if (m_anim && m_anim->state() == QAbstractAnimation::Running) return;
 
     if (m_floating && m_floating->isVisible()) hideFloatingImmediate();
-    setHidden(false);
+    if (m_dismissTimer) m_dismissTimer->stop();
+    if (m_hoverPoll) m_hoverPoll->stop();
     if (m_hoverZone) m_hoverZone->hide();
+    dockContent();
 
     const int saved = QSettings().value("ui/sidebarWidth", ui::metrics::SidebarDefaultWidth).toInt();
     const int target = qBound(side->minimumWidth(), saved, side->maximumWidth());
     const int total = m_splitter->size().width();
     const int handle = m_splitter->handleWidth();
+    m_splitter->setProperty("sidebarAnimating", true);
     m_splitter->setSizes({0, qMax(0, total - handle)});
+    side->setVisible(true);
+    mac::setTrafficLightsHidden(m_window, false);
+    mac::refreshUnifiedToolbar(m_window);
 
     if (!m_anim) {
         m_anim = new QVariantAnimation(this);
@@ -250,6 +255,12 @@ void SidebarController::expandAnimated() {
     m_anim->stop();
     m_anim->setStartValue(0);
     m_anim->setEndValue(target);
+    connect(m_anim, &QVariantAnimation::finished, this, [this] {
+        if (m_splitter) m_splitter->setProperty("sidebarAnimating", false);
+        if (m_anim && m_anim->direction() == QAbstractAnimation::Forward && m_setStackHostInset) {
+            m_setStackHostInset(true);
+        }
+    }, Qt::SingleShotConnection);
     m_anim->start();
 }
 
@@ -276,10 +287,8 @@ void SidebarController::showFloating() {
     m_content->show();
 
     positionFloating();
-    if (m_floatingInner) {
-        m_floatingInner->setGeometry(-qMin(kSlideTravelPx, m_floating->width()), 0,
-                                      m_floating->width(), m_floating->height());
-    }
+    if (m_floatingInner) m_floatingInner->setGeometry(0, 0, m_floating->width(), m_floating->height());
+    m_floating->move(m_floatingBaseGeometry.topLeft() - QPoint(qMin(kSlideTravelPx, m_floatingBaseGeometry.width()), 0));
     m_slideProgress = 0.0;
     m_floating->setWindowOpacity(1.0);
     m_floating->show();

@@ -40,8 +40,11 @@ public:
     void newTab(const QUrl &url = QUrl(), bool background = false,
                 QTreeWidgetItem *parentItem = nullptr);
     void closeCurrent();
-    // Re-create with a single home tab (used when the active profile changes).
-    void rebuildForProfile();
+    QList<QUrl> tabUrls() const;
+    void restoreTabs(const QList<QUrl> &urls);
+    void reopenUrl(const QUrl &url);
+    // Re-create with restored tabs for the active profile.
+    void rebuildForProfile(const QList<QUrl> &urls = {});
 
     void setHomePage(const QString &url) { m_homePage = url; }
     QString homePage() const { return m_homePage; }
@@ -61,6 +64,7 @@ signals:
     void tabSplitRequested(WebView *first, WebView *second, const QPoint &globalPos);
     void tabSplitPreviewRequested(WebView *dragged, WebView *target, const QPoint &globalPos);
     void tabSplitPreviewEnded();
+    void tabClosed(const QUrl &url, const QString &title);
 
 private:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -106,6 +110,7 @@ private:
     QList<QTreeWidgetItem *> m_tabHistory;
     QTreeWidgetItem *m_pressedItem = nullptr;
     QPoint m_pressPos;
+    QPoint m_pressGlobalPos;
     QWidget *m_dropIndicator = nullptr;
     QWidget *m_dragOverlay = nullptr;
     QTreeWidgetItem *m_draggingItem = nullptr;

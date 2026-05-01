@@ -63,6 +63,18 @@ NSWindow *nsWindowOf(QWidget *w) {
 }
 @end
 
+@interface PocbTabSwitcherKeyMonitor : NSObject
+@property(nonatomic, strong) id keyDownMonitor;
+@property(nonatomic, strong) id keyUpMonitor;
+@end
+
+@implementation PocbTabSwitcherKeyMonitor
+- (void)dealloc {
+    if (self.keyDownMonitor) [NSEvent removeMonitor:self.keyDownMonitor];
+    if (self.keyUpMonitor) [NSEvent removeMonitor:self.keyUpMonitor];
+}
+@end
+
 static void pocbPinSubview(NSView *subview, NSView *container);
 
 static NSView *pocbLiquidGlassContainer(NSView *content, NSSize size) {
@@ -260,6 +272,40 @@ void sendStandardEditAction(const char *selector) {
     [NSApp sendAction:sel to:nil from:nil];
 }
 
+void installTabSwitcherKeyMonitor(QWidget *window,
+                                  std::function<void()> next,
+                                  std::function<void()> previous,
+                                  std::function<bool()> accept,
+                                  std::function<bool()> cancel) {
+    if (!window) return;
+    NSWindow *nsWindow = mac::internal::nsWindowOf(window);
+    if (!nsWindow) return;
+    PocbTabSwitcherKeyMonitor *target = [[PocbTabSwitcherKeyMonitor alloc] init];
+    target.keyDownMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown handler:^NSEvent *(NSEvent *event) {
+        if (event.window != nsWindow) return event;
+        const bool control = (event.modifierFlags & NSEventModifierFlagControl) != 0;
+        const bool shift = (event.modifierFlags & NSEventModifierFlagShift) != 0;
+        if (control && event.keyCode == 48) {
+            if (shift) previous();
+            else next();
+            return nil;
+        }
+        if (event.keyCode == 53 && cancel && cancel()) return nil;
+        return event;
+    }];
+    target.keyUpMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyUp | NSEventMaskFlagsChanged handler:^NSEvent *(NSEvent *event) {
+        if (event.type == NSEventTypeFlagsChanged) {
+            const bool control = (event.modifierFlags & NSEventModifierFlagControl) != 0;
+            if (!control && accept && accept()) return nil;
+        } else if ((event.keyCode == 59 || event.keyCode == 62) && accept && accept()) {
+            return nil;
+        }
+        if (event.window != nsWindow) return event;
+        return event;
+    }];
+    objc_setAssociatedObject(nsWindow, @selector(installTabSwitcherKeyMonitor:::::), target, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
 void animateWindowFrame(QWidget *window,
                         const QRect &from,
                         const QRect &to,
@@ -350,6 +396,8 @@ bool showNativeContextMenu(QWidget *anchor,
 bool showNativePageActionsMenu(QWidget *anchor,
                                std::function<void()> copyUrl,
                                std::function<void()> reload,
+                               std::function<void()> bookmark,
+                               const QString &bookmarkTitle,
                                std::function<void()> newTab,
                                std::function<void()> settings) {
     if (!anchor) return false;
@@ -358,9 +406,10 @@ bool showNativePageActionsMenu(QWidget *anchor,
     if (!view) return false;
 
     std::vector<std::function<void()>> callbacks;
-    callbacks.reserve(4);
+    callbacks.reserve(5);
     callbacks.push_back(std::move(copyUrl));
     callbacks.push_back(std::move(reload));
+    callbacks.push_back(std::move(bookmark));
     callbacks.push_back(std::move(newTab));
     callbacks.push_back(std::move(settings));
 
@@ -368,9 +417,10 @@ bool showNativePageActionsMenu(QWidget *anchor,
     NSMutableArray<NSDictionary *> *items = [NSMutableArray arrayWithArray:@[
         @{ @"title": @"Copy URL", @"symbol": @"doc.on.doc", @"tag": @0, @"enabled": @YES },
         @{ @"title": @"Reload", @"symbol": @"arrow.clockwise", @"tag": @1, @"enabled": @YES },
+        @{ @"title": bookmarkTitle.toNSString(), @"symbol": @"star", @"tag": @2, @"enabled": @YES },
         @{ @"separator": @YES },
-        @{ @"title": @"New Tab", @"symbol": @"plus", @"tag": @2, @"enabled": @YES },
-        @{ @"title": @"Settings…", @"symbol": @"gearshape", @"tag": @3, @"enabled": @YES }
+        @{ @"title": @"New Tab", @"symbol": @"plus", @"tag": @3, @"enabled": @YES },
+        @{ @"title": @"Settings…", @"symbol": @"gearshape", @"tag": @4, @"enabled": @YES }
     ]];
     PocbMenuCallbackTarget *target = [PocbMenuCallbackTarget new];
     target.callbacks = &callbacks;
@@ -387,9 +437,10 @@ bool showNativePageActionsMenu(QWidget *anchor,
 
     addItem(@"Copy URL", @"doc.on.doc", 0);
     addItem(@"Reload", @"arrow.clockwise", 1);
+    addItem(bookmarkTitle.toNSString(), @"star", 2);
     [menu addItem:[NSMenuItem separatorItem]];
-    addItem(@"New Tab", @"plus", 2);
-    addItem(@"Settings…", @"gearshape", 3);
+    addItem(@"New Tab", @"plus", 3);
+    addItem(@"Settings…", @"gearshape", 4);
 
     const NSPoint point = NSMakePoint(NSMidX(view.bounds), NSMinY(view.bounds));
     [menu popUpMenuPositioningItem:nil atLocation:point inView:view];
@@ -416,6 +467,8 @@ void animateWindowFrame(QWidget *window,
 bool showNativePageActionsMenu(QWidget *,
                                std::function<void()>,
                                std::function<void()>,
+                               std::function<void()>,
+                               const QString &,
                                std::function<void()>,
                                std::function<void()>) {
     return false;
