@@ -228,15 +228,16 @@ WebView::WebView(WebKitProfile *profile, QWidget *parent)
         if (profile->dataStore()) {
             cfg.websiteDataStore = (__bridge WKWebsiteDataStore *)profile->dataStore();
         }
+        WKUserContentController *content = cfg.userContentController ?: [[WKUserContentController alloc] init];
         const QString extensionBootstrap = ChromeExtensionManager::bootstrapScript();
         if (!extensionBootstrap.trimmed().isEmpty()) {
-            WKUserContentController *content = cfg.userContentController ?: [[WKUserContentController alloc] init];
             WKUserScript *script = [[WKUserScript alloc] initWithSource:extensionBootstrap.toNSString()
                                                           injectionTime:WKUserScriptInjectionTimeAtDocumentStart
                                                        forMainFrameOnly:NO];
             [content addUserScript:script];
-            cfg.userContentController = content;
         }
+        ChromeExtensionManager::installContentRuleLists((__bridge void *)content);
+        cfg.userContentController = content;
         if (@available(macOS 15.4, *)) {
             if (void *controller = ChromeExtensionManager::nativeController()) {
                 cfg.webExtensionController = (__bridge WKWebExtensionController *)controller;

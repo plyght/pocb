@@ -35,6 +35,7 @@ public:
     static void setConfiguredPaths(const QStringList &paths);
     static QJsonArray contentScriptPayload();
     static QString bootstrapScript();
+    static void installContentRuleLists(void *userContentController);
     static void setBrowserWindow(BrowserWindow *window);
     static void notifyTabOpened(WebView *view);
     static void notifyTabActivated(WebView *view, WebView *previousView = nullptr);

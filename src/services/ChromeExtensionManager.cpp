@@ -29,6 +29,9 @@
 #import <WebKit/WKWebViewConfiguration.h>
 #import <WebKit/WKNavigationAction.h>
 #import <WebKit/WKUIDelegate.h>
+#import <WebKit/WKUserContentController.h>
+#import <WebKit/WKContentRuleList.h>
+#import <WebKit/WKContentRuleListStore.h>
 
 static BrowserWindow *g_browserWindow = nullptr;
 static NSView *g_popupAnchor = nil;
@@ -229,6 +232,103 @@ void ChromeExtensionManager::setConfiguredPaths(const QStringList &paths) {
         if (!p.isEmpty() && QDir(p).exists() && !cleaned.contains(p)) cleaned << p;
     }
     QSettings().setValue("extensions/unpackedPaths", cleaned);
+}
+
+static QString dnrUrlFilterToWebKitRegex(QString filter) {
+    if (filter.isEmpty() || filter == QStringLiteral("*")) return QStringLiteral(".*");
+    bool anchoredStart = filter.startsWith(QStringLiteral("||"));
+    if (anchoredStart) filter = filter.mid(2);
+    if (filter.startsWith(QLatin1Char('|'))) filter = filter.mid(1);
+    if (filter.endsWith(QLatin1Char('|'))) filter.chop(1);
+    QString out;
+    for (int i = 0; i < filter.size(); ++i) {
+        const QChar ch = filter.at(i);
+        if (ch == QLatin1Char('*')) out += QStringLiteral(".*");
+        else if (ch == QLatin1Char('^')) out += QStringLiteral("[^A-Za-z0-9_\\-.%]");
+        else out += QRegularExpression::escape(QString(ch));
+    }
+    if (anchoredStart) return QStringLiteral("^https?://([^/?#]+\\.)?") + out;
+    return out.isEmpty() ? QStringLiteral(".*") : out;
+}
+
+static QJsonArray webKitResourceTypes(const QJsonArray &dnrTypes) {
+    QJsonArray out;
+    for (const QJsonValue &value : dnrTypes) {
+        const QString type = value.toString();
+        if (type == QStringLiteral("main_frame") || type == QStringLiteral("sub_frame")) out.append(QStringLiteral("document"));
+        else if (type == QStringLiteral("stylesheet")) out.append(QStringLiteral("style-sheet"));
+        else if (type == QStringLiteral("script")) out.append(QStringLiteral("script"));
+        else if (type == QStringLiteral("image")) out.append(QStringLiteral("image"));
+        else if (type == QStringLiteral("font")) out.append(QStringLiteral("font"));
+        else if (type == QStringLiteral("media")) out.append(QStringLiteral("media"));
+        else if (type == QStringLiteral("xmlhttprequest") || type == QStringLiteral("ping") || type == QStringLiteral("websocket")) out.append(QStringLiteral("raw"));
+    }
+    return out;
+}
+
+static QJsonArray contentRuleListPayloadForExtension(const QString &rootPath, int limit) {
+    QJsonArray out;
+    const QDir root(rootPath);
+    QFile manifestFile(root.filePath(QStringLiteral("manifest.json")));
+    if (!manifestFile.open(QIODevice::ReadOnly)) return out;
+    const QJsonObject manifest = QJsonDocument::fromJson(manifestFile.readAll()).object();
+    const QJsonArray resources = manifest.value(QStringLiteral("declarative_net_request")).toObject().value(QStringLiteral("rule_resources")).toArray();
+    for (const QJsonValue &resourceValue : resources) {
+        const QString path = resourceValue.toObject().value(QStringLiteral("path")).toString();
+        QFile rulesFile(root.filePath(path));
+        if (path.isEmpty() || !rulesFile.open(QIODevice::ReadOnly)) continue;
+        const QJsonArray rules = QJsonDocument::fromJson(rulesFile.readAll()).array();
+        for (const QJsonValue &ruleValue : rules) {
+            if (limit > 0 && out.size() >= limit) return out;
+            const QJsonObject rule = ruleValue.toObject();
+            const QString actionType = rule.value(QStringLiteral("action")).toObject().value(QStringLiteral("type")).toString();
+            if (actionType != QStringLiteral("block") && actionType != QStringLiteral("allow") && actionType != QStringLiteral("allowAllRequests")) continue;
+            const QJsonObject condition = rule.value(QStringLiteral("condition")).toObject();
+            QString regex = condition.value(QStringLiteral("regexFilter")).toString();
+            if (regex.isEmpty()) regex = dnrUrlFilterToWebKitRegex(condition.value(QStringLiteral("urlFilter")).toString());
+            if (regex.isEmpty()) continue;
+            QJsonObject trigger;
+            trigger.insert(QStringLiteral("url-filter"), regex);
+            const QJsonArray types = webKitResourceTypes(condition.value(QStringLiteral("resourceTypes")).toArray());
+            if (!types.isEmpty()) trigger.insert(QStringLiteral("resource-type"), types);
+            QJsonArray ifDomains;
+            for (const QJsonValue &domain : condition.value(QStringLiteral("domains")).toArray()) ifDomains.append(QStringLiteral("*") + domain.toString());
+            for (const QJsonValue &domain : condition.value(QStringLiteral("initiatorDomains")).toArray()) ifDomains.append(QStringLiteral("*") + domain.toString());
+            if (!ifDomains.isEmpty()) trigger.insert(QStringLiteral("if-domain"), ifDomains);
+            QJsonObject action;
+            action.insert(QStringLiteral("type"), actionType == QStringLiteral("block") ? QStringLiteral("block") : QStringLiteral("ignore-previous-rules"));
+            QJsonObject item;
+            item.insert(QStringLiteral("trigger"), trigger);
+            item.insert(QStringLiteral("action"), action);
+            out.append(item);
+        }
+    }
+    return out;
+}
+
+void ChromeExtensionManager::installContentRuleLists(void *userContentController) {
+    WKUserContentController *content = (__bridge WKUserContentController *)userContentController;
+    if (!content) return;
+    static NSMutableSet<NSString *> *installed = nil;
+    if (!installed) installed = [NSMutableSet set];
+    for (const QString &path : configuredPaths()) {
+        const QString stableId = QFileInfo(path).fileName().toLower().replace(QRegularExpression(QStringLiteral("[^a-z0-9_-]")), QStringLiteral("-"));
+        const QString identifier = QStringLiteral("pocb-dnr-") + stableId;
+        if ([installed containsObject:identifier.toNSString()]) continue;
+        QJsonArray rules = contentRuleListPayloadForExtension(path, 30000);
+        if (rules.isEmpty()) continue;
+        NSString *encoded = QString::fromUtf8(QJsonDocument(rules).toJson(QJsonDocument::Compact)).toNSString();
+        NSString *nsIdentifier = identifier.toNSString();
+        [installed addObject:nsIdentifier];
+        [[WKContentRuleListStore defaultStore] compileContentRuleListForIdentifier:nsIdentifier encodedContentRuleList:encoded completionHandler:^(WKContentRuleList *list, NSError *error) {
+            if (error || !list) {
+                NSLog(@"pocb failed to compile content rules %@: %@", nsIdentifier, error.localizedDescription);
+                return;
+            }
+            [content addContentRuleList:list];
+            NSLog(@"pocb installed content rules %@ (%lu rules)", nsIdentifier, (unsigned long)rules.size());
+        }];
+    }
 }
 
 void *ChromeExtensionManager::nativeController() {
