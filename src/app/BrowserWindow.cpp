@@ -35,6 +35,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QFrame>
+#include <QFileDialog>
 #include <QGraphicsOpacityEffect>
 #include <QListWidget>
 #include <QListWidgetItem>
@@ -299,9 +300,9 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     setAttribute(Qt::WA_ContentsMarginsRespectsSafeArea, false);
     setWindowFlags(windowFlags() | Qt::ExpandedClientAreaHint | Qt::NoTitleBarBackgroundHint);
 #endif
+    ChromeExtensionManager::setBrowserWindow(this);
     setupUi();
     setupActions();
-    ChromeExtensionManager::setBrowserWindow(this);
     setWindowTitle("pocb");
     {
         QSettings settings;
@@ -369,6 +370,14 @@ WebView *BrowserWindow::extensionCreateTab(const QUrl &url, bool background) {
     return m_tabTree ? m_tabTree->newTabForExtension(url, background) : nullptr;
 }
 
+WebView *BrowserWindow::extensionAdoptNativeTab(void *nativeWebView, bool background) {
+    if (!m_tabTree || !nativeWebView) return nullptr;
+    auto *view = new WebView(nullptr, nullptr);
+    view->adoptNativeWebView(nativeWebView);
+    m_tabTree->adoptExtensionView(view, background);
+    return view;
+}
+
 void BrowserWindow::extensionSelectView(WebView *view) {
     if (m_tabTree) m_tabTree->selectView(view);
 }
@@ -379,7 +388,7 @@ void BrowserWindow::extensionCloseView(WebView *view) {
     if (m_tabTree->currentView() == view) m_tabTree->closeCurrent();
 }
 
-void BrowserWindow::extensionSetAction(const QString &key, const QString &label, std::function<void()> handler) {
+void BrowserWindow::extensionSetAction(const QString &key, const QString &label, const QIcon &icon, std::function<void(QWidget *)> handler) {
     if (!m_topbar) return;
     QToolButton *button = m_extensionActionButtons.value(key, nullptr);
     if (!button) {
@@ -395,15 +404,30 @@ void BrowserWindow::extensionSetAction(const QString &key, const QString &label,
             "QToolButton:pressed { background: %3; }")
             .arg(m_theme.foreground.name(), m_theme.hover.name(), m_theme.raised.name()));
         if (auto *layout = qobject_cast<QHBoxLayout *>(m_topbar->layout())) {
-            const int index = m_settingsBtn ? layout->indexOf(m_settingsBtn) : layout->count();
+            const int index = m_extensionsBtn ? layout->indexOf(m_extensionsBtn) : (m_settingsBtn ? layout->indexOf(m_settingsBtn) : layout->count());
             layout->insertWidget(qMax(0, index), button);
         }
         m_extensionActionButtons.insert(key, button);
     }
-    button->setText(label.left(1).toUpper());
+    button->setText(QString());
+    if (!icon.isNull()) {
+        button->setIcon(icon);
+    } else {
+        button->setIcon(mac::sfSymbolIcon("puzzlepiece.extension", 14.0, m_theme.foreground));
+        for (const auto &extension : ChromeExtensionManager::configuredExtensions()) {
+            if (extension.name == label || extension.name == key || QFileInfo(extension.path).fileName() == key || label.contains(extension.name, Qt::CaseInsensitive)) {
+                if (!extension.iconPath.isEmpty()) button->setIcon(QIcon(extension.iconPath));
+                break;
+            }
+        }
+    }
     button->setToolTip(label);
+    m_extensionActionHandlers.insert(key, std::move(handler));
     button->disconnect();
-    connect(button, &QToolButton::clicked, this, [handler = std::move(handler)] { handler(); });
+    connect(button, &QToolButton::clicked, this, [this, key, button] {
+        const auto handler = m_extensionActionHandlers.value(key);
+        if (handler) handler(button);
+    });
     button->show();
 }
 
@@ -905,6 +929,24 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     m_reloadBtn = w.reload;
     m_newTabBtn = w.newTab;
     m_settingsBtn = w.settings;
+    m_extensionsBtn = new QToolButton(w.bar);
+    m_extensionsBtn->setAutoRaise(true);
+    m_extensionsBtn->setFocusPolicy(Qt::NoFocus);
+    m_extensionsBtn->setCursor(Qt::PointingHandCursor);
+    m_extensionsBtn->setIconSize(QSize(16, 16));
+    m_extensionsBtn->setFixedSize(28, 28);
+    m_extensionsBtn->setToolTip("Extensions");
+    m_extensionsBtn->setIcon(mac::sfSymbolIcon("puzzlepiece.extension", 14.0, m_theme.foreground));
+    m_extensionsBtn->setStyleSheet(QString(
+        "QToolButton { background: transparent; border: none; border-radius: 6px; padding: 0px; }"
+        "QToolButton:hover { background: %1; }"
+        "QToolButton:pressed { background: %2; }")
+        .arg(m_theme.hover.name(), m_theme.raised.name()));
+    if (auto *layout = qobject_cast<QHBoxLayout *>(w.bar->layout())) {
+        const int index = m_settingsBtn ? layout->indexOf(m_settingsBtn) : layout->count();
+        layout->insertWidget(qMax(0, index), m_extensionsBtn);
+    }
+    m_settingsBtn = w.settings;
     m_addressBar = w.addressBar;
     m_lockIcon = w.lockIcon;
     m_searchIcon = w.searchIcon;
@@ -1002,6 +1044,7 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     connect(m_fwdBtn,    &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->forward(); });
     connect(m_reloadBtn, &QToolButton::clicked, this, [this] { if (auto *v = currentView()) { if (v->isLoading()) v->stop(); else v->reload(); } });
     connect(m_settingsBtn, &QToolButton::clicked, this, &BrowserWindow::showSettings);
+    connect(m_extensionsBtn, &QToolButton::clicked, this, &BrowserWindow::showExtensionsMenu);
     connect(m_newTabBtn, &QToolButton::clicked, this, [this] {
         m_tabTree->newTab(QUrl("about:blank"));
         if (auto *view = currentView()) {
@@ -1219,6 +1262,41 @@ void BrowserWindow::showProfileMenu() {
     menu.addSeparator();
     menu.addAction("Manage Profiles…", this, &BrowserWindow::showSettings);
     menu.exec(m_profileBtn->mapToGlobal(QPoint(0, m_profileBtn->height() + 2)));
+}
+
+void BrowserWindow::showExtensionsMenu() {
+    if (!m_extensionsBtn) return;
+    QMenu menu(this);
+    const QString extensionDir = ChromeExtensionManager::extensionDirectory();
+    const QStringList paths = ChromeExtensionManager::configuredPaths();
+    if (paths.isEmpty()) {
+        QAction *empty = menu.addAction("No unpacked extensions loaded");
+        empty->setEnabled(false);
+    } else {
+        for (const QString &path : paths) {
+            const QString label = QFileInfo(path).fileName().isEmpty() ? path : QFileInfo(path).fileName();
+            QAction *action = menu.addAction(mac::sfSymbolIcon("puzzlepiece.extension", 13.0, m_theme.foreground), label);
+            action->setToolTip(path);
+            connect(action, &QAction::triggered, this, [path] {
+                QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+            });
+        }
+    }
+    menu.addSeparator();
+    menu.addAction("Open Extensions Folder", this, [extensionDir] {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(extensionDir));
+    });
+    menu.addAction("Add Unpacked Extension…", this, [this] {
+        const QString dir = QFileDialog::getExistingDirectory(this, "Choose unpacked Chrome extension", ChromeExtensionManager::extensionDirectory());
+        if (dir.isEmpty()) return;
+        QStringList paths = QSettings().value("extensions/unpackedPaths").toStringList();
+        const QString path = QDir::cleanPath(dir);
+        if (!paths.contains(path)) paths << path;
+        ChromeExtensionManager::setConfiguredPaths(paths);
+        ChromeExtensionManager::nativeController();
+    });
+    menu.addAction("Manage Extensions…", this, &BrowserWindow::showSettings);
+    menu.exec(m_extensionsBtn->mapToGlobal(QPoint(0, m_extensionsBtn->height() + 2)));
 }
 
 QUrl BrowserWindow::urlFromInput(const QString &input) const {
@@ -2229,6 +2307,7 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
     reSymbol(m_fwdBtn,     "chevron.forward", symPt);
     setButtonSymbolSmooth(m_reloadBtn, currentView() && currentView()->isLoading() ? "xmark" : "arrow.clockwise", symPt, fg);
     reSymbol(m_newTabBtn,  "plus", symPt);
+    reSymbol(m_extensionsBtn, "puzzlepiece.extension", symPt);
     reSymbol(m_settingsBtn,"gearshape", symPt);
     reSymbol(m_pillMenuBtn,"ellipsis.circle", m_addrInSidebar ? 14.0 : 12.0);
 
@@ -2244,7 +2323,7 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
         "QToolButton:hover { background: %1; }"
         "QToolButton:pressed { background: %2; }")
         .arg(rgba(hover), rgba(pressed));
-    for (QToolButton *btn : {m_sidebarBtn, m_backBtn, m_fwdBtn, m_reloadBtn, m_newTabBtn, m_settingsBtn}) {
+    for (QToolButton *btn : {m_sidebarBtn, m_backBtn, m_fwdBtn, m_reloadBtn, m_newTabBtn, m_extensionsBtn, m_settingsBtn}) {
         if (btn) btn->setStyleSheet(btnQss);
     }
     if (m_pillMenuBtn) {

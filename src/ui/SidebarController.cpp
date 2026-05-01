@@ -290,11 +290,11 @@ void SidebarController::showFloating() {
     if (m_floatingInner) m_floatingInner->setGeometry(0, 0, m_floating->width(), m_floating->height());
     m_floating->move(m_floatingBaseGeometry.topLeft() - QPoint(qMin(kSlideTravelPx, m_floatingBaseGeometry.width()), 0));
     m_slideProgress = 0.0;
-    m_floating->setWindowOpacity(1.0);
-    m_floating->show();
-    m_floating->raise();
+    m_floating->setWindowOpacity(0.9);
+    prepareFloatingSnapshot();
 
     if (!m_floatingChromeApplied) {
+        m_floating->winId();
         // NSWindow exists now; configure vibrancy + rounded corners on it.
         // enableWindowVibrancy flips opaque=NO + adds a behind-window
         // NSVisualEffectView so the panel shows real desktop blur.
@@ -302,8 +302,10 @@ void SidebarController::showFloating() {
         m_floatingChromeApplied = true;
     }
 
+    m_floating->show();
+    m_floating->raise();
+
     if (m_hoverZone) m_hoverZone->hide();
-    prepareFloatingSnapshot();
     m_content->setUpdatesEnabled(true);
     m_slidingOut = false;
     m_slideAnim->stop();

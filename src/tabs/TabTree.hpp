@@ -37,6 +37,7 @@ public:
 
     WebView *newTabForExtension(const QUrl &url = QUrl(), bool background = false,
                                 QTreeWidgetItem *parentItem = nullptr);
+    void adoptExtensionView(WebView *child, bool background = false);
     void newTab(const QUrl &url = QUrl(), bool background = false,
                 QTreeWidgetItem *parentItem = nullptr);
     void closeCurrent();

@@ -6,6 +6,7 @@
 #include <QStringList>
 
 class BrowserWindow;
+class WebView;
 
 class ChromeExtensionManager final : public QObject {
     Q_OBJECT
@@ -20,13 +21,25 @@ public:
         QString runAt;
     };
 
+    struct ExtensionInfo {
+        QString path;
+        QString name;
+        QString iconPath;
+    };
+
     explicit ChromeExtensionManager(QObject *parent = nullptr);
 
+    static QString extensionDirectory();
     static QStringList configuredPaths();
+    static QList<ExtensionInfo> configuredExtensions();
     static void setConfiguredPaths(const QStringList &paths);
     static QJsonArray contentScriptPayload();
     static QString bootstrapScript();
     static void setBrowserWindow(BrowserWindow *window);
+    static void notifyTabOpened(WebView *view);
+    static void notifyTabActivated(WebView *view, WebView *previousView = nullptr);
+    static void notifyTabChanged(WebView *view);
+    static void notifyTabClosed(WebView *view);
     // Returns a `WKWebExtensionController *` on macOS 15.4+ after starting
     // asynchronous loading for configured unpacked extensions.
     static void *nativeController();

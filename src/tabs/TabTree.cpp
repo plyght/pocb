@@ -1,6 +1,7 @@
 #include "TabTree.hpp"
 
 #include "FaviconService.hpp"
+#include "ChromeExtensionManager.hpp"
 #include "LayoutMetrics.hpp"
 #include "MiniWindowDragPreview.hpp"
 #include "MacIntegration.hpp"
@@ -341,8 +342,9 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
         "QTreeWidget#TabTree::branch:hover { background: transparent; border: none; image: none; }")
         .arg(m_theme.foreground.name()));
 
-    connect(m_tabs, &QTreeWidget::currentItemChanged, this, [this] {
+    connect(m_tabs, &QTreeWidget::currentItemChanged, this, [this](QTreeWidgetItem *current, QTreeWidgetItem *previous) {
         markItemUnread(currentItem(), false);
+        ChromeExtensionManager::notifyTabActivated(m_views.value(current, nullptr), m_views.value(previous, nullptr));
         emit currentTabChanged();
         // Replay the active tab's last known theme colour immediately for a
         // snappy chrome update, then kick off a fresh sniff in case the
@@ -428,6 +430,7 @@ void TabTree::markViewsSplit(WebView *first, WebView *second) {
 
 void TabTree::selectItem(QTreeWidgetItem *item) {
     if (!item) return;
+    WebView *previousView = currentView();
     m_tabHistory.removeAll(item);
     m_tabHistory.prepend(item);
     markItemUnread(item, false);
@@ -442,6 +445,7 @@ void TabTree::selectItem(QTreeWidgetItem *item) {
     }
     m_tabs->viewport()->update();
     if (m_essentials) m_essentials->viewport()->update();
+    if (previousView != m_views.value(item, nullptr)) ChromeExtensionManager::notifyTabActivated(m_views.value(item, nullptr), previousView);
     emit currentTabChanged();
 }
 
@@ -703,6 +707,7 @@ WebView *TabTree::newTabForExtension(const QUrl &url, bool background, QTreeWidg
 
     static_cast<QStackedLayout *>(m_stack->layout())->addWidget(view);
     wireView(view, item);
+    ChromeExtensionManager::notifyTabOpened(view);
 
     view->load(url.isEmpty() ? QUrl(m_homePage) : url);
     if (!background) selectItem(item);
@@ -711,6 +716,10 @@ WebView *TabTree::newTabForExtension(const QUrl &url, bool background, QTreeWidg
 
 void TabTree::newTab(const QUrl &url, bool background, QTreeWidgetItem *parentItem) {
     newTabForExtension(url, background, parentItem);
+}
+
+void TabTree::adoptExtensionView(WebView *child, bool background) {
+    adoptChildView(child, currentItem(), background);
 }
 
 void TabTree::adoptChildView(WebView *child, QTreeWidgetItem *parentItem, bool background) {
@@ -727,6 +736,7 @@ void TabTree::adoptChildView(WebView *child, QTreeWidgetItem *parentItem, bool b
     m_views.insert(item, child);
     static_cast<QStackedLayout *>(m_stack->layout())->addWidget(child);
     wireView(child, item);
+    ChromeExtensionManager::notifyTabOpened(child);
     if (!background) selectItem(item);
 }
 
@@ -885,6 +895,7 @@ void TabTree::deleteItemRecursive(QTreeWidgetItem *item) {
     m_tabHistory.removeAll(item);
     auto *view = m_views.take(item);
     if (view) {
+        ChromeExtensionManager::notifyTabClosed(view);
         if (auto *stackLayout = m_stack ? qobject_cast<QStackedLayout *>(m_stack->layout()) : nullptr) {
             stackLayout->removeWidget(view);
         }
@@ -1198,9 +1209,11 @@ void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {
             }
         }
         if (view != currentView()) markItemUnread(item, true);
+        ChromeExtensionManager::notifyTabChanged(view);
         emit currentTabChanged();
     });
     connect(view, &WebView::urlChanged, this, [this, view, item](const QUrl &url) {
+        ChromeExtensionManager::notifyTabChanged(view);
         if (view == currentView()) emit currentTabChanged();
         else markItemUnread(item, true);
         if (m_favicons) {
@@ -1237,6 +1250,7 @@ void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {
                 "</style></head><body><main><h1>Can't open this page</h1><p>pocb couldn't load the requested address. Check the URL or try again.</p><code>%1</code><button onclick=\"location.href='%2'\">Retry</button><a href=\"%2\">Open URL</a></main></body></html>")
                 .arg(escapedUrl, escapedUrl));
         }
+        ChromeExtensionManager::notifyTabChanged(view);
         if (view != currentView()) markItemUnread(item, true);
         emit currentTabChanged();
     });

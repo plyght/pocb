@@ -6,6 +6,7 @@
 #include "Theme.hpp"
 
 #include <QHash>
+#include <QIcon>
 #include <QList>
 #include <QStringList>
 #include <QMainWindow>
@@ -42,9 +43,10 @@ public:
     WebView *extensionCurrentView() const;
     QList<WebView *> extensionViews() const;
     WebView *extensionCreateTab(const QUrl &url, bool background);
+    WebView *extensionAdoptNativeTab(void *nativeWebView, bool background);
     void extensionSelectView(WebView *view);
     void extensionCloseView(WebView *view);
-    void extensionSetAction(const QString &key, const QString &label, std::function<void()> handler);
+    void extensionSetAction(const QString &key, const QString &label, const QIcon &icon, std::function<void(QWidget *)> handler);
 
 protected:
     void showEvent(QShowEvent *e) override;
@@ -74,6 +76,7 @@ private:
     void updateCurrentProfileSnapshot();
     void updateSidebarPreview(int direction);
     void showProfileMenu();
+    void showExtensionsMenu();
     void showCopiedLinkPopup();
     void refreshFloatingOmniboxItems();
     void rememberCurrentPage();
@@ -119,6 +122,7 @@ private:
     QToolButton *m_reloadBtn = nullptr;
     QToolButton *m_settingsBtn = nullptr;
     QToolButton *m_newTabBtn = nullptr;
+    QToolButton *m_extensionsBtn = nullptr;
     QToolButton *m_profileBtn = nullptr;
     QWidget *m_profileSwitcher = nullptr;
     QPropertyAnimation *m_profileAnim = nullptr;
@@ -132,6 +136,7 @@ private:
     QString m_sidebarPreviewProfile;
     QHash<QString, QStringList> m_profileTabSnapshots;
     QHash<QString, QToolButton *> m_extensionActionButtons;
+    QHash<QString, std::function<void(QWidget *)>> m_extensionActionHandlers;
     QLineEdit *m_addressBar = nullptr;
     QLabel *m_lockIcon = nullptr;
     QLabel *m_searchIcon = nullptr;
