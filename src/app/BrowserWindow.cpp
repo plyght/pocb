@@ -72,6 +72,8 @@
 #include <QEvent>
 #include <QVBoxLayout>
 
+#include <vector>
+
 namespace {
 
 QEasingCurve responsiveEaseOut() {
@@ -1266,9 +1268,46 @@ void BrowserWindow::showProfileMenu() {
 
 void BrowserWindow::showExtensionsMenu() {
     if (!m_extensionsBtn) return;
-    QMenu menu(this);
     const QString extensionDir = ChromeExtensionManager::extensionDirectory();
     const QStringList paths = ChromeExtensionManager::configuredPaths();
+    auto openExtensionFolder = [extensionDir] {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(extensionDir));
+    };
+    auto addUnpackedExtension = [this] {
+        const QString dir = QFileDialog::getExistingDirectory(this, "Choose unpacked Chrome extension", ChromeExtensionManager::extensionDirectory());
+        if (dir.isEmpty()) return;
+        QStringList paths = QSettings().value("extensions/unpackedPaths").toStringList();
+        const QString path = QDir::cleanPath(dir);
+        if (!paths.contains(path)) paths << path;
+        ChromeExtensionManager::setConfiguredPaths(paths);
+        ChromeExtensionManager::nativeController();
+    };
+
+    QStringList nativeTitles;
+    QVector<bool> nativeEnabled;
+    std::vector<std::function<void()>> nativeCallbacks;
+    if (paths.isEmpty()) {
+        nativeTitles << QStringLiteral("No unpacked extensions loaded");
+        nativeEnabled << false;
+        nativeCallbacks.push_back([] {});
+    } else {
+        for (const QString &path : paths) {
+            const QString label = QFileInfo(path).fileName().isEmpty() ? path : QFileInfo(path).fileName();
+            nativeTitles << label;
+            nativeEnabled << true;
+            nativeCallbacks.push_back([path] {
+                QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+            });
+        }
+    }
+    nativeTitles << QStringLiteral("-") << QStringLiteral("Open Extensions Folder") << QStringLiteral("Add Unpacked Extension…") << QStringLiteral("Manage Extensions…");
+    nativeEnabled << true << true << true << true;
+    nativeCallbacks.push_back(openExtensionFolder);
+    nativeCallbacks.push_back(addUnpackedExtension);
+    nativeCallbacks.push_back([this] { showSettings(); });
+    if (mac::showNativeContextMenu(m_extensionsBtn, m_extensionsBtn->mapToGlobal(QPoint(m_extensionsBtn->width() / 2, m_extensionsBtn->height())), nativeTitles, nativeEnabled, std::move(nativeCallbacks))) return;
+
+    QMenu menu(this);
     if (paths.isEmpty()) {
         QAction *empty = menu.addAction("No unpacked extensions loaded");
         empty->setEnabled(false);
@@ -1283,18 +1322,8 @@ void BrowserWindow::showExtensionsMenu() {
         }
     }
     menu.addSeparator();
-    menu.addAction("Open Extensions Folder", this, [extensionDir] {
-        QDesktopServices::openUrl(QUrl::fromLocalFile(extensionDir));
-    });
-    menu.addAction("Add Unpacked Extension…", this, [this] {
-        const QString dir = QFileDialog::getExistingDirectory(this, "Choose unpacked Chrome extension", ChromeExtensionManager::extensionDirectory());
-        if (dir.isEmpty()) return;
-        QStringList paths = QSettings().value("extensions/unpackedPaths").toStringList();
-        const QString path = QDir::cleanPath(dir);
-        if (!paths.contains(path)) paths << path;
-        ChromeExtensionManager::setConfiguredPaths(paths);
-        ChromeExtensionManager::nativeController();
-    });
+    menu.addAction("Open Extensions Folder", this, openExtensionFolder);
+    menu.addAction("Add Unpacked Extension…", this, addUnpackedExtension);
     menu.addAction("Manage Extensions…", this, &BrowserWindow::showSettings);
     menu.exec(m_extensionsBtn->mapToGlobal(QPoint(0, m_extensionsBtn->height() + 2)));
 }
