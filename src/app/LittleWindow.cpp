@@ -34,14 +34,12 @@ LittleWindow::LittleWindow(const QUrl &url, QWidget *parent, bool restorePreviou
     setupUi(url);
     resize(900, 620);
     winId();
-    if (m_restorePreviousAppOnClose) mac::preventWindowActivation(this);
     mac::integrateUnifiedToolbar(this, nullptr, true);
     mac::setTrafficLightOffset(this, -11.0, -3.5);
 }
 
 void LittleWindow::showEvent(QShowEvent *e) {
     QMainWindow::showEvent(e);
-    if (m_restorePreviousAppOnClose) mac::preventWindowActivation(this);
     mac::integrateUnifiedToolbar(this, nullptr, true);
     mac::setTrafficLightOffset(this, -11.0, -3.5);
     mac::enableWindowVibrancy(this, mac::VibrancyMaterial::Sidebar);

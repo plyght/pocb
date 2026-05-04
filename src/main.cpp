@@ -26,7 +26,6 @@ public:
 
     void openUrl(const QUrl &url) {
         if (QSettings().value("browser/externalLinksInLittleWindow", true).toBool()) {
-            mac::setAccessoryActivationPolicy();
             auto *window = new LittleWindow(url, nullptr, true);
             window->setAttribute(Qt::WA_DeleteOnClose);
             window->show();
@@ -71,7 +70,6 @@ int main(int argc, char *argv[]) {
     }
 
     if (startupUrl.isValid()) {
-        if (QSettings().value("browser/externalLinksInLittleWindow", true).toBool()) mac::setAccessoryActivationPolicy();
         app.openUrl(startupUrl);
     } else {
         mac::setRegularActivationPolicy();

@@ -165,10 +165,6 @@ void preventWindowActivation(QWidget *window) {
     nsw.level = NSNormalWindowLevel;
     nsw.collectionBehavior |= NSWindowCollectionBehaviorFullScreenAuxiliary;
     nsw.ignoresMouseEvents = NO;
-    nsw.styleMask |= NSWindowStyleMaskNonactivatingPanel;
-    if ([nsw respondsToSelector:NSSelectorFromString(@"_setPreventsActivation:")]) {
-        ((void (*)(id, SEL, BOOL))objc_msgSend)(nsw, NSSelectorFromString(@"_setPreventsActivation:"), YES);
-    }
     [nsw setCanHide:NO];
 #else
     (void)window;
@@ -206,7 +202,6 @@ void showWindowWithoutAppActivation(QWidget *window) {
     NSWindow *nsw = internal::nsWindowOf(window);
     if (!nsw) return;
     [nsw orderFrontRegardless];
-    [NSApp deactivate];
 #else
     (void)window;
 #endif
