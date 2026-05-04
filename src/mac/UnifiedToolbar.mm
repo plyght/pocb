@@ -44,6 +44,7 @@
 
 static char kPocbContainerKey;
 static char kPocbQMainWindowKey;
+static char kPocbTrafficOffsetKey;
 
 // Cell-size swizzle: _NSThemeCloseWidgetCell inherits -cellSize from
 // _NSThemeWidgetCell, so class_getInstanceMethod(closeCell, cellSize) and
@@ -414,10 +415,12 @@ static void pocb_sync_traffic_container(NSWindow *nsw, PocbWindowButtonsView *co
     const CGFloat rowW = (CGFloat)container.subviews.count > 0
                          ? (((CGFloat)container.subviews.count - 1.0) * g_spacing + g_buttonWH)
                          : g_buttonWH;
+    NSValue *offsetValue = objc_getAssociatedObject(nsw, &kPocbTrafficOffsetKey);
+    NSPoint offset = offsetValue ? offsetValue.pointValue : NSMakePoint(0.0, 0.0);
     NSRect cf;
-    cf.origin.x = g_originX;
-    cf.origin.y = cv.isFlipped ? g_originY_topPad
-                              : (cvH - g_originY_topPad - g_buttonWH);
+    cf.origin.x = g_originX + offset.x;
+    cf.origin.y = cv.isFlipped ? (g_originY_topPad + offset.y)
+                              : (cvH - g_originY_topPad - offset.y - g_buttonWH);
     cf.size.width = rowW;
     cf.size.height = g_buttonWH;
     container.frame = cf;
@@ -528,6 +531,21 @@ void refreshUnifiedToolbar(QWidget *window) {
         pocb_sync_traffic_container(nsw, c);
 #else
     (void)window;
+#endif
+}
+
+void setTrafficLightOffset(QWidget *window, double x, double y) {
+#ifdef __APPLE__
+    if (!window) return;
+    NSWindow *nsw = mac::internal::nsWindowOf(window);
+    if (!nsw) return;
+    objc_setAssociatedObject(nsw, &kPocbTrafficOffsetKey, [NSValue valueWithPoint:NSMakePoint(x, y)], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    PocbWindowButtonsView *c = objc_getAssociatedObject(nsw, &kPocbContainerKey);
+    if (c) pocb_sync_traffic_container(nsw, c);
+#else
+    (void)window;
+    (void)x;
+    (void)y;
 #endif
 }
 

@@ -86,6 +86,8 @@ void setTrafficLightsHidden(QWidget *window, bool hidden);
 // resize) since AppKit will have re-laid the titlebar on its own.
 void refreshUnifiedToolbar(QWidget *window);
 
+void setTrafficLightOffset(QWidget *window, double x, double y);
+
 // Asks AppKit / CoreAnimation to drive `window`'s NSWindow at the display's
 // maximum refresh rate (e.g. 120Hz on ProMotion panels) instead of the
 // default 60Hz. No-op off macOS / on non-ProMotion displays.

@@ -6,7 +6,9 @@
 #include "ChromeWidgets.hpp"
 #include "ChromeExtensionManager.hpp"
 #include "LayoutMetrics.hpp"
+#include "LittleWindow.hpp"
 #include "MacIntegration.hpp"
+#include "DefaultBrowser.hpp"
 #include "NativeProfilePopover.hpp"
 #include "NativeSettingsWindow.hpp"
 #include "SidebarController.hpp"
@@ -1917,11 +1919,26 @@ void BrowserWindow::setupActions() {
     auto *quitAction  = makeAction("Quit pocb", QKeySequence(Qt::CTRL | Qt::Key_Q),
                                    [] { QApplication::quit(); }, QAction::QuitRole);
 
+    auto *defaultBrowserAction = makeAction("Set as Default Browser", QKeySequence(), [] { mac::setAsDefaultBrowser(); }, QAction::ApplicationSpecificRole);
+    defaultBrowserAction->setIcon(mac::sfSymbolIcon("heart.fill", 13.0, m_theme.foreground));
+    auto *littleExternalAction = makeAction("Open External Links in Little Window", QKeySequence(), nullptr, QAction::ApplicationSpecificRole);
+    littleExternalAction->setIcon(mac::sfSymbolIcon("heart", 13.0, m_theme.foreground));
+    littleExternalAction->setCheckable(true);
+    littleExternalAction->setChecked(QSettings().value("browser/externalLinksInLittleWindow", true).toBool());
+    connect(littleExternalAction, &QAction::toggled, this, [](bool checked) { QSettings().setValue("browser/externalLinksInLittleWindow", checked); });
+
     // ── File ────────────────────────────────────────────────────────────
     auto *fileMenu = mb->addMenu("File");
+    fileMenu->addAction(aboutAction);
+    fileMenu->addAction(prefsAction);
+    fileMenu->addAction(defaultBrowserAction);
+    fileMenu->addAction(littleExternalAction);
+    fileMenu->addAction(quitAction);
     fileMenu->addAction(makeAction("New Tab", QKeySequence(Qt::CTRL | Qt::Key_T), openBlankTabWithOmnibox));
     fileMenu->addAction(makeAction("New Window", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_N),
                                    [] { (new BrowserWindow())->show(); }));
+    fileMenu->addAction(makeAction("New Little Window", QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_N),
+                                   [] { (new LittleWindow(QUrl("about:blank")))->show(); }));
     fileMenu->addSeparator();
     fileMenu->addAction(makeAction("Close Tab", QKeySequence(Qt::CTRL | Qt::Key_W),
                                    [this] { m_tabTree->closeCurrent(); }));

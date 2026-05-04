@@ -60,6 +60,8 @@ qt_add_executable(pocb MACOSX_BUNDLE
     src/main.cpp
     src/app/BrowserWindow.cpp
     src/app/BrowserWindow.hpp
+    src/app/LittleWindow.cpp
+    src/app/LittleWindow.hpp
     src/app/SettingsDialog.cpp
     src/app/SettingsDialog.hpp
     src/services/ProfileStore.cpp
@@ -88,6 +90,8 @@ qt_add_executable(pocb MACOSX_BUNDLE
     src/tabs/TabTree.cpp
     src/tabs/TabTree.hpp
     src/mac/MacIntegration.hpp
+    src/mac/DefaultBrowser.hpp
+    src/mac/GlobalHotkeys.hpp
     src/mac/NativeSettingsWindow.hpp
     src/mac/NativeProfilePopover.hpp
     src/web/WebView.hpp
@@ -114,6 +118,8 @@ if(APPLE)
         src/mac/UnifiedToolbar.mm
         src/mac/NativeSettingsWindow.mm
         src/mac/NativeProfilePopover.mm
+        src/mac/DefaultBrowser.mm
+        src/mac/GlobalHotkeys.mm
         src/web/WebView.mm
         src/web/WebKitProfile.mm
     )
@@ -127,6 +133,8 @@ if(APPLE)
         "-framework WebKit"
         "-framework Foundation"
         "-framework QuartzCore"
+        "-framework CoreServices"
+        "-framework Carbon"
     )
 endif()
 
@@ -152,6 +160,7 @@ if(APPLE)
         COMMAND /bin/chmod u+w "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
         COMMAND /usr/bin/plutil -replace CFBundleIconFile -string pcob "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
         COMMAND /usr/bin/plutil -replace CFBundleIconName -string pcob "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
+        COMMAND /usr/bin/plutil -replace CFBundleURLTypes -json "[{\"CFBundleURLName\":\"Web Site URL\",\"CFBundleURLSchemes\":[\"http\",\"https\"]}]" "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
         VERBATIM
     )
 endif()
