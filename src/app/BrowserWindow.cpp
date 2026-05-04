@@ -1573,7 +1573,7 @@ void BrowserWindow::setupUi() {
     m_webContainer = new QWidget(stackHost);
     m_webContainer->setObjectName("WebContainer");
     m_webContainer->setStyleSheet(QString(
-        "QWidget#WebContainer { background: rgba(26, 26, 26, 180); border-radius: %1px; }")
+        "QWidget#WebContainer { background: rgba(26, 26, 26, 180); border: 1px solid rgba(255,255,255,0.10); border-radius: %1px; }")
         .arg(ui::metrics::WebContainerRadius));
     auto *containerLayout = new QVBoxLayout(m_webContainer);
     containerLayout->setContentsMargins(0, 0, 0, 0);

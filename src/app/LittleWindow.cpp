@@ -1,6 +1,7 @@
 #include "LittleWindow.hpp"
 
 #include "AddressBarController.hpp"
+#include "ChromeWidgets.hpp"
 #include "LayoutMetrics.hpp"
 #include "MacIntegration.hpp"
 #include "Topbar.hpp"
@@ -89,7 +90,7 @@ QUrl LittleWindow::urlFromInput(const QString &input) const {
 void LittleWindow::setupUi(const QUrl &url) {
     auto *container = new QWidget(this);
     container->setObjectName("LittleContainer");
-    container->setStyleSheet(QString("QWidget#LittleContainer { background: rgba(26, 26, 26, 180); border: 1px solid rgba(255,255,255,0.10); border-radius: %1px; }").arg(ui::metrics::WebContainerRadius));
+    container->setStyleSheet(QString("QWidget#LittleContainer { background: transparent; border: 1px solid rgba(255,255,255,0.10); border-radius: %1px; }").arg(ui::metrics::WebContainerRadius));
     auto *layout = new QVBoxLayout(container);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
@@ -107,15 +108,25 @@ void LittleWindow::setupUi(const QUrl &url) {
     m_toolbarDragHandle = topbar.bar;
     m_toolbarDragHandle->installEventFilter(this);
     if (auto *row = qobject_cast<QHBoxLayout *>(topbar.bar->layout())) row->insertSpacing(0, 64);
+    topbar.bar->setAttribute(Qt::WA_TranslucentBackground);
+    if (auto *bar = qobject_cast<ui::ChromeBar *>(topbar.bar)) bar->setBackgroundColor(QColor(28, 28, 30, 150), /*animate=*/false);
     layout->addWidget(topbar.bar);
 
-    auto *separator = new QWidget(container);
+    auto *body = new QWidget(container);
+    body->setObjectName("LittleBody");
+    body->setStyleSheet("QWidget#LittleBody { background: rgb(26, 26, 26); }");
+    auto *bodyLayout = new QVBoxLayout(body);
+    bodyLayout->setContentsMargins(0, 0, 0, 0);
+    bodyLayout->setSpacing(0);
+
+    auto *separator = new QWidget(body);
     separator->setFixedHeight(1);
     separator->setStyleSheet("background: rgba(255,255,255,0.08);");
-    layout->addWidget(separator);
+    bodyLayout->addWidget(separator);
 
-    m_view = new WebView(m_profiles.currentProfile(), container);
-    layout->addWidget(m_view, 1);
+    m_view = new WebView(m_profiles.currentProfile(), body);
+    bodyLayout->addWidget(m_view, 1);
+    layout->addWidget(body, 1);
     setCentralWidget(container);
 
     m_addressBarCtl = new AddressBarController(m_addressBar, m_lockIcon, m_theme, this);

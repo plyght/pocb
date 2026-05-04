@@ -104,11 +104,18 @@ bool showNativeSettingsWindow(QWidget *parent,
         window.movableByWindowBackground = YES;
         window.releasedWhenClosed = NO;
         window.minSize = NSMakeSize(560, 440);
+        window.opaque = NO;
+        window.backgroundColor = NSColor.clearColor;
 
         NSVisualEffectView *root = [[NSVisualEffectView alloc] init];
-        root.material = NSVisualEffectMaterialUnderWindowBackground;
+        root.material = NSVisualEffectMaterialSidebar;
         root.blendingMode = NSVisualEffectBlendingModeBehindWindow;
         root.state = NSVisualEffectStateActive;
+        root.wantsLayer = YES;
+        root.layer.cornerRadius = 12.0;
+        root.layer.masksToBounds = YES;
+        root.layer.borderWidth = 1.0;
+        root.layer.borderColor = [NSColor colorWithWhite:1.0 alpha:0.10].CGColor;
         root.translatesAutoresizingMaskIntoConstraints = NO;
         window.contentView = root;
 
