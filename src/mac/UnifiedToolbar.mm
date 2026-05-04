@@ -199,11 +199,16 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
     const CGFloat n = kPocbTrafficNativeDrawWH;
     const CGFloat scale = MAX(0.35, MIN(5.0, _buttonWH / n));
     NSInteger i = 0;
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
     for (NSButton *b in _buttons) {
         const CGFloat cx = (CGFloat)i * _spacing + _buttonWH * 0.5;
         const CGFloat cy = _buttonWH * 0.5;
-        b.frame = NSMakeRect(cx - n * 0.5, cy - n * 0.5, n, n);
         b.wantsLayer = YES;
+        b.layer.actions = @{ @"bounds": [NSNull null],
+                             @"position": [NSNull null],
+                             @"transform": [NSNull null] };
+        b.frame = NSMakeRect(cx - n * 0.5, cy - n * 0.5, n, n);
         // Don't touch layer.anchorPoint: NSView keeps it at (0,0) and
         // synchronises layer.position with frame.origin. Changing it to
         // (0.5,0.5) shifts the rendered layer by -(n/2, n/2), so the visible
@@ -219,6 +224,7 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
         b.layer.transform = t;
         i++;
     }
+    [CATransaction commit];
 }
 
 - (void)redraw {
