@@ -37,6 +37,8 @@ NSComparisonResult compareBehindVibrancySubviews(__kindof NSView *a, __kindof NS
     return av ? NSOrderedAscending : NSOrderedDescending;
 }
 static char kPocbLiquidGlassSiblingKey;
+static __strong NSRunningApplication *pocbPreviousForegroundApplication;
+static __strong id pocbForegroundApplicationObserver;
 NSGlassEffectView *findGlassEffectView(NSView *view) {
     if ([view isKindOfClass:NSGlassEffectView.class]) return (NSGlassEffectView *)view;
     for (NSView *subview in view.subviews) {
@@ -160,17 +162,80 @@ void preventWindowActivation(QWidget *window) {
     NSWindow *nsw = internal::nsWindowOf(window);
     if (!nsw) return;
     nsw.hidesOnDeactivate = NO;
-    nsw.level = NSFloatingWindowLevel;
+    nsw.level = NSNormalWindowLevel;
     nsw.collectionBehavior |= NSWindowCollectionBehaviorFullScreenAuxiliary;
     nsw.ignoresMouseEvents = NO;
     nsw.styleMask |= NSWindowStyleMaskNonactivatingPanel;
-    [nsw setCanHide:NO];
-    if (nsw.isKeyWindow) {
-        NSWindow *owner = nsw.parentWindow ?: NSApp.mainWindow;
-        if (owner && owner != nsw) [owner makeKeyWindow];
+    if ([nsw respondsToSelector:NSSelectorFromString(@"_setPreventsActivation:")]) {
+        ((void (*)(id, SEL, BOOL))objc_msgSend)(nsw, NSSelectorFromString(@"_setPreventsActivation:"), YES);
     }
+    [nsw setCanHide:NO];
 #else
     (void)window;
+#endif
+}
+
+void orderOtherApplicationWindowsBack(QWidget *frontWindow) {
+#ifdef __APPLE__
+    NSWindow *front = frontWindow ? internal::nsWindowOf(frontWindow) : nil;
+    for (NSWindow *window in NSApp.windows) {
+        if (window == front) continue;
+        [window orderBack:nil];
+    }
+#else
+    (void)frontWindow;
+#endif
+}
+
+void setAccessoryActivationPolicy() {
+#ifdef __APPLE__
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
+#endif
+}
+
+void setRegularActivationPolicy() {
+#ifdef __APPLE__
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+#endif
+}
+
+void showWindowWithoutAppActivation(QWidget *window) {
+#ifdef __APPLE__
+    if (!window) return;
+    window->winId();
+    NSWindow *nsw = internal::nsWindowOf(window);
+    if (!nsw) return;
+    [nsw orderFrontRegardless];
+    [NSApp deactivate];
+#else
+    (void)window;
+#endif
+}
+
+void installForegroundApplicationTracker() {
+#ifdef __APPLE__
+    if (pocbForegroundApplicationObserver) return;
+    NSRunningApplication *frontmost = [[NSWorkspace sharedWorkspace] frontmostApplication];
+    if (frontmost && frontmost.processIdentifier != [[NSRunningApplication currentApplication] processIdentifier]) pocbPreviousForegroundApplication = frontmost;
+    NSNotificationCenter *center = [[NSWorkspace sharedWorkspace] notificationCenter];
+    pocbForegroundApplicationObserver = [center addObserverForName:NSWorkspaceDidActivateApplicationNotification
+                                                            object:nil
+                                                             queue:nil
+                                                        usingBlock:^(NSNotification *note) {
+        NSRunningApplication *app = note.userInfo[NSWorkspaceApplicationKey];
+        if (!app || app.processIdentifier == [[NSRunningApplication currentApplication] processIdentifier]) return;
+        pocbPreviousForegroundApplication = app;
+    }];
+#else
+#endif
+}
+
+void restorePreviousForegroundApplication() {
+#ifdef __APPLE__
+    NSRunningApplication *app = pocbPreviousForegroundApplication;
+    if (app && !app.terminated) [app activateWithOptions:0];
+    [NSApp deactivate];
+#else
 #endif
 }
 

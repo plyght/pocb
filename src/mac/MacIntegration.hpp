@@ -68,6 +68,12 @@ void makeTransparentFloatingPanel(QWidget *window, double cornerRadius);
 // Useful for suggestion popups that must not steal the insertion cursor from
 // the text field that spawned them.
 void preventWindowActivation(QWidget *window);
+void showWindowWithoutAppActivation(QWidget *window);
+void orderOtherApplicationWindowsBack(QWidget *frontWindow);
+void setAccessoryActivationPolicy();
+void setRegularActivationPolicy();
+void installForegroundApplicationTracker();
+void restorePreviousForegroundApplication();
 
 void hideCursorUntilMouseMoves();
 

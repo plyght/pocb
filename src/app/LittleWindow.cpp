@@ -7,9 +7,11 @@
 #include "WebView.hpp"
 
 #include <QApplication>
+#include <QCloseEvent>
 #include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
+#include <QMouseEvent>
 #include <QLineEdit>
 #include <QProgressBar>
 #include <QShortcut>
@@ -19,8 +21,9 @@
 #include <QToolButton>
 #include <QUrlQuery>
 #include <QVBoxLayout>
+#include <QWindow>
 
-LittleWindow::LittleWindow(const QUrl &url, QWidget *parent) : QMainWindow(parent) {
+LittleWindow::LittleWindow(const QUrl &url, QWidget *parent, bool restorePreviousAppOnClose) : QMainWindow(parent), m_restorePreviousAppOnClose(restorePreviousAppOnClose) {
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_NoSystemBackground);
     setAutoFillBackground(false);
@@ -31,19 +34,51 @@ LittleWindow::LittleWindow(const QUrl &url, QWidget *parent) : QMainWindow(paren
     setupUi(url);
     resize(900, 620);
     winId();
+    if (m_restorePreviousAppOnClose) mac::preventWindowActivation(this);
     mac::integrateUnifiedToolbar(this, nullptr, true);
-    mac::setTrafficLightOffset(this, -4.0, -4.0);
+    mac::setTrafficLightOffset(this, -11.0, -3.5);
 }
 
 void LittleWindow::showEvent(QShowEvent *e) {
     QMainWindow::showEvent(e);
+    if (m_restorePreviousAppOnClose) mac::preventWindowActivation(this);
     mac::integrateUnifiedToolbar(this, nullptr, true);
-    mac::setTrafficLightOffset(this, -4.0, -4.0);
+    mac::setTrafficLightOffset(this, -11.0, -3.5);
     mac::enableWindowVibrancy(this, mac::VibrancyMaterial::Sidebar);
     mac::enableHighRefreshRate(this);
     QTimer::singleShot(0, this, [this] {
         if (centralWidget()) mac::roundWidgetCorners(centralWidget(), ui::metrics::WebContainerRadius, false);
     });
+}
+
+void LittleWindow::closeEvent(QCloseEvent *e) {
+    QMainWindow::closeEvent(e);
+}
+
+bool LittleWindow::eventFilter(QObject *obj, QEvent *event) {
+    if (obj == m_toolbarDragHandle) {
+        if (event->type() == QEvent::MouseButtonPress) {
+            auto *mouse = static_cast<QMouseEvent *>(event);
+            if (mouse->button() == Qt::LeftButton) {
+                if (windowHandle() && windowHandle()->startSystemMove()) {
+                    m_toolbarDragging = false;
+                    return true;
+                }
+                m_toolbarDragging = true;
+                m_toolbarDragOffset = mouse->globalPosition().toPoint() - frameGeometry().topLeft();
+                return true;
+            }
+        } else if (event->type() == QEvent::MouseMove && m_toolbarDragging) {
+            auto *mouse = static_cast<QMouseEvent *>(event);
+            if (mouse->buttons() & Qt::LeftButton) {
+                move(mouse->globalPosition().toPoint() - m_toolbarDragOffset);
+                return true;
+            }
+        } else if (event->type() == QEvent::MouseButtonRelease) {
+            m_toolbarDragging = false;
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
 }
 
 QUrl LittleWindow::urlFromInput(const QString &input) const {
@@ -71,6 +106,8 @@ void LittleWindow::setupUi(const QUrl &url) {
     if (topbar.sidebar) topbar.sidebar->hide();
     if (topbar.newTab) topbar.newTab->hide();
     if (topbar.settings) topbar.settings->hide();
+    m_toolbarDragHandle = topbar.bar;
+    m_toolbarDragHandle->installEventFilter(this);
     if (auto *row = qobject_cast<QHBoxLayout *>(topbar.bar->layout())) row->insertSpacing(0, 64);
     layout->addWidget(topbar.bar);
 

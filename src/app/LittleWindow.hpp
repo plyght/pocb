@@ -4,7 +4,12 @@
 #include "Theme.hpp"
 
 #include <QMainWindow>
+#include <QPoint>
 #include <QUrl>
+
+class QCloseEvent;
+class QEvent;
+class QMouseEvent;
 
 class AddressBarController;
 class QLabel;
@@ -16,10 +21,12 @@ class WebView;
 class LittleWindow final : public QMainWindow {
     Q_OBJECT
 public:
-    explicit LittleWindow(const QUrl &url, QWidget *parent = nullptr);
+    explicit LittleWindow(const QUrl &url, QWidget *parent = nullptr, bool restorePreviousAppOnClose = false);
 
 protected:
     void showEvent(QShowEvent *e) override;
+    void closeEvent(QCloseEvent *e) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
     QUrl urlFromInput(const QString &input) const;
@@ -39,4 +46,8 @@ private:
     QToolButton *m_reloadBtn = nullptr;
     QProgressBar *m_progress = nullptr;
     AddressBarController *m_addressBarCtl = nullptr;
+    QWidget *m_toolbarDragHandle = nullptr;
+    bool m_toolbarDragging = false;
+    QPoint m_toolbarDragOffset;
+    bool m_restorePreviousAppOnClose = false;
 };

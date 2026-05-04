@@ -1,6 +1,7 @@
 #include "BrowserWindow.hpp"
 #include "GlobalHotkeys.hpp"
 #include "LittleWindow.hpp"
+#include "MacIntegration.hpp"
 
 #include <QApplication>
 #include <QEvent>
@@ -25,12 +26,13 @@ public:
 
     void openUrl(const QUrl &url) {
         if (QSettings().value("browser/externalLinksInLittleWindow", true).toBool()) {
-            auto *window = new LittleWindow(url);
+            mac::setAccessoryActivationPolicy();
+            auto *window = new LittleWindow(url, nullptr, true);
             window->setAttribute(Qt::WA_DeleteOnClose);
             window->show();
-            window->raise();
-            window->activateWindow();
+            mac::showWindowWithoutAppActivation(window);
         } else {
+            mac::setRegularActivationPolicy();
             auto *window = new BrowserWindow();
             window->setAttribute(Qt::WA_DeleteOnClose);
             window->show();
@@ -46,8 +48,11 @@ int main(int argc, char *argv[]) {
     QApplication::setApplicationName("pocb");
     QApplication::setOrganizationName("plyght");
     QApplication::setApplicationDisplayName("pocb");
+    mac::installForegroundApplicationTracker();
+    app.setQuitOnLastWindowClosed(false);
 
     mac::installNewLittleWindowHotkey([] {
+        mac::setRegularActivationPolicy();
         auto *window = new LittleWindow(QUrl("about:blank"));
         window->setAttribute(Qt::WA_DeleteOnClose);
         window->show();
@@ -66,8 +71,10 @@ int main(int argc, char *argv[]) {
     }
 
     if (startupUrl.isValid()) {
+        if (QSettings().value("browser/externalLinksInLittleWindow", true).toBool()) mac::setAccessoryActivationPolicy();
         app.openUrl(startupUrl);
     } else {
+        mac::setRegularActivationPolicy();
         BrowserWindow window;
         window.show();
         return app.exec();
