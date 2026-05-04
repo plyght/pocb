@@ -10,6 +10,7 @@
 #include <QImage>
 #include <QPointer>
 #include <QRegularExpression>
+#include <QSettings>
 #import <WebKit/WKWebsiteDataStore.h>
 #import <WebKit/WKNavigationDelegate.h>
 #import <WebKit/WKUIDelegate.h>
@@ -69,6 +70,12 @@ static NSView *qtNSView(QWidget *w) {
     return (__bridge NSView *)reinterpret_cast<void *>(w->winId());
 }
 
+static NSAppearance *appearanceForPageColorScheme(const QString &scheme) {
+    if (scheme == QStringLiteral("light")) return [NSAppearance appearanceNamed:NSAppearanceNameAqua];
+    if (scheme == QStringLiteral("dark")) return [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+    return nil;
+}
+
 @class PocbWKBridge;
 
 struct WebView::Impl {
@@ -123,6 +130,10 @@ struct WebView::Impl {
     WebView *o = self.owner;
     if ([keyPath isEqualToString:@"URL"]) {
         emit o->urlChanged(o->url());
+        WebView *guarded = o;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(350 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
+            if (guarded && guarded == self.owner) guarded->sniffTopColor();
+        });
     } else if ([keyPath isEqualToString:@"title"]) {
         emit o->titleChanged(o->title());
     } else if ([keyPath isEqualToString:@"estimatedProgress"]) {
@@ -141,6 +152,13 @@ struct WebView::Impl {
     if (!o) return;
     emit o->loadFinished(true);
     o->sniffTopColor();
+    WebView *guarded = o;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(250 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
+        if (guarded && guarded == self.owner) guarded->sniffTopColor();
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(900 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
+        if (guarded && guarded == self.owner) guarded->sniffTopColor();
+    });
 }
 
 - (void)webView:(WKWebView *)wk didFailNavigation:(WKNavigation *)nav withError:(NSError *)err {
@@ -253,6 +271,7 @@ WebView::WebView(WebKitProfile *profile, QWidget *parent)
 
 WebView::~WebView() {
     if (m_impl->bridge) m_impl->bridge.owner = nullptr;
+    closePage();
     if (m_impl->observedHost) {
         [[NSNotificationCenter defaultCenter] removeObserver:m_impl->bridge
                                                         name:NSViewFrameDidChangeNotification
@@ -285,6 +304,7 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
         [m_impl->wk removeFromSuperview];
     }
     disableWebKit60FpsCap(wk.configuration.preferences);
+    wk.appearance = appearanceForPageColorScheme(QSettings().value("ui/pageColorScheme", QStringLiteral("system")).toString());
     m_impl->wk = wk;
     if (!m_impl->bridge) {
         m_impl->bridge = [[PocbWKBridge alloc] init];
@@ -348,6 +368,23 @@ void WebView::forward() { if (m_impl->wk) [m_impl->wk goForward]; }
 void WebView::reload()  { if (m_impl->wk) [m_impl->wk reload]; }
 void WebView::stop()    { if (m_impl->wk) [m_impl->wk stopLoading]; }
 
+void WebView::closePage() {
+    if (!m_impl->wk) return;
+    [m_impl->wk stopLoading];
+    [m_impl->wk evaluateJavaScript:@"document.querySelectorAll('audio,video').forEach((m)=>{try{m.pause();m.removeAttribute('src');m.load();}catch(e){}});"
+                      completionHandler:nil];
+}
+
+void WebView::setPageColorScheme(const QString &scheme) {
+    if (!m_impl->wk) return;
+    m_impl->wk.appearance = appearanceForPageColorScheme(scheme);
+    sniffTopColor();
+    WebView *guarded = this;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(250 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
+        if (guarded && guarded->m_impl && guarded->m_impl->wk) guarded->sniffTopColor();
+    });
+}
+
 bool WebView::canGoBack() const { return m_impl->wk && m_impl->wk.canGoBack; }
 bool WebView::canGoForward() const { return m_impl->wk && m_impl->wk.canGoForward; }
 bool WebView::isLoading() const { return m_impl->wk && m_impl->wk.loading; }
@@ -407,15 +444,20 @@ void WebView::sniffTopColor() {
         @"  function ok(c){ if(!c) return false; c=c.trim(); if(!c||c==='transparent') return false;"
         @"    var m=c.match(/rgba?\\(([^)]+)\\)/); if(m){ var p=m[1].split(','); if(p.length>=4 && parseFloat(p[3])<0.05) return false; }"
         @"    return true; }"
+        @"  function rgb(c){ var m=(c||'').match(/rgba?\\(([^)]+)\\)/); if(!m) return null; var p=m[1].split(','); return {s:c,r:parseFloat(p[0]),g:parseFloat(p[1]),b:parseFloat(p[2])}; }"
+        @"  function lum(v){ return v ? (0.299*v.r + 0.587*v.g + 0.114*v.b) : 999; }"
+        @"  function bgAt(x,y){ var el=document.elementFromPoint(x,y); var cur=el; while(cur){ try { var bg=getComputedStyle(cur).backgroundColor; if(ok(bg)) return bg; } catch(e){} cur=cur.parentElement; } return ''; }"
         @"  try {"
         @"    var w = window.innerWidth || document.documentElement.clientWidth;"
+        @"    var h = window.innerHeight || document.documentElement.clientHeight;"
+        @"    var xs = [Math.max(1, Math.floor(w*0.16)), Math.max(1, Math.floor(w*0.50)), Math.max(1, Math.floor(w*0.84))];"
+        @"    var ys = [1, Math.min(24, Math.max(1, h-1)), Math.min(52, Math.max(1, h-1))];"
+        @"    var best = null;"
+        @"    for (var yi=0; yi<ys.length; ++yi) for (var xi=0; xi<xs.length; ++xi) { var c=bgAt(xs[xi], ys[yi]); var v=rgb(c); if (v && (!best || lum(v)<lum(best))) best=v; }"
+        @"    if (best && lum(best) < 120) return best.s;"
         @"    var x = Math.max(1, Math.floor(w/2));"
-        @"    var el = document.elementFromPoint(x, 1) || document.elementFromPoint(x, 0);"
-        @"    var cur = el;"
-        @"    while (cur) {"
-        @"      try { var bg = getComputedStyle(cur).backgroundColor; if (ok(bg)) return bg; } catch(e){}"
-        @"      cur = cur.parentElement;"
-        @"    }"
+        @"    var top = bgAt(x, 1) || bgAt(x, 0);"
+        @"    if (ok(top)) return top;"
         @"    var html = document.documentElement;"
         @"    if (html) { var hc = getComputedStyle(html).backgroundColor; if (ok(hc)) return hc; }"
         @"    var body = document.body;"

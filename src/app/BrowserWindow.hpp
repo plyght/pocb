@@ -91,6 +91,7 @@ private:
     void advanceTabSwitcher(int direction);
     void acceptTabSwitcher();
     void hideTabSwitcher();
+    void applyPageColorScheme(const QString &scheme);
     QList<WebView *> orderedSwitchableTabs() const;
     bool handleInternalUrl(const QUrl &url);
     struct RecentPage {

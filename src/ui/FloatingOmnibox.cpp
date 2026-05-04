@@ -143,6 +143,7 @@ FloatingOmnibox::FloatingOmnibox(const Theme &theme, QWidget *parent)
 
     m_input = new QLineEdit(searchRow);
     m_input->setObjectName("OmniboxInput");
+    m_input->setFocusPolicy(Qt::StrongFocus);
     m_input->setPlaceholderText("Search for anything...");
     m_input->setFrame(false);
     m_input->setClearButtonEnabled(false);
@@ -277,6 +278,16 @@ void FloatingOmnibox::showFor(QWidget *anchor, const QString &initialText) {
     raise();
     activateWindow();
     m_input->setFocus(Qt::ShortcutFocusReason);
+    m_input->activateWindow();
+    for (int delay : {0, 25, 75}) {
+        QTimer::singleShot(delay, this, [this] {
+            if (!isVisible() || !m_input) return;
+            raise();
+            activateWindow();
+            m_input->activateWindow();
+            m_input->setFocus(Qt::ShortcutFocusReason);
+        });
+    }
 }
 
 void FloatingOmnibox::showEvent(QShowEvent *e) {
@@ -286,6 +297,9 @@ void FloatingOmnibox::showEvent(QShowEvent *e) {
     // No-op off macOS.
     mac::makeFloatingVibrantPanel(this, mac::VibrancyMaterial::Popover, kPanelRadius);
     mac::roundWidgetCorners(this, kPanelRadius, false);
+    raise();
+    activateWindow();
+    m_input->activateWindow();
     m_input->setFocus(Qt::ShortcutFocusReason);
 }
 

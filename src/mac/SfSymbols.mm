@@ -81,9 +81,8 @@ QImage renderSymbolToImage(NSString *name, CGFloat pointSize,
     // sits above the bitmap origin, which pushed the draw rect off-canvas.
     const CGFloat canvasW = canvasPts * pixelW / pixelH;
     const CGFloat canvasH = canvasPts;
-    const CGFloat sx = canvasW / intrinsic.width;
-    const CGFloat sy = canvasH / intrinsic.height;
-    const CGFloat s = MIN(sx, sy);
+    const CGFloat targetMaxPts = canvasPts;
+    const CGFloat s = targetMaxPts / MAX(intrinsic.width, intrinsic.height);
     const CGFloat drawW = intrinsic.width * s;
     const CGFloat drawH = intrinsic.height * s;
     const CGFloat drawX = (canvasW - drawW) / 2.0;
@@ -106,7 +105,19 @@ QImage renderSymbolToImage(NSString *name, CGFloat pointSize,
     QByteArray bytes((const char *)png.bytes, (int)png.length);
     QImage out;
     if (!out.loadFromData(bytes, "PNG")) return QImage();
-    return out;
+
+    out = out.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    QImage tinted(out.size(), QImage::Format_ARGB32_Premultiplied);
+    tinted.fill(Qt::transparent);
+    QPainter tintPainter(&tinted);
+    tintPainter.drawImage(0, 0, out);
+    tintPainter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+    tintPainter.fillRect(tinted.rect(), QColor::fromRgbF(color.redComponent,
+                                                         color.greenComponent,
+                                                         color.blueComponent,
+                                                         color.alphaComponent));
+    tintPainter.end();
+    return tinted;
 }
 
 class SfSymbolIconEngine : public QIconEngine {

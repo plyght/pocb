@@ -539,10 +539,10 @@ void AddressBarController::positionPopup() {
 
     const int rows = qMin(m_popupList ? m_popupList->count() : 0, 9);
     const int height = qMax(1, rows) * 34;
-    int width = inTopbar ? qBound(420, anchor->width(), 720)
+    int width = inTopbar ? anchor->width()
                          : qMax(anchor->width(), 320);
     int x = parentBottom.x() + (anchor->width() - width) / 2;
-    int y = parentBottom.y() + (inTopbar ? 8 : 6);
+    int y = parentBottom.y() + (inTopbar ? 12 : 8);
 
     if (available.isValid()) {
         width = qMin(width, available.width() - 24);

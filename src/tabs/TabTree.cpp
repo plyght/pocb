@@ -896,6 +896,7 @@ void TabTree::deleteItemRecursive(QTreeWidgetItem *item) {
     auto *view = m_views.take(item);
     if (view) {
         ChromeExtensionManager::notifyTabClosed(view);
+        view->closePage();
         if (auto *stackLayout = m_stack ? qobject_cast<QStackedLayout *>(m_stack->layout()) : nullptr) {
             stackLayout->removeWidget(view);
         }

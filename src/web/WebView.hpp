@@ -21,6 +21,8 @@ public:
     void forward();
     void reload();
     void stop();
+    void closePage();
+    void setPageColorScheme(const QString &scheme);
     bool canGoBack() const;
     bool canGoForward() const;
     bool isLoading() const;

@@ -15,6 +15,7 @@
 #include "WebView.hpp"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QApplication>
 #include <QDebug>
 #include <QClipboard>
@@ -366,6 +367,17 @@ WebView *BrowserWindow::extensionCurrentView() const {
 
 QList<WebView *> BrowserWindow::extensionViews() const {
     return m_tabTree ? m_tabTree->views() : QList<WebView *>();
+}
+
+void BrowserWindow::applyPageColorScheme(const QString &scheme) {
+    QSettings().setValue("ui/pageColorScheme", scheme);
+    m_lastAppliedChrome = QColor();
+    const QList<WebView *> liveTabs = extensionViews();
+    for (auto *view : liveTabs) {
+        if (view) view->setPageColorScheme(scheme);
+    }
+    if (auto *view = currentView()) applyChromeForPageColor(view->cachedThemeColor());
+    else applyChromeForPageColor(QColor());
 }
 
 WebView *BrowserWindow::extensionCreateTab(const QUrl &url, bool background) {
@@ -1950,6 +1962,21 @@ void BrowserWindow::setupActions() {
     viewMenu->addAction(makeAction("Force Reload", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R),
                                    [this] { if (auto *v = currentView()) v->reload(); }));
     viewMenu->addSeparator();
+    auto *pageAppearanceMenu = viewMenu->addMenu("Page Appearance");
+    auto *pageAppearanceGroup = new QActionGroup(this);
+    pageAppearanceGroup->setExclusive(true);
+    const QString pageScheme = QSettings().value("ui/pageColorScheme", QStringLiteral("system")).toString();
+    auto addPageAppearanceAction = [this, pageAppearanceMenu, pageAppearanceGroup, pageScheme](const QString &title, const QString &scheme) {
+        auto *action = pageAppearanceMenu->addAction(title);
+        action->setCheckable(true);
+        action->setChecked(pageScheme == scheme);
+        pageAppearanceGroup->addAction(action);
+        connect(action, &QAction::triggered, this, [this, scheme] { applyPageColorScheme(scheme); });
+    };
+    addPageAppearanceAction("System", QStringLiteral("system"));
+    addPageAppearanceAction("Light", QStringLiteral("light"));
+    addPageAppearanceAction("Dark", QStringLiteral("dark"));
+    viewMenu->addSeparator();
     auto *toggleSidebarAction = makeAction("Toggle Sidebar", QKeySequence(Qt::CTRL | Qt::Key_B), toggleSidebar);
     toggleSidebarAction->setShortcutContext(Qt::ApplicationShortcut);
     addAction(toggleSidebarAction);
@@ -1964,7 +1991,7 @@ void BrowserWindow::setupActions() {
 
     // ── Tabs ────────────────────────────────────────────────────────────
     auto *tabsMenu = mb->addMenu("Tabs");
-    tabsMenu->addAction(makeAction("New Tab", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_T),
+    tabsMenu->addAction(makeAction("New Tab", QKeySequence(),
                                    openBlankTabWithOmnibox));
     tabsMenu->addAction(makeAction("Close Tab", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_K),
                                    [this] { m_tabTree->closeCurrent(); }));
@@ -2279,7 +2306,9 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
     if (!m_topbar || m_addrInSidebar) return;
 
     const bool hasColor = pageColor.isValid() && pageColor.alpha() >= 16;
-    const QColor bg = hasColor ? pageColor : QColor(28, 28, 30, 235);
+    const QString pageScheme = QSettings().value("ui/pageColorScheme", QStringLiteral("system")).toString();
+    const QColor fallbackBg = pageScheme == QStringLiteral("light") ? QColor(245, 245, 247, 235) : QColor(28, 28, 30, 235);
+    const QColor bg = hasColor ? pageColor : fallbackBg;
 
     // Skip the (relatively expensive) re-rasterise of 6 SF Symbols + 5
     // button stylesheet resets when nothing actually changed — common on

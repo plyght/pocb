@@ -122,11 +122,10 @@ SidebarController::SidebarController(QMainWindow *window, QSplitter *splitter,
                 m_slideProgress = t;
                 if (!m_floatingBaseGeometry.isValid()) m_floatingBaseGeometry = m_floating->geometry();
                 const int travel = qMin(kSlideTravelPx, m_floatingBaseGeometry.width());
-                QRect frame = m_floatingBaseGeometry;
-                frame.translate(-travel + qRound(travel * t), 0);
+                const QRect frame = m_floatingBaseGeometry;
                 m_floating->setGeometry(frame);
-                m_floatingInner->setGeometry(0, 0, frame.width(), frame.height());
-                m_floating->setWindowOpacity(0.9 + 0.1 * t);
+                m_floatingInner->setGeometry(-travel + qRound(travel * t), 0, frame.width(), frame.height());
+                m_floating->setWindowOpacity(1.0);
             });
     connect(m_slideAnim, &QVariantAnimation::finished, this, [this] {
             if (!m_slidingOut) {
@@ -282,16 +281,14 @@ void SidebarController::showFloating() {
     }
     if (m_floating->isVisible()) return;
 
-    m_content->setUpdatesEnabled(false);
     m_floatingLayout->addWidget(m_content, 1);
     m_content->show();
 
     positionFloating();
-    if (m_floatingInner) m_floatingInner->setGeometry(0, 0, m_floating->width(), m_floating->height());
-    m_floating->move(m_floatingBaseGeometry.topLeft() - QPoint(qMin(kSlideTravelPx, m_floatingBaseGeometry.width()), 0));
+    const int travel = qMin(kSlideTravelPx, m_floatingBaseGeometry.width());
+    if (m_floatingInner) m_floatingInner->setGeometry(-travel, 0, m_floating->width(), m_floating->height());
     m_slideProgress = 0.0;
-    m_floating->setWindowOpacity(0.9);
-    prepareFloatingSnapshot();
+    m_floating->setWindowOpacity(1.0);
 
     if (!m_floatingChromeApplied) {
         m_floating->winId();
@@ -306,7 +303,6 @@ void SidebarController::showFloating() {
     m_floating->raise();
 
     if (m_hoverZone) m_hoverZone->hide();
-    m_content->setUpdatesEnabled(true);
     m_slidingOut = false;
     m_slideAnim->stop();
     m_slideAnim->setDuration(kSlideInDurationMs);
