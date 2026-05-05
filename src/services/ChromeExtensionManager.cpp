@@ -74,26 +74,33 @@ static PocbExtensionTab *pocbTabForView(WebView *view) {
 }
 
 @implementation PocbExtensionTab
-- (id<WKWebExtensionWindow>)windowForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return g_browserWindow ? pocbExtensionWindow() : nil; }
-- (WKWebView *)webViewForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return (__bridge WKWebView *)self.view->nativeWebView(); }
-- (NSString *)titleForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return self.view->title().toNSString(); }
-- (NSUInteger)indexInWindowForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return g_browserWindow ? (NSUInteger)g_browserWindow->extensionViews().indexOf(self.view) : NSNotFound; }
-- (NSURL *)urlForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; QUrl url = self.view ? self.view->url() : QUrl(); return url.isValid() ? [NSURL URLWithString:url.toString().toNSString()] : nil; }
+- (WebView *)liveView {
+    if (!self.view || !g_browserWindow) return nullptr;
+    return g_browserWindow->extensionViews().contains(self.view) ? self.view : nullptr;
+}
+- (NSError *)missingTabError {
+    return [NSError errorWithDomain:@"pocb.extensions" code:6 userInfo:@{NSLocalizedDescriptionKey:@"The tab is no longer available"}];
+}
+- (id<WKWebExtensionWindow>)windowForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return [self liveView] ? pocbExtensionWindow() : nil; }
+- (WKWebView *)webViewForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; WebView *view = [self liveView]; return view ? (__bridge WKWebView *)view->nativeWebView() : nil; }
+- (NSString *)titleForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; WebView *view = [self liveView]; return view ? view->title().toNSString() : @""; }
+- (NSUInteger)indexInWindowForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; WebView *view = [self liveView]; return view ? (NSUInteger)g_browserWindow->extensionViews().indexOf(view) : NSNotFound; }
+- (NSURL *)urlForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; WebView *view = [self liveView]; QUrl url = view ? view->url() : QUrl(); return url.isValid() ? [NSURL URLWithString:url.toString().toNSString()] : nil; }
 - (NSURL *)pendingURLForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return nil; }
-- (BOOL)isLoadingCompleteForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; WKWebView *wk = self.view ? (__bridge WKWebView *)self.view->nativeWebView() : nil; return !wk || wk.estimatedProgress >= 1.0; }
+- (BOOL)isLoadingCompleteForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; WebView *view = [self liveView]; WKWebView *wk = view ? (__bridge WKWebView *)view->nativeWebView() : nil; return !wk || wk.estimatedProgress >= 1.0; }
 - (BOOL)isPinnedForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return NO; }
 - (BOOL)isMutedForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return NO; }
 - (BOOL)isReaderModeAvailableForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return NO; }
-- (void)loadURL:(NSURL *)url forWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; self.view->load(QUrl(QString::fromNSString(url.absoluteString))); completionHandler(nil); }
-- (void)reloadFromOrigin:(BOOL)fromOrigin forWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; (void)fromOrigin; self.view->reload(); completionHandler(nil); }
-- (void)goBackForWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; self.view->back(); completionHandler(nil); }
-- (void)goForwardForWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; self.view->forward(); completionHandler(nil); }
-- (void)activateForWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; if (g_browserWindow) g_browserWindow->extensionSelectView(self.view); completionHandler(nil); }
-- (BOOL)isSelectedForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return g_browserWindow && g_browserWindow->extensionCurrentView() == self.view; }
-- (void)setSelected:(BOOL)selected forWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; if (selected && g_browserWindow) g_browserWindow->extensionSelectView(self.view); completionHandler(nil); }
+- (void)loadURL:(NSURL *)url forWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; WebView *view = [self liveView]; if (!view) { completionHandler([self missingTabError]); return; } view->load(QUrl(QString::fromNSString(url.absoluteString))); completionHandler(nil); }
+- (void)reloadFromOrigin:(BOOL)fromOrigin forWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; (void)fromOrigin; WebView *view = [self liveView]; if (!view) { completionHandler([self missingTabError]); return; } view->reload(); completionHandler(nil); }
+- (void)goBackForWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; WebView *view = [self liveView]; if (!view) { completionHandler([self missingTabError]); return; } view->back(); completionHandler(nil); }
+- (void)goForwardForWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; WebView *view = [self liveView]; if (!view) { completionHandler([self missingTabError]); return; } view->forward(); completionHandler(nil); }
+- (void)activateForWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; WebView *view = [self liveView]; if (!view) { completionHandler([self missingTabError]); return; } g_browserWindow->extensionSelectView(view); completionHandler(nil); }
+- (BOOL)isSelectedForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; WebView *view = [self liveView]; return view && g_browserWindow->extensionCurrentView() == view; }
+- (void)setSelected:(BOOL)selected forWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; WebView *view = [self liveView]; if (selected && view) g_browserWindow->extensionSelectView(view); completionHandler(view || !selected ? nil : [self missingTabError]); }
 - (BOOL)shouldGrantPermissionsOnUserGestureForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return YES; }
 - (BOOL)shouldBypassPermissionsForWebExtensionContext:(WKWebExtensionContext *)context { (void)context; return YES; }
-- (void)closeForWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; if (g_browserWindow) g_browserWindow->extensionCloseView(self.view); completionHandler(nil); }
+- (void)closeForWebExtensionContext:(WKWebExtensionContext *)context completionHandler:(void (^)(NSError *))completionHandler { (void)context; WebView *view = [self liveView]; if (view) g_browserWindow->extensionCloseView(view); completionHandler(nil); }
 @end
 
 @implementation PocbExtensionWindow

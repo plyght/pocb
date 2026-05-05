@@ -205,9 +205,12 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
         const CGFloat cx = (CGFloat)i * _spacing + _buttonWH * 0.5;
         const CGFloat cy = _buttonWH * 0.5;
         b.wantsLayer = YES;
+        b.animations = @{};
         b.layer.actions = @{ @"bounds": [NSNull null],
                              @"position": [NSNull null],
-                             @"transform": [NSNull null] };
+                             @"transform": [NSNull null],
+                             @"contents": [NSNull null],
+                             @"opacity": [NSNull null] };
         b.frame = NSMakeRect(cx - n * 0.5, cy - n * 0.5, n, n);
         // Don't touch layer.anchorPoint: NSView keeps it at (0,0) and
         // synchronises layer.position with frame.origin. Changing it to
@@ -222,6 +225,8 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
         t = CATransform3DScale(t, scale, scale, 1.0);
         t = CATransform3DTranslate(t, -tx, -ty, 0);
         b.layer.transform = t;
+        [b layoutSubtreeIfNeeded];
+        [b displayIfNeeded];
         i++;
     }
     [CATransaction commit];
@@ -482,6 +487,7 @@ static void apply(QMainWindow *win) {
                                   window:nsw
                                 buttonWH:g_buttonWH
                                  spacing:g_spacing];
+        [CATransaction flush];
         // Anchor to top-left of the window's content view.
         container.autoresizingMask = NSViewMaxXMargin | NSViewMinYMargin;
         objc_setAssociatedObject(nsw, &kPocbContainerKey, container, OBJC_ASSOCIATION_RETAIN);
@@ -498,6 +504,8 @@ static void apply(QMainWindow *win) {
     pocb_sync_traffic_container(nsw, container);
     // Qt may reorder contentView subviews during layout; stay above WebKit/Qt.
     [cv addSubview:container positioned:NSWindowAbove relativeTo:nil];
+
+    [CATransaction flush];
 
     NSLog(@"[pocb-tl] apply: container=%@ subviews=%lu",
           NSStringFromRect(container.frame), (unsigned long)container.subviews.count);

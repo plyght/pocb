@@ -159,20 +159,7 @@ public:
     }
 
 protected:
-    void paintEvent(QPaintEvent *) override {
-        QPainter painter(this);
-        painter.setRenderHint(QPainter::Antialiasing, false);
-        QColor line = m_theme.foreground;
-        line.setAlpha(42);
-        painter.setPen(QPen(line, 1));
-        if (orientation() == Qt::Horizontal) {
-            const int x = width() / 2;
-            painter.drawLine(QPoint(x, 0), QPoint(x, height()));
-        } else {
-            const int y = height() / 2;
-            painter.drawLine(QPoint(0, y), QPoint(width(), y));
-        }
-    }
+    void paintEvent(QPaintEvent *) override {}
 
 private:
     Theme m_theme;
@@ -563,7 +550,7 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
     auto makePane = [this, host](WebView *view) {
         auto *pane = new QWidget(host);
         pane->setObjectName("SplitPane");
-        pane->setStyleSheet(QString("QWidget#SplitPane { background: %1; border: 1px solid transparent; border-radius: 10px; }").arg(m_theme.background.name()));
+        pane->setStyleSheet(QString("QWidget#SplitPane { background: %1; border: none; border-radius: 0px; }").arg(m_theme.background.name()));
         auto *layout = new QVBoxLayout(pane);
         layout->setContentsMargins(0, 0, 0, 0);
         layout->setSpacing(0);
@@ -809,8 +796,8 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
     auto *firstPane = makePane(first);
     auto *secondPane = makePane(second);
     auto setPaneSide = [this](QWidget *pane, bool left) {
-        pane->setStyleSheet(QString("QWidget#SplitPane { background: %1; border: 1px solid transparent; border-top-left-radius: %2px; border-top-right-radius: %3px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }")
-            .arg(m_theme.background.name(), QString::number(left ? 10 : 0), QString::number(left ? 0 : 10)));
+        pane->setStyleSheet(QString("QWidget#SplitPane { background: %1; border: none; border-radius: 0px; }")
+            .arg(m_theme.background.name()));
         if (auto *bar = pane->findChild<ui::ChromeBar *>(QString(), Qt::FindDirectChildrenOnly)) {
             bar->setTopCornerMask(left, !left);
         }
@@ -1573,7 +1560,7 @@ void BrowserWindow::setupUi() {
     m_webContainer = new QWidget(stackHost);
     m_webContainer->setObjectName("WebContainer");
     m_webContainer->setStyleSheet(QString(
-        "QWidget#WebContainer { background: rgba(26, 26, 26, 180); border: 1px solid rgba(255,255,255,0.10); border-radius: %1px; }")
+        "QWidget#WebContainer { background: rgba(26, 26, 26, 180); border: none; border-radius: %1px; }")
         .arg(ui::metrics::WebContainerRadius));
     auto *containerLayout = new QVBoxLayout(m_webContainer);
     containerLayout->setContentsMargins(0, 0, 0, 0);
