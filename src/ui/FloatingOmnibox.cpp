@@ -17,6 +17,7 @@
 #include <QPainterPath>
 #include <QTimer>
 #include <QUrl>
+#include <QWindow>
 #include <QUrlQuery>
 #include <QVBoxLayout>
 #include <QSet>
@@ -277,6 +278,7 @@ void FloatingOmnibox::showFor(QWidget *anchor, const QString &initialText) {
     show();
     raise();
     activateWindow();
+    if (windowHandle()) windowHandle()->requestActivate();
     m_input->setFocus(Qt::ShortcutFocusReason);
     m_input->activateWindow();
     for (int delay : {0, 25, 75}) {
@@ -284,6 +286,7 @@ void FloatingOmnibox::showFor(QWidget *anchor, const QString &initialText) {
             if (!isVisible() || !m_input) return;
             raise();
             activateWindow();
+            if (windowHandle()) windowHandle()->requestActivate();
             m_input->activateWindow();
             m_input->setFocus(Qt::ShortcutFocusReason);
         });
@@ -299,6 +302,7 @@ void FloatingOmnibox::showEvent(QShowEvent *e) {
     mac::roundWidgetCorners(this, kPanelRadius, false);
     raise();
     activateWindow();
+    if (windowHandle()) windowHandle()->requestActivate();
     m_input->activateWindow();
     m_input->setFocus(Qt::ShortcutFocusReason);
 }

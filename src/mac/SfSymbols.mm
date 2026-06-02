@@ -150,15 +150,7 @@ public:
             if (img.isNull()) return QPixmap();
             QPixmap pm = QPixmap::fromImage(img);
             pm.setDevicePixelRatio(scale);
-            if (mode == QIcon::Disabled) {
-                QImage faded = pm.toImage();
-                QPainter p(&faded);
-                p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-                p.fillRect(faded.rect(), QColor(0, 0, 0, 110));
-                p.end();
-                pm = QPixmap::fromImage(faded);
-                pm.setDevicePixelRatio(scale);
-            }
+            (void)mode;
             return pm;
         }
     }

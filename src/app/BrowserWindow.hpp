@@ -79,6 +79,7 @@ private:
     void showExtensionsMenu();
     void showCopiedLinkPopup();
     void refreshFloatingOmniboxItems();
+    void openBlankTabForLocationEntry();
     void rememberCurrentPage();
     QList<QUrl> restoredSessionForProfile(const QString &profileName) const;
     void saveSessionForProfile(const QString &profileName) const;
@@ -105,7 +106,7 @@ private:
     Theme m_theme;
     ProfileStore m_profiles;
     BookmarkStore m_bookmarks;
-    QString m_homePage = "https://search.brave.com";
+    QString m_homePage = "about:blank";
     QString m_searchEngine = "https://search.brave.com/search?q=%1";
 
     QLineEdit *m_omnibox = nullptr;

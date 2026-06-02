@@ -157,7 +157,7 @@ bool showNativeSettingsWindow(QWidget *parent,
 
         [grid addRowWithViews:@[label(@""), separator()]];
 
-        NSTextField *homeField = textField(toNSString(homePage), @"https://search.brave.com");
+        NSTextField *homeField = textField(toNSString(homePage), @"about:blank");
         addRow(grid, @"Home page", homeField);
 
         NSTextField *searchField = textField(toNSString(searchEngine), @"https://search.brave.com/search?q=%1");

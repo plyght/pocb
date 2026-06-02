@@ -140,7 +140,7 @@ SettingsDialog::SettingsDialog(ProfileStore &profiles, QWidget *parent) : QDialo
     browseForm->setHorizontalSpacing(14);
     browseForm->setVerticalSpacing(10);
 
-    m_homePage = new QLineEdit("https://search.brave.com", browseCard);
+    m_homePage = new QLineEdit("about:blank", browseCard);
     m_searchEngine = new QLineEdit("https://search.brave.com/search?q=%1", browseCard);
 
     browseForm->addRow("Home page", m_homePage);

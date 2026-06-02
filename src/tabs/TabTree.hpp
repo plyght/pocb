@@ -116,5 +116,5 @@ private:
     QWidget *m_dragOverlay = nullptr;
     QTreeWidgetItem *m_draggingItem = nullptr;
     bool m_draggingFromEssential = false;
-    QString m_homePage = "https://search.brave.com";
+    QString m_homePage = "about:blank";
 };

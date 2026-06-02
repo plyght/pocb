@@ -85,6 +85,17 @@ QEasingCurve responsiveEaseOut() {
     return curve;
 }
 
+bool isBlankTabUrl(const QUrl &url) {
+    return url.isEmpty() || url.toString() == QStringLiteral("about:blank") || url.toString().startsWith(QStringLiteral("data:text/html"));
+}
+
+QColor disabledToolbarColor(const QColor &foreground) {
+    QColor color = foreground;
+    const int luma = (foreground.red() * 299 + foreground.green() * 587 + foreground.blue() * 114) / 1000;
+    color.setAlpha(95);
+    return color;
+}
+
 void setButtonSymbolSmooth(QToolButton *button, const QString &symbol, double pointSize, const QColor &color) {
     if (!button) return;
     const QString previousSymbol = button->property("sfSymbolName").toString();
@@ -92,36 +103,10 @@ void setButtonSymbolSmooth(QToolButton *button, const QString &symbol, double po
     if (previousSymbol == symbol && previousColor == color) return;
     button->setProperty("sfSymbolName", symbol);
     button->setProperty("sfSymbolColor", color);
-    auto applyIcon = [button, symbol, pointSize, color] {
-        button->setIcon(mac::sfSymbolIcon(symbol, pointSize, color));
-    };
-    if (previousSymbol.isEmpty() || previousSymbol == symbol) {
-        applyIcon();
-        return;
-    }
-    auto *effect = qobject_cast<QGraphicsOpacityEffect *>(button->graphicsEffect());
-    if (!effect) {
-        effect = new QGraphicsOpacityEffect(button);
+    button->setIcon(mac::sfSymbolIcon(symbol, pointSize, color));
+    if (auto *effect = qobject_cast<QGraphicsOpacityEffect *>(button->graphicsEffect())) {
         effect->setOpacity(1.0);
-        button->setGraphicsEffect(effect);
     }
-    auto *out = new QPropertyAnimation(effect, "opacity", button);
-    out->setDuration(55);
-    out->setStartValue(effect->opacity());
-    out->setEndValue(0.35);
-    out->setEasingCurve(responsiveEaseOut());
-    QObject::connect(out, &QPropertyAnimation::finished, button, [button, effect, applyIcon] {
-        applyIcon();
-        auto *in = new QPropertyAnimation(effect, "opacity", button);
-        in->setDuration(70);
-        in->setStartValue(effect->opacity());
-        in->setEndValue(1.0);
-        in->setEasingCurve(responsiveEaseOut());
-        QObject::connect(in, &QPropertyAnimation::finished, in, &QObject::deleteLater);
-        in->start();
-    });
-    QObject::connect(out, &QPropertyAnimation::finished, out, &QObject::deleteLater);
-    out->start();
 }
 
 class PillMenuHoverFilter final : public QObject {
@@ -437,7 +422,42 @@ void BrowserWindow::extensionSetAction(const QString &key, const QString &label,
 void BrowserWindow::loadFromOmnibox() {
     const QUrl url = urlFromInput(m_omnibox->text());
     if (handleInternalUrl(url)) return;
-    if (auto *view = currentView()) view->load(url);
+    if (auto *view = currentView()) {
+        view->load(url);
+        if (m_reloadBtn && !isBlankTabUrl(url)) {
+            QColor fg = m_topbar ? m_topbar->property("chromeFg").value<QColor>() : QColor();
+            if (!fg.isValid()) fg = m_theme.foreground;
+            m_reloadBtn->setEnabled(true);
+            setButtonSymbolSmooth(m_reloadBtn, "xmark", 14.0, fg);
+        }
+    }
+}
+
+void BrowserWindow::openBlankTabForLocationEntry() {
+    m_tabTree->newTab(QUrl("about:blank"));
+    if (m_reloadBtn) {
+        QColor fg = m_topbar ? m_topbar->property("chromeFg").value<QColor>() : QColor();
+        if (!fg.isValid()) fg = m_theme.foreground;
+        const QColor disabledFg = disabledToolbarColor(fg);
+        m_reloadBtn->setEnabled(false);
+        setButtonSymbolSmooth(m_reloadBtn, "arrow.clockwise", 14.0, disabledFg);
+    }
+    refreshFloatingOmniboxItems();
+    if (m_addrInSidebar) {
+        if (m_floatingOmnibox) m_floatingOmnibox->showFor(m_stack, QString());
+        return;
+    }
+    if (!m_addressBar) return;
+    m_addressBar->setText(QString());
+    for (int delay : {0, 25, 75}) {
+        QTimer::singleShot(delay, this, [this] {
+            if (!m_addressBar || m_addrInSidebar) return;
+            raise();
+            activateWindow();
+            m_addressBar->setFocus(Qt::ShortcutFocusReason);
+            m_addressBar->selectAll();
+        });
+    }
 }
 
 void BrowserWindow::detachTabToWindow(WebView *view, const QUrl &url, const QPoint &globalPos) {
@@ -594,6 +614,7 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
             const int luma = (bg.red() * 299 + bg.green() * 587 + bg.blue() * 114) / 1000;
             const bool dark = luma < 140;
             const QColor fg = dark ? QColor(245, 245, 247) : QColor(28, 28, 30);
+            QColor disabledFg = disabledToolbarColor(fg);
             toolbar.bar->setProperty("chromeFg", fg);
             auto mixRgb = [](const QColor &from, const QColor &to, double t) {
                 return QColor(qRound(from.red() + (to.red() - from.red()) * t),
@@ -620,7 +641,10 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
             reSymbol(toolbar.sidebar, "sidebar.left", 14.0);
             reSymbol(toolbar.back, "chevron.backward", 14.0);
             reSymbol(toolbar.forward, "chevron.forward", 14.0);
-            setButtonSymbolSmooth(toolbar.reload, viewGuard && viewGuard->isLoading() ? "xmark" : "arrow.clockwise", 14.0, fg);
+            const bool blankTab = !viewGuard || isBlankTabUrl(viewGuard->url());
+            const bool canReload = !blankTab;
+            if (toolbar.reload) toolbar.reload->setEnabled(canReload);
+            setButtonSymbolSmooth(toolbar.reload, viewGuard && viewGuard->isLoading() && !blankTab ? "xmark" : "arrow.clockwise", 14.0, canReload ? fg : disabledFg);
             reSymbol(toolbar.newTab, "plus", 14.0);
             reSymbol(toolbar.settings, "gearshape", 14.0);
             reSymbol(toolbar.pillMenuBtn, "ellipsis.circle", 12.0);
@@ -656,36 +680,47 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
         connect(view, &WebView::themeColorChanged, toolbar.bar, applyPaneChrome);
         auto syncPaneNav = [toolbar, viewGuard] {
             if (!viewGuard) return;
-            toolbar.back->setEnabled(viewGuard->canGoBack());
-            toolbar.forward->setEnabled(viewGuard->canGoForward());
             QColor fg = toolbar.bar->property("chromeFg").value<QColor>();
             if (!fg.isValid()) fg = QColor(245, 245, 247);
-            setButtonSymbolSmooth(toolbar.reload, viewGuard->isLoading() ? "xmark" : "arrow.clockwise", 14.0, fg);
+            QColor disabledFg = disabledToolbarColor(fg);
+            const bool canGoBack = viewGuard->canGoBack();
+            const bool canGoForward = viewGuard->canGoForward();
+            const bool blankTab = isBlankTabUrl(viewGuard->url());
+            const bool canReload = !blankTab;
+            toolbar.back->setEnabled(canGoBack);
+            toolbar.back->setIcon(mac::sfSymbolIcon("chevron.backward", 14.0, canGoBack ? fg : disabledFg));
+            toolbar.forward->setEnabled(canGoForward);
+            toolbar.forward->setIcon(mac::sfSymbolIcon("chevron.forward", 14.0, canGoForward ? fg : disabledFg));
+            toolbar.reload->setEnabled(canReload);
+            setButtonSymbolSmooth(toolbar.reload, viewGuard->isLoading() && !blankTab ? "xmark" : "arrow.clockwise", 14.0, canReload ? fg : disabledFg);
         };
         syncPaneNav();
         connect(view, &WebView::navigationStateChanged, toolbar.bar, syncPaneNav);
         connect(toolbar.sidebar, &QToolButton::clicked, this, [this] {
             if (!m_sidebar || !m_sidebarWidget) return;
             if (m_sidebarWidget->isVisible()) m_sidebar->setHidden(true);
-            else m_sidebar->expandAnimated();
+            else m_sidebar->setHidden(false);
         });
         connect(toolbar.back, &QToolButton::clicked, view, [viewGuard] { if (viewGuard) viewGuard->back(); });
         connect(toolbar.forward, &QToolButton::clicked, view, [viewGuard] { if (viewGuard) viewGuard->forward(); });
-        connect(toolbar.reload, &QToolButton::clicked, view, [viewGuard] { if (viewGuard) { if (viewGuard->isLoading()) viewGuard->stop(); else viewGuard->reload(); } });
-        connect(toolbar.newTab, &QToolButton::clicked, this, [this] {
-            m_tabTree->newTab(QUrl("about:blank"));
-            refreshFloatingOmniboxItems();
-            m_floatingOmnibox->showFor(m_stack, QString());
+        connect(toolbar.reload, &QToolButton::clicked, view, [toolbar, viewGuard] {
+            if (!viewGuard || isBlankTabUrl(viewGuard->url())) return;
+            QColor fg = toolbar.bar->property("chromeFg").value<QColor>();
+            if (!fg.isValid()) fg = QColor(245, 245, 247);
+            if (viewGuard->isLoading()) {
+                viewGuard->stop();
+                setButtonSymbolSmooth(toolbar.reload, "arrow.clockwise", 14.0, fg);
+            } else {
+                viewGuard->reload();
+                setButtonSymbolSmooth(toolbar.reload, "xmark", 14.0, fg);
+            }
         });
+        connect(toolbar.newTab, &QToolButton::clicked, this, [this] { openBlankTabForLocationEntry(); });
         connect(toolbar.settings, &QToolButton::clicked, this, &BrowserWindow::showSettings);
         connect(toolbar.pillMenuBtn, &QToolButton::clicked, this, [this, viewGuard, button = toolbar.pillMenuBtn] {
             auto copyUrl = [viewGuard] { if (viewGuard) QApplication::clipboard()->setText(viewGuard->url().toString()); };
             auto reload = [viewGuard] { if (viewGuard) viewGuard->reload(); };
-            auto newTab = [this] {
-                m_tabTree->newTab(QUrl("about:blank"));
-                refreshFloatingOmniboxItems();
-                m_floatingOmnibox->showFor(m_stack, QString());
-            };
+            auto newTab = [this] { openBlankTabForLocationEntry(); };
             auto settings = [this] { showSettings(); };
             auto bookmark = [this, viewGuard] {
                 if (!viewGuard) return;
@@ -908,13 +943,52 @@ void BrowserWindow::updateForCurrentTab() {
         if (!m_addrInSidebar && m_topSeparator) m_topSeparator->show();
     }
     m_omnibox->setText(view->url().toString());
-    if (m_backBtn) m_backBtn->setEnabled(view->canGoBack());
-    if (m_fwdBtn) m_fwdBtn->setEnabled(view->canGoForward());
-    if (m_reloadBtn) setButtonSymbolSmooth(m_reloadBtn, view->isLoading() ? "xmark" : "arrow.clockwise", 14.0, m_theme.foreground);
+    auto syncNavButtons = [this, view] {
+        QColor fg = m_topbar ? m_topbar->property("chromeFg").value<QColor>() : QColor();
+        if (!fg.isValid()) fg = m_theme.foreground;
+        QColor disabledFg = disabledToolbarColor(fg);
+        const bool canGoBack = view->canGoBack();
+        const bool canGoForward = view->canGoForward();
+        if (m_backBtn) {
+            m_backBtn->setEnabled(canGoBack);
+            m_backBtn->setIcon(mac::sfSymbolIcon("chevron.backward", 14.0, canGoBack ? fg : disabledFg));
+        }
+        if (m_fwdBtn) {
+            m_fwdBtn->setEnabled(canGoForward);
+            m_fwdBtn->setIcon(mac::sfSymbolIcon("chevron.forward", 14.0, canGoForward ? fg : disabledFg));
+        }
+    };
+    syncNavButtons();
+    if (m_reloadBtn) {
+        QColor fg = m_topbar ? m_topbar->property("chromeFg").value<QColor>() : QColor();
+        if (!fg.isValid()) fg = m_theme.foreground;
+        QColor disabledFg = disabledToolbarColor(fg);
+        const bool blankTab = isBlankTabUrl(view->url());
+        const bool canReload = !blankTab;
+        m_reloadBtn->setEnabled(canReload);
+        setButtonSymbolSmooth(m_reloadBtn, view->isLoading() && !blankTab ? "xmark" : "arrow.clockwise", 14.0, canReload ? fg : disabledFg);
+    }
     connect(view, &WebView::navigationStateChanged, this, [this, view] {
         if (currentView() != view) return;
-        if (m_backBtn) m_backBtn->setEnabled(view->canGoBack());
-        if (m_fwdBtn) m_fwdBtn->setEnabled(view->canGoForward());
+        QColor fg = m_topbar ? m_topbar->property("chromeFg").value<QColor>() : QColor();
+        if (!fg.isValid()) fg = m_theme.foreground;
+        QColor disabledFg = disabledToolbarColor(fg);
+        const bool canGoBack = view->canGoBack();
+        const bool canGoForward = view->canGoForward();
+        if (m_backBtn) {
+            m_backBtn->setEnabled(canGoBack);
+            m_backBtn->setIcon(mac::sfSymbolIcon("chevron.backward", 14.0, canGoBack ? fg : disabledFg));
+        }
+        if (m_fwdBtn) {
+            m_fwdBtn->setEnabled(canGoForward);
+            m_fwdBtn->setIcon(mac::sfSymbolIcon("chevron.forward", 14.0, canGoForward ? fg : disabledFg));
+        }
+        if (m_reloadBtn) {
+            const bool blankTab = isBlankTabUrl(view->url());
+            const bool canReload = !blankTab;
+            m_reloadBtn->setEnabled(canReload);
+            setButtonSymbolSmooth(m_reloadBtn, view->isLoading() && !blankTab ? "xmark" : "arrow.clockwise", 14.0, canReload ? fg : disabledFg);
+        }
         applyChromeForPageColor(view->cachedThemeColor());
     }, Qt::UniqueConnection);
     if (m_addressBarCtl) {
@@ -997,11 +1071,7 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
                 if (auto *v = currentView()) QApplication::clipboard()->setText(v->url().toString());
             };
             auto reload = [this] { if (auto *v = currentView()) v->reload(); };
-            auto newTab = [this] {
-                m_tabTree->newTab(QUrl("about:blank"));
-                refreshFloatingOmniboxItems();
-                m_floatingOmnibox->showFor(m_stack, QString());
-            };
+            auto newTab = [this] { openBlankTabForLocationEntry(); };
             auto settings = [this] { showSettings(); };
             auto bookmark = [this] {
                 if (auto *v = currentView()) {
@@ -1045,21 +1115,23 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     });
     connect(m_backBtn,   &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->back(); });
     connect(m_fwdBtn,    &QToolButton::clicked, this, [this] { if (auto *v = currentView()) v->forward(); });
-    connect(m_reloadBtn, &QToolButton::clicked, this, [this] { if (auto *v = currentView()) { if (v->isLoading()) v->stop(); else v->reload(); } });
+    connect(m_reloadBtn, &QToolButton::clicked, this, [this] {
+        if (auto *v = currentView()) {
+            if (isBlankTabUrl(v->url())) return;
+            QColor fg = m_topbar ? m_topbar->property("chromeFg").value<QColor>() : QColor();
+            if (!fg.isValid()) fg = m_theme.foreground;
+            if (v->isLoading()) {
+                v->stop();
+                setButtonSymbolSmooth(m_reloadBtn, "arrow.clockwise", 14.0, fg);
+            } else {
+                v->reload();
+                setButtonSymbolSmooth(m_reloadBtn, "xmark", 14.0, fg);
+            }
+        }
+    });
     connect(m_settingsBtn, &QToolButton::clicked, this, &BrowserWindow::showSettings);
     connect(m_extensionsBtn, &QToolButton::clicked, this, &BrowserWindow::showExtensionsMenu);
-    connect(m_newTabBtn, &QToolButton::clicked, this, [this] {
-        m_tabTree->newTab(QUrl("about:blank"));
-        if (auto *view = currentView()) {
-            const QString bg = m_theme.background.name();
-            view->loadHtml(QStringLiteral(
-                "<!doctype html><html><head><meta charset=\"utf-8\">"
-                "<style>html,body{margin:0;height:100%%;background:%1;}</style>"
-                "</head><body></body></html>").arg(bg));
-        }
-        refreshFloatingOmniboxItems();
-        m_floatingOmnibox->showFor(m_stack, QString());
-    });
+    connect(m_newTabBtn, &QToolButton::clicked, this, [this] { openBlankTabForLocationEntry(); });
 
     return w.bar;
 }
@@ -1358,7 +1430,7 @@ bool BrowserWindow::handleInternalUrl(const QUrl &url) {
     } else if (command == QStringLiteral("toggle-sidebar")) {
         if (m_sidebar && m_sidebarWidget) m_sidebar->setHidden(m_sidebarWidget->isVisible());
     } else if (command == QStringLiteral("new-tab")) {
-        if (m_tabTree) m_tabTree->newTab(QUrl("about:blank"));
+        openBlankTabForLocationEntry();
     } else if (command == QStringLiteral("close-tab")) {
         if (m_tabTree) m_tabTree->closeCurrent();
     } else if (command == QStringLiteral("copy-url")) {
@@ -1847,18 +1919,7 @@ void BrowserWindow::setupUi() {
 }
 
 void BrowserWindow::setupActions() {
-    auto openBlankTabWithOmnibox = [this] {
-        m_tabTree->newTab(QUrl("about:blank"));
-        if (auto *view = currentView()) {
-            const QString bg = m_theme.background.name();
-            view->loadHtml(QStringLiteral(
-                "<!doctype html><html><head><meta charset=\"utf-8\">"
-                "<style>html,body{margin:0;height:100%%;background:%1;}</style>"
-                "</head><body></body></html>").arg(bg));
-        }
-        refreshFloatingOmniboxItems();
-        m_floatingOmnibox->showFor(m_stack, QString());
-    };
+    auto openBlankTabWithOmnibox = [this] { openBlankTabForLocationEntry(); };
     auto focusOmnibox = [this] {
         QString current;
         if (auto *view = currentView()) {
@@ -1874,7 +1935,7 @@ void BrowserWindow::setupActions() {
         if (!side) return;
         const bool nowVisible = !side->isVisible();
         if (nowVisible) {
-            m_sidebar->expandAnimated();
+            m_sidebar->setHidden(false);
         } else {
             m_sidebar->setHidden(true);
         }
@@ -2326,6 +2387,7 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
     const int luma = (bg.red() * 299 + bg.green() * 587 + bg.blue() * 114) / 1000;
     const bool dark = luma < 140;
     const QColor fg = dark ? QColor(245, 245, 247) : QColor(28, 28, 30);
+    QColor disabledFg = disabledToolbarColor(fg);
 
     // Hover shade: lighten dark pages, darken light ones — same logic for
     // toolbar buttons and the address bar wrap.
@@ -2354,6 +2416,7 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
             .arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alpha());
     };
 
+    m_topbar->setProperty("chromeFg", fg);
     if (auto *cb = qobject_cast<ui::ChromeBar *>(m_topbar)) {
         cb->setBackgroundColor(bg, /*animate=*/true);
     }
@@ -2365,9 +2428,12 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
         btn->setIcon(mac::sfSymbolIcon(name, pointSize, fg));
     };
     reSymbol(m_sidebarBtn, "sidebar.left", symPt);
-    reSymbol(m_backBtn,    "chevron.backward", symPt);
-    reSymbol(m_fwdBtn,     "chevron.forward", symPt);
-    setButtonSymbolSmooth(m_reloadBtn, currentView() && currentView()->isLoading() ? "xmark" : "arrow.clockwise", symPt, fg);
+    if (m_backBtn) m_backBtn->setIcon(mac::sfSymbolIcon("chevron.backward", symPt, m_backBtn->isEnabled() ? fg : disabledFg));
+    if (m_fwdBtn) m_fwdBtn->setIcon(mac::sfSymbolIcon("chevron.forward", symPt, m_fwdBtn->isEnabled() ? fg : disabledFg));
+    const bool blankTab = !currentView() || isBlankTabUrl(currentView()->url());
+    const bool canReload = !blankTab;
+    if (m_reloadBtn) m_reloadBtn->setEnabled(canReload);
+    setButtonSymbolSmooth(m_reloadBtn, currentView() && currentView()->isLoading() && !blankTab ? "xmark" : "arrow.clockwise", symPt, canReload ? fg : disabledFg);
     reSymbol(m_newTabBtn,  "plus", symPt);
     reSymbol(m_extensionsBtn, "puzzlepiece.extension", symPt);
     reSymbol(m_settingsBtn,"gearshape", symPt);

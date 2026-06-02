@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPalette>
+#include <QSizePolicy>
 #include <QStyleFactory>
 #include <QToolButton>
 #include <QWidget>
@@ -141,9 +142,12 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
     w.pillMenuBtn->setIcon(mac::sfSymbolIcon("ellipsis.circle", 12.0, iconColor));
     w.pillMenuBtn->setToolTip("Page actions");
     w.pillMenuBtn->setStyleSheet(
-        "QToolButton { background: transparent; border: none; border-radius: 4px; }"
+        "QToolButton { background: transparent; border: none; border-radius: 4px; padding: 0px; }"
         "QToolButton:hover { background: rgba(255,255,255,0.10); }"
         "QToolButton:pressed { background: rgba(255,255,255,0.18); }");
+    QSizePolicy pillMenuPolicy = w.pillMenuBtn->sizePolicy();
+    pillMenuPolicy.setRetainSizeWhenHidden(true);
+    w.pillMenuBtn->setSizePolicy(pillMenuPolicy);
     w.pillMenuBtn->hide();
     addrRow->addWidget(w.pillMenuBtn);
 

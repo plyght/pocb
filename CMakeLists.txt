@@ -8,6 +8,15 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+if(APPLE AND NOT CMAKE_PREFIX_PATH)
+    foreach(_qt_prefix IN ITEMS /opt/homebrew/opt/qt /opt/homebrew/opt/qtbase /usr/local/opt/qt /usr/local/opt/qtbase)
+        if(EXISTS "${_qt_prefix}/lib/cmake/Qt6/Qt6Config.cmake")
+            list(APPEND CMAKE_PREFIX_PATH "${_qt_prefix}")
+            break()
+        endif()
+    endforeach()
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network)
 
 if(APPLE)

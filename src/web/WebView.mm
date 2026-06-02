@@ -312,6 +312,10 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
     }
     wk.navigationDelegate = m_impl->bridge;
     wk.UIDelegate = m_impl->bridge;
+    wk.wantsLayer = YES;
+    wk.layer.opaque = NO;
+    wk.layer.backgroundColor = NSColor.clearColor.CGColor;
+    [wk setValue:@NO forKey:@"drawsBackground"];
     NSClickGestureRecognizer *click = [[NSClickGestureRecognizer alloc] initWithTarget:m_impl->bridge action:@selector(contentMouseDown:)];
     click.delaysPrimaryMouseButtonEvents = NO;
     [wk addGestureRecognizer:click];

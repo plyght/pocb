@@ -180,7 +180,15 @@ void SidebarController::setHidden(bool hidden) {
         dockContent();
     }
 
+    const bool wasVisible = side->isVisible();
     side->setVisible(!hidden);
+    if (!hidden && !wasVisible) {
+        const int saved = QSettings().value("ui/sidebarWidth", ui::metrics::SidebarDefaultWidth).toInt();
+        const int target = qBound(side->minimumWidth(), saved, side->maximumWidth());
+        const int total = m_splitter->size().width();
+        const int handle = m_splitter->handleWidth();
+        m_splitter->setSizes({target, qMax(0, total - target - handle)});
+    }
     mac::setTrafficLightsHidden(m_window, hidden);
     mac::refreshUnifiedToolbar(m_window);
     if (m_setStackHostInset) m_setStackHostInset(!hidden);
