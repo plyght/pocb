@@ -59,6 +59,9 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
     };
 
     w.sidebar  = makeBtn("sidebar.left",      "Toggle Sidebar");
+    w.sidebar->setIconSize(QSize(18, 18));
+    w.sidebar->setFixedSize(32, 32);
+    w.sidebar->setIcon(mac::sfSymbolIcon("sidebar.left", 16.0, iconColor));
     w.back     = makeBtn("chevron.backward", "Back");
     w.forward  = makeBtn("chevron.forward",  "Forward");
     w.reload   = makeBtn("arrow.clockwise",  "Reload  (\xE2\x8C\x98R)");

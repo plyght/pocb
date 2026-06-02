@@ -638,7 +638,7 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
             auto reSymbol = [&](QToolButton *btn, const QString &name, double pointSize) {
                 if (btn) btn->setIcon(mac::sfSymbolIcon(name, pointSize, fg));
             };
-            reSymbol(toolbar.sidebar, "sidebar.left", 14.0);
+            reSymbol(toolbar.sidebar, "sidebar.left", 16.0);
             reSymbol(toolbar.back, "chevron.backward", 14.0);
             reSymbol(toolbar.forward, "chevron.forward", 14.0);
             const bool blankTab = !viewGuard || isBlankTabUrl(viewGuard->url());
@@ -914,7 +914,8 @@ void BrowserWindow::showSettings() {
     QString homePage = m_homePage;
     QString searchEngine = m_searchEngine;
     bool showFullUrl = QSettings().value("ui/showFullUrl", false).toBool();
-    if (!mac::showNativeSettingsWindow(this, m_profiles, homePage, searchEngine, showFullUrl)) return;
+    bool closeWindowWithLastTab = QSettings().value("browser/closeWindowWithLastTab", false).toBool();
+    if (!mac::showNativeSettingsWindow(this, m_profiles, homePage, searchEngine, showFullUrl, closeWindowWithLastTab)) return;
 
     m_homePage = homePage;
     if (m_tabTree) m_tabTree->setHomePage(homePage);
@@ -923,6 +924,7 @@ void BrowserWindow::showSettings() {
         m_searchEngine = searchEngine;
         if (m_floatingOmnibox) m_floatingOmnibox->setSearchEngineUrl(searchEngine);
     }
+    if (m_tabTree) m_tabTree->setCloseWindowWithLastTab(closeWindowWithLastTab);
 
     if (m_addressBarCtl) m_addressBarCtl->setShowFullUrl(showFullUrl);
 }
@@ -1010,10 +1012,10 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     m_extensionsBtn->setAutoRaise(true);
     m_extensionsBtn->setFocusPolicy(Qt::NoFocus);
     m_extensionsBtn->setCursor(Qt::PointingHandCursor);
-    m_extensionsBtn->setIconSize(QSize(16, 16));
-    m_extensionsBtn->setFixedSize(28, 28);
+    m_extensionsBtn->setIconSize(QSize(18, 18));
+    m_extensionsBtn->setFixedSize(32, 32);
     m_extensionsBtn->setToolTip("Extensions");
-    m_extensionsBtn->setIcon(mac::sfSymbolIcon("puzzlepiece.extension", 14.0, m_theme.foreground));
+    m_extensionsBtn->setIcon(mac::sfSymbolIcon("puzzlepiece.extension", 16.0, m_theme.foreground));
     m_extensionsBtn->setStyleSheet(QString(
         "QToolButton { background: transparent; border: none; border-radius: 6px; padding: 0px; }"
         "QToolButton:hover { background: %1; }"
@@ -1677,10 +1679,12 @@ void BrowserWindow::setupUi() {
     // host (`m_stack`) and the surrounding sidebar chrome stay here.
     m_tabTree = new TabTree(m_profiles, m_favicons, m_stack, m_theme, m_sidebarPage, this);
     m_tabTree->setHomePage(m_homePage);
+    m_tabTree->setCloseWindowWithLastTab(QSettings().value("browser/closeWindowWithLastTab", false).toBool());
     connect(m_tabTree, &TabTree::tabDetachRequested, this, &BrowserWindow::detachTabToWindow);
     connect(m_tabTree, &TabTree::tabSplitRequested, this, &BrowserWindow::splitTabs);
     connect(m_tabTree, &TabTree::tabSplitPreviewRequested, this, &BrowserWindow::showSplitPreview);
     connect(m_tabTree, &TabTree::tabSplitPreviewEnded, this, &BrowserWindow::hideSplitPreview);
+    connect(m_tabTree, &TabTree::lastTabCloseRequested, this, &BrowserWindow::close);
     pageLayout->addWidget(m_tabTree->widget(), 1);
     m_profileSwitcher = buildProfileSwitcher(m_sidebarPage);
     pageLayout->addWidget(m_profileSwitcher, 0, Qt::AlignLeft | Qt::AlignBottom);
@@ -2427,7 +2431,7 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
         if (!btn) return;
         btn->setIcon(mac::sfSymbolIcon(name, pointSize, fg));
     };
-    reSymbol(m_sidebarBtn, "sidebar.left", symPt);
+    reSymbol(m_sidebarBtn, "sidebar.left", 16.0);
     if (m_backBtn) m_backBtn->setIcon(mac::sfSymbolIcon("chevron.backward", symPt, m_backBtn->isEnabled() ? fg : disabledFg));
     if (m_fwdBtn) m_fwdBtn->setIcon(mac::sfSymbolIcon("chevron.forward", symPt, m_fwdBtn->isEnabled() ? fg : disabledFg));
     const bool blankTab = !currentView() || isBlankTabUrl(currentView()->url());
@@ -2435,7 +2439,7 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
     if (m_reloadBtn) m_reloadBtn->setEnabled(canReload);
     setButtonSymbolSmooth(m_reloadBtn, currentView() && currentView()->isLoading() && !blankTab ? "xmark" : "arrow.clockwise", symPt, canReload ? fg : disabledFg);
     reSymbol(m_newTabBtn,  "plus", symPt);
-    reSymbol(m_extensionsBtn, "puzzlepiece.extension", symPt);
+    reSymbol(m_extensionsBtn, "puzzlepiece.extension", 16.0);
     reSymbol(m_settingsBtn,"gearshape", symPt);
     reSymbol(m_pillMenuBtn,"ellipsis.circle", m_addrInSidebar ? 14.0 : 12.0);
 

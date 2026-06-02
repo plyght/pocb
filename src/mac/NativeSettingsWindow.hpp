@@ -11,6 +11,7 @@ bool showNativeSettingsWindow(QWidget *parent,
                               ProfileStore &profiles,
                               QString &homePage,
                               QString &searchEngine,
-                              bool &showFullUrl);
+                              bool &showFullUrl,
+                              bool &closeWindowWithLastTab);
 
 }  // namespace mac

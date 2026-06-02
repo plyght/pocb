@@ -89,7 +89,8 @@ bool showNativeSettingsWindow(QWidget *parent,
                               ProfileStore &profiles,
                               QString &homePage,
                               QString &searchEngine,
-                              bool &showFullUrl) {
+                              bool &showFullUrl,
+                              bool &closeWindowWithLastTab) {
     @autoreleasepool {
         QSettings settings;
         __block NSInteger result = NSModalResponseCancel;
@@ -168,6 +169,9 @@ bool showNativeSettingsWindow(QWidget *parent,
 
         NSButton *sidebarAddress = checkbox(@"Move address bar into the sidebar (restart required)", settings.value("ui/addressBarInSidebar", false).toBool());
         addRow(grid, @"", sidebarAddress);
+
+        NSButton *closeLastTab = checkbox(@"Close window with last tab", closeWindowWithLastTab);
+        addRow(grid, @"Tabs", closeLastTab);
 
         [grid addRowWithViews:@[label(@""), separator()]];
 
@@ -289,7 +293,9 @@ bool showNativeSettingsWindow(QWidget *parent,
         homePage = toQString(homeField.stringValue).trimmed();
         searchEngine = toQString(searchField.stringValue).trimmed();
         showFullUrl = fullUrl.state == NSControlStateValueOn;
+        closeWindowWithLastTab = closeLastTab.state == NSControlStateValueOn;
         settings.setValue("ui/showFullUrl", showFullUrl);
+        settings.setValue("browser/closeWindowWithLastTab", closeWindowWithLastTab);
         settings.setValue("ui/addressBarInSidebar", sidebarAddress.state == NSControlStateValueOn);
         ChromeExtensionManager::setConfiguredPaths(toQString(extensionPaths.stringValue).split(';', Qt::SkipEmptyParts));
         return true;

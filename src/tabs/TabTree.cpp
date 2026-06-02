@@ -32,6 +32,7 @@
 #include <QStringList>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
+#include <QTimer>
 #include <QVariant>
 #include <QWindow>
 #include <QVBoxLayout>
@@ -784,7 +785,6 @@ void TabTree::closeItem(QTreeWidgetItem *item) {
         }
     }
     deleteItemRecursive(item);
-    if (m_tabs->topLevelItemCount() == 0) newTab(QUrl(m_homePage));
     if (wasCurrent && !m_views.isEmpty()) {
         QTreeWidgetItem *fallback = nullptr;
         for (auto *candidate : std::as_const(m_tabHistory)) {
@@ -906,7 +906,13 @@ void TabTree::deleteItemRecursive(QTreeWidgetItem *item) {
     if (m_currentEssentialItem == item) m_currentEssentialItem = nullptr;
     delete item;
     syncEssentialGrid();
-    if (m_views.isEmpty()) newTab(QUrl(m_homePage));
+    if (m_views.isEmpty()) {
+        QTimer::singleShot(140, this, [this] {
+            if (!m_views.isEmpty()) return;
+            if (m_closeWindowWithLastTab) emit lastTabCloseRequested();
+            else newTab(QUrl(m_homePage));
+        });
+    }
 }
 
 int TabTree::essentialCount() const {

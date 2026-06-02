@@ -49,6 +49,7 @@ public:
 
     void setHomePage(const QString &url) { m_homePage = url; }
     QString homePage() const { return m_homePage; }
+    void setCloseWindowWithLastTab(bool closeWindow) { m_closeWindowWithLastTab = closeWindow; }
 
 signals:
     // Emitted whenever the current tab changes or its URL/title changes —
@@ -66,6 +67,7 @@ signals:
     void tabSplitPreviewRequested(WebView *dragged, WebView *target, const QPoint &globalPos);
     void tabSplitPreviewEnded();
     void tabClosed(const QUrl &url, const QString &title);
+    void lastTabCloseRequested();
 
 private:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -116,5 +118,6 @@ private:
     QWidget *m_dragOverlay = nullptr;
     QTreeWidgetItem *m_draggingItem = nullptr;
     bool m_draggingFromEssential = false;
+    bool m_closeWindowWithLastTab = false;
     QString m_homePage = "about:blank";
 };
