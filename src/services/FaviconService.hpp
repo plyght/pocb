@@ -43,5 +43,6 @@ private:
     Provider m_provider = Google;
     QHash<QString, QPixmap> m_memCache;
     QHash<QString, int> m_attempt;             // domain -> size index
+    QHash<QString, QList<QUrl>> m_candidates;
     QHash<QString, QPointer<QNetworkReply>> m_inflight;
 };
