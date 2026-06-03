@@ -2137,10 +2137,20 @@ void BrowserWindow::setupActions() {
 
     // ── View ────────────────────────────────────────────────────────────
     auto *viewMenu = mb->addMenu("View");
-    viewMenu->addAction(makeAction("Reload", QKeySequence(Qt::CTRL | Qt::Key_R),
-                                   [this] { if (auto *v = currentView()) v->reload(); }));
-    viewMenu->addAction(makeAction("Force Reload", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R),
-                                   [this] { if (auto *v = currentView()) v->reload(); }));
+    auto reloadCurrentView = [this] {
+        if (auto *v = currentView()) {
+            if (isBlankTabUrl(v->url())) return;
+            QColor fg = m_topbar ? m_topbar->property("chromeFg").value<QColor>() : QColor();
+            if (!fg.isValid()) fg = m_theme.foreground;
+            if (m_reloadBtn) {
+                m_reloadBtn->setEnabled(true);
+                setButtonSymbolSmooth(m_reloadBtn, "xmark", 14.0, fg);
+            }
+            v->reload();
+        }
+    };
+    viewMenu->addAction(makeAction("Reload", QKeySequence(Qt::CTRL | Qt::Key_R), reloadCurrentView));
+    viewMenu->addAction(makeAction("Force Reload", QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_R), reloadCurrentView));
     viewMenu->addSeparator();
     auto *pageAppearanceMenu = viewMenu->addMenu("Page Appearance");
     auto *pageAppearanceGroup = new QActionGroup(this);

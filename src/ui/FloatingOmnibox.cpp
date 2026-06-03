@@ -278,8 +278,10 @@ void FloatingOmnibox::setSearchEngineUrl(const QString &templateUrl) {
 void FloatingOmnibox::showFor(QWidget *anchor, const QString &initialText) {
     m_anchorWidth = anchor ? anchor->width() : 0;
     m_searchSuggestions.clear();
-    rebuildSuggestions();
+    m_pendingQuery = initialText.trimmed();
+    if (m_debounce) m_debounce->stop();
     m_input->setText(initialText);
+    rebuildSuggestions();
     m_input->selectAll();
     relayout();
     if (anchor) {

@@ -198,6 +198,13 @@ void AddressBarController::cancelEditing() {
 
 void AddressBarController::endEditing(bool restoreUrl, const QString &currentUrl) {
     hidePopup();
+    if (m_debounce) m_debounce->stop();
+    if (m_inflight) {
+        m_inflight->abort();
+        m_inflight.clear();
+    }
+    m_pendingQuery.clear();
+    m_statusText.clear();
     if (m_appFilterInstalled) {
         qApp->removeEventFilter(this);
         m_appFilterInstalled = false;
@@ -205,6 +212,7 @@ void AddressBarController::endEditing(bool restoreUrl, const QString &currentUrl
     m_editing = false;
     if (!currentUrl.isEmpty()) m_currentUrl = currentUrl;
     if (restoreUrl && m_bar) applyDisplay();
+    if (!restoreUrl && m_bar) m_bar->clearFocus();
 }
 
 bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
@@ -268,6 +276,7 @@ void AddressBarController::beginEditing() {
     if (m_bar && !m_currentUrl.isEmpty() && m_currentUrl != QStringLiteral("about:blank")) {
         m_bar->setText(m_currentUrl);
     }
+    m_pendingQuery = m_bar ? m_bar->text().trimmed() : QString();
     QTimer::singleShot(0, this, [this] {
         if (m_bar->hasFocus()) m_bar->selectAll();
     });
@@ -294,7 +303,7 @@ void AddressBarController::commit() {
 }
 
 void AddressBarController::fetchSuggestions() {
-    if (m_pendingQuery.isEmpty()) return;
+    if (!m_editing || m_pendingQuery.isEmpty()) return;
     const QString cacheKey = QUrl(m_searchEngine).host().toLower() + QStringLiteral("\n") + m_pendingQuery.toLower();
     if (m_suggestionCache.contains(cacheKey)) {
         populatePopup(m_suggestionCache.value(cacheKey));
@@ -335,6 +344,7 @@ void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
     reply->deleteLater();
     if (reply != m_inflight.data()) return;
     m_inflight.clear();
+    if (!m_editing) return;
         const QString replyQuery = reply->property("query").toString();
         const bool fallbackTried = reply->property("fallbackTried").toBool();
         auto tryFallback = [this, replyQuery, fallbackTried] {
@@ -372,7 +382,7 @@ void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
             tryFallback();
             return;
         }
-        if (!m_bar || replyQuery != m_pendingQuery) return;
+        if (!m_editing || !m_bar || replyQuery != m_pendingQuery) return;
 
         const QByteArray body = reply->readAll();
         QJsonParseError parseError;
@@ -420,6 +430,7 @@ void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
             tryFallback();
             return;
         }
+        if (!m_editing || replyQuery != m_pendingQuery) return;
         m_statusText.clear();
         if (items.size() > 8) items = items.mid(0, 8);
         const QString cacheKey = QUrl(m_searchEngine).host().toLower() + QStringLiteral("\n") + replyQuery.toLower();
@@ -461,6 +472,7 @@ void AddressBarController::fetchEngineIcon(const QString &host) {
 }
 
 void AddressBarController::populatePopup(const QStringList &items) {
+    if (!m_editing) return;
     if (!m_popup) {
         // Container window: paints the rounded fill + border. The list
         // widget itself sits inside as a transparent child, so its rows
@@ -555,7 +567,7 @@ void AddressBarController::populatePopup(const QStringList &items) {
         const bool strongHostMatch = loweredQuery.size() >= 4 && (host == loweredQuery || host.startsWith(loweredQuery + QChar('.')) || host.startsWith(loweredQuery + QChar('-')));
         const bool strongTitleMatch = loweredQuery.size() >= 4 && (title.toLower() == loweredQuery || title.toLower().startsWith(loweredQuery + QChar(' ')) || title.toLower().startsWith(loweredQuery + QChar('-')));
         const bool explicitUrlMatch = loweredQuery.contains('.') && value.toLower().contains(loweredQuery);
-        if (loweredQuery.isEmpty() || strongHostMatch || strongTitleMatch || explicitUrlMatch) {
+        if (!loweredQuery.isEmpty() && (strongHostMatch || strongTitleMatch || explicitUrlMatch)) {
             addPopupItem(host.isEmpty() ? title : host, value, mac::sfSymbolIcon("globe", 13.0, m_iconColor));
         }
     }

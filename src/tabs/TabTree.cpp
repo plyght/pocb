@@ -42,13 +42,40 @@
 
 namespace {
 
-QRect closeButtonRect(const QRect &rowRect, int viewportWidth) {
-    const int side = 16;
-    const int right = viewportWidth > 0 ? viewportWidth - 6 : rowRect.right() - 6;
-    return QRect(right - side,
+QRect tabRowRect(const QRect &rawRect, int viewportWidth) {
+    QRect rect = rawRect.adjusted(0, 1, 0, -1);
+    rect.setLeft(6);
+    if (viewportWidth > 0) rect.setRight(viewportWidth - 6);
+    return rect;
+}
+
+QRect closeButtonRect(const QRect &rowRect, int) {
+    constexpr int side = 20;
+    constexpr int edgeInset = 3;
+    return QRect(rowRect.right() - edgeInset - side + 1,
                  rowRect.top() + (rowRect.height() - side) / 2,
                  side,
                  side);
+}
+
+QRect disclosureButtonRect(const QRect &rowRect, int depth) {
+    constexpr int side = 20;
+    constexpr int edgeInset = 3;
+    return QRect(rowRect.left() + edgeInset + depth * 16,
+                 rowRect.top() + (rowRect.height() - side) / 2,
+                 side,
+                 side);
+}
+
+int iconButtonRadius(const QRect &rect) {
+    return qRound(rect.width() * 0.3);
+}
+
+void paintIconButton(QPainter *painter, const QRect &rect, const Theme &theme) {
+    const int radius = iconButtonRadius(rect);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(theme.hover);
+    painter->drawRoundedRect(rect, radius, radius);
 }
 
 int itemDepth(const QTreeWidget *tree, const QModelIndex &index) {
@@ -66,6 +93,14 @@ bool isNewTabUrl(const QUrl &url) {
     return url.isEmpty() || url.toString() == QStringLiteral("about:blank");
 }
 
+QString hostLabelForUrl(const QUrl &url) {
+    if (isNewTabUrl(url)) return QString();
+    QString host = url.host();
+    if (host.startsWith(QStringLiteral("www."))) host.remove(0, 4);
+    if (!host.isEmpty()) return host;
+    return url.scheme().isEmpty() ? QString() : url.scheme();
+}
+
 enum TabRoles {
     PinStateRole = Qt::UserRole + 1,
     UnreadRole = Qt::UserRole + 2,
@@ -76,6 +111,7 @@ enum TabRoles {
     SplitPartnerTextRole = Qt::UserRole + 7,
     SplitPartnerIconRole = Qt::UserRole + 8,
     SplitPartnerItemRole = Qt::UserRole + 9,
+    DisplayHostRole = Qt::UserRole + 10,
 };
 
 enum TabPinState {
@@ -87,7 +123,9 @@ enum TabPinState {
 class TabItemDelegate final : public QStyledItemDelegate {
 public:
     TabItemDelegate(const Theme &theme, QObject *parent)
-        : QStyledItemDelegate(parent), m_theme(theme), m_closeIcon(mac::sfSymbolIcon("xmark", 10.5, theme.foreground)) {}
+        : QStyledItemDelegate(parent), m_theme(theme), m_closeIcon(mac::sfSymbolIcon("xmark", 10.5, theme.foreground)),
+          m_disclosureOpenIcon(mac::sfSymbolIcon("chevron.down", 9.0, theme.muted)),
+          m_disclosureClosedIcon(mac::sfSymbolIcon("chevron.right", 9.0, theme.muted)) {}
 
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
                const QModelIndex &index) const override {
@@ -97,19 +135,36 @@ public:
         const bool split = index.data(SplitGroupRole).toBool();
         const int depth = split ? 0 : itemDepth(tree, index);
         const int viewportWidth = option.widget ? option.widget->width() : 0;
-        const QRect closeRect = closeButtonRect(option.rect, viewportWidth);
-        QRect rowRect = option.rect;
-        rowRect.setLeft(6 + depth * 18);
-        if (viewportWidth > 0) rowRect.setRight(viewportWidth - 6);
+        const QRect rowRect = tabRowRect(option.rect, viewportWidth);
+        const QRect closeRect = closeButtonRect(rowRect, viewportWidth);
+        const QPoint cursorPos = option.widget ? option.widget->mapFromGlobal(QCursor::pos()) : QPoint(-1, -1);
+        const bool closeHovered = hovered && closeRect.contains(cursorPos);
+        QRect contentRect = rowRect;
+        contentRect.setLeft(30 + depth * 16);
 
         painter->save();
         painter->setRenderHint(QPainter::Antialiasing, true);
+        if (!split) {
+            if (auto *item = tree ? tree->itemFromIndex(index) : nullptr; item && item->childCount() > 0) {
+                const QIcon &disclosure = item->isExpanded() ? m_disclosureOpenIcon : m_disclosureClosedIcon;
+                if (!disclosure.isNull()) {
+                    const QRect disclosureRect = disclosureButtonRect(rowRect, depth);
+                    const bool disclosureHovered = hovered && disclosureRect.contains(cursorPos);
+                    painter->save();
+                    painter->translate(0, 0.5);
+                    if (disclosureHovered) paintIconButton(painter, disclosureRect, m_theme);
+                    painter->setOpacity((selected || hovered) ? 0.86 : 0.58);
+                    disclosure.paint(painter, disclosureRect.adjusted(5, 5, -5, -5), Qt::AlignCenter);
+                    painter->restore();
+                }
+            }
+        }
         QColor fill = m_theme.background.lightness() < 128 ? QColor(255, 255, 255) : QColor(0, 0, 0);
         if (selected || hovered || split) {
-            fill.setAlpha(selected ? 26 : (hovered ? 15 : 9));
+            fill.setAlpha(selected ? 34 : (hovered ? 18 : 10));
             painter->setPen(Qt::NoPen);
             painter->setBrush(fill);
-            painter->drawRoundedRect(rowRect.adjusted(0, 3, 0, -3), 6, 6);
+            painter->drawRoundedRect(rowRect.adjusted(0, 2, 0, -2), 7, 7);
         }
         if (split) {
             QColor line = m_theme.foreground;
@@ -127,7 +182,7 @@ public:
             painter->setPen(Qt::NoPen);
             painter->setBrush(dot);
             const int dotSize = pinState == EssentialTab ? 6 : 5;
-            painter->drawEllipse(QRect(option.rect.left() + 7 + depth * 18,
+            painter->drawEllipse(QRect(contentRect.left() - 9,
                                        option.rect.top() + (option.rect.height() - dotSize) / 2,
                                        dotSize,
                                        dotSize));
@@ -135,49 +190,75 @@ public:
 
         QColor textColor = m_theme.foreground;
         if (unread) textColor = textColor.lighter(m_theme.background.lightness() < 128 ? 135 : 85);
-        painter->setPen(textColor);
-        QFont textFont = option.font;
-        if (unread) textFont.setWeight(QFont::DemiBold);
-        painter->setFont(textFont);
-        auto drawTab = [&](const QRect &area, const QVariant &decoration, const QString &label) {
+        QColor metaColor = m_theme.muted;
+        metaColor.setAlpha((selected || hovered) ? 190 : 145);
+        auto drawTab = [&](const QRect &area, const QVariant &decoration, const QString &label, const QString &host) {
             QRect textRect = area.adjusted(10, 0, -8, 0);
             if (decoration.canConvert<QIcon>()) {
                 const QIcon icon = qvariant_cast<QIcon>(decoration);
-                const QRect iconRect(textRect.left(), option.rect.top() + (option.rect.height() - 14) / 2, 14, 14);
+                const QRect iconRect(textRect.left(), option.rect.top() + (option.rect.height() - 16) / 2, 16, 16);
                 icon.paint(painter, iconRect, Qt::AlignCenter);
-                textRect.setLeft(iconRect.right() + 7);
+                textRect.setLeft(iconRect.right() + 9);
             }
-            const QString text = option.fontMetrics.elidedText(label, Qt::ElideRight, textRect.width());
-            painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, text);
+            QFont titleFont = option.font;
+            titleFont.setWeight(unread || depth == 0 ? QFont::DemiBold : QFont::Medium);
+            painter->setFont(titleFont);
+            const QFontMetrics titleMetrics(titleFont);
+            const QString title = titleMetrics.elidedText(label, Qt::ElideRight, textRect.width());
+            painter->setPen(textColor);
+            painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, title);
+            if (!host.isEmpty() && textRect.width() > 92) {
+                QFont hostFont = option.font;
+                hostFont.setWeight(QFont::Medium);
+                painter->setFont(hostFont);
+                const QFontMetrics hostMetrics(hostFont);
+                const int titleWidth = qMin(titleMetrics.horizontalAdvance(title), textRect.width());
+                QRect hostRect = textRect;
+                hostRect.setLeft(textRect.left() + titleWidth + 9);
+                const QString meta = hostMetrics.elidedText(host, Qt::ElideRight, hostRect.width());
+                painter->setPen(metaColor);
+                painter->drawText(hostRect, Qt::AlignVCenter | Qt::AlignLeft, meta);
+            }
         };
         if (split) {
             QRect leftRect = rowRect.adjusted(0, 0, -(rowRect.width() / 2), 0);
             QRect rightRect = rowRect.adjusted(rowRect.width() / 2, 0, 0, 0);
-            drawTab(leftRect, index.data(Qt::DecorationRole), index.data(Qt::DisplayRole).toString());
-            drawTab(rightRect, index.data(SplitPartnerIconRole), index.data(SplitPartnerTextRole).toString());
+            drawTab(leftRect, index.data(Qt::DecorationRole), index.data(Qt::DisplayRole).toString(), index.data(DisplayHostRole).toString());
+            drawTab(rightRect, index.data(SplitPartnerIconRole), index.data(SplitPartnerTextRole).toString(), QString());
         } else {
-            QRect textRect = option.rect.adjusted(16 + depth * 18, 0, -28, 0);
-            drawTab(textRect.adjusted(-10, 0, 0, 0), index.data(Qt::DecorationRole), index.data(Qt::DisplayRole).toString());
+            drawTab(contentRect.adjusted(-2, 0, -22, 0), index.data(Qt::DecorationRole), index.data(Qt::DisplayRole).toString(), index.data(DisplayHostRole).toString());
         }
         painter->restore();
 
         if (!selected && !hovered) return;
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing, true);
+        painter->translate(0, 0.5);
+        if (closeHovered) paintIconButton(painter, closeRect, m_theme);
         if (!m_closeIcon.isNull()) {
-            m_closeIcon.paint(painter, closeRect.adjusted(4, 4, -4, -4), Qt::AlignCenter);
+            painter->setOpacity(closeHovered ? 0.9 : 0.72);
+            m_closeIcon.paint(painter, closeRect.adjusted(6, 6, -6, -6), Qt::AlignCenter);
+            painter->setOpacity(1.0);
         } else {
-            painter->save();
-            painter->setRenderHint(QPainter::Antialiasing, true);
-            painter->setPen(QPen(option.palette.color(QPalette::Text), 1.6));
-            const QRectF r = closeRect.adjusted(5, 5, -5, -5);
+            painter->setPen(QPen(option.palette.color(QPalette::Text), 1.45));
+            const QRectF r = closeRect.adjusted(7, 7, -7, -7);
             painter->drawLine(r.topLeft(), r.bottomRight());
             painter->drawLine(r.topRight(), r.bottomLeft());
-            painter->restore();
         }
+        painter->restore();
+    }
+
+    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override {
+        QSize size = QStyledItemDelegate::sizeHint(option, index);
+        size.setHeight(31);
+        return size;
     }
 
 private:
     Theme m_theme;
     QIcon m_closeIcon;
+    QIcon m_disclosureOpenIcon;
+    QIcon m_disclosureClosedIcon;
 };
 
 QColor vibrantColorFromIcon(const QIcon &icon) {
@@ -312,7 +393,7 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
     m_tabs->setFocusPolicy(Qt::NoFocus);
     m_tabs->setAnimated(false);
     m_tabs->setFrameShape(QFrame::NoFrame);
-    m_tabs->setIconSize(QSize(14, 14));
+    m_tabs->setIconSize(QSize(16, 16));
     m_tabs->setExpandsOnDoubleClick(false);
     m_tabs->setContextMenuPolicy(Qt::DefaultContextMenu);
     m_tabs->setUniformRowHeights(true);
@@ -333,7 +414,7 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
 
     m_tabs->setStyleSheet(QString(
         "QTreeWidget#TabTree { background: transparent; border: none; color: %1; outline: 0; }"
-        "QTreeWidget#TabTree::item { padding: 2px 26px 2px 6px; border: none; background: transparent; color: %1; selection-background-color: transparent; }"
+        "QTreeWidget#TabTree::item { min-height: 31px; padding: 2px 26px 2px 4px; border: none; background: transparent; color: %1; selection-background-color: transparent; }"
         "QTreeWidget#TabTree::item:selected { background: transparent; color: %1; selection-background-color: transparent; }"
         "QTreeWidget#TabTree::item:selected:active { background: transparent; color: %1; selection-background-color: transparent; }"
         "QTreeWidget#TabTree::item:selected:!active { background: transparent; color: %1; selection-background-color: transparent; }"
@@ -581,8 +662,16 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
             return true;
         }
         const auto *item = m_tabs->itemAt(mouse->pos());
-        const bool overClose = item && closeButtonRect(m_tabs->visualItemRect(const_cast<QTreeWidgetItem *>(item)), m_tabs->viewport()->width()).contains(mouse->pos());
-        m_tabs->viewport()->setCursor(overClose ? Qt::PointingHandCursor : Qt::ArrowCursor);
+        if (!item) item = m_tabs->itemAt(QPoint(30, mouse->pos().y()));
+        bool overDisclosure = false;
+        if (item && item->childCount() > 0) {
+            auto *mutableItem = const_cast<QTreeWidgetItem *>(item);
+            const QRect visual = tabRowRect(m_tabs->visualItemRect(mutableItem), m_tabs->viewport()->width());
+            const int depth = itemDepth(m_tabs, m_tabs->indexFromItem(mutableItem));
+            overDisclosure = disclosureButtonRect(visual, depth).contains(mouse->pos());
+        }
+        const bool overClose = item && closeButtonRect(tabRowRect(m_tabs->visualItemRect(const_cast<QTreeWidgetItem *>(item)), m_tabs->viewport()->width()), m_tabs->viewport()->width()).contains(mouse->pos());
+        m_tabs->viewport()->setCursor((overClose || overDisclosure) ? Qt::PointingHandCursor : Qt::ArrowCursor);
         m_tabs->viewport()->update();
     }
     if (watched == m_tabsViewport && event->type() == QEvent::Leave) {
@@ -600,8 +689,22 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
     if (watched == m_tabsViewport && event->type() == QEvent::MouseButtonPress) {
         auto *mouse = static_cast<QMouseEvent *>(event);
         if (mouse->button() == Qt::LeftButton) {
-            if (auto *item = m_tabs->itemAt(mouse->pos())) {
-                if (closeButtonRect(m_tabs->visualItemRect(item), m_tabs->viewport()->width()).contains(mouse->pos())) {
+            auto *item = m_tabs->itemAt(mouse->pos());
+            if (!item) item = m_tabs->itemAt(QPoint(30, mouse->pos().y()));
+            if (item) {
+                if (item->childCount() > 0) {
+                    const QRect visual = tabRowRect(m_tabs->visualItemRect(item), m_tabs->viewport()->width());
+                    const int depth = itemDepth(m_tabs, m_tabs->indexFromItem(item));
+                    const QRect disclosureRect = disclosureButtonRect(visual, depth);
+                    if (disclosureRect.contains(mouse->pos())) {
+                        m_pressedItem = nullptr;
+                        item->setExpanded(!item->isExpanded());
+                        m_tabs->viewport()->update();
+                        return true;
+                    }
+                }
+                if (closeButtonRect(tabRowRect(m_tabs->visualItemRect(item), m_tabs->viewport()->width()), m_tabs->viewport()->width()).contains(mouse->pos())) {
+                    m_pressedItem = nullptr;
                     m_tabs->viewport()->unsetCursor();
                     closeItem(item);
                     return true;
@@ -700,9 +803,12 @@ WebView *TabTree::newTabForExtension(const QUrl &url, bool background, QTreeWidg
     item->setData(0, PinStateRole, NormalTab);
     item->setData(0, UnreadRole, false);
     item->setData(0, OriginalUrlRole, QString());
+    item->setData(0, DisplayHostRole, hostLabelForUrl(url));
     if (!parentItem) parentItem = currentItem();
-    if (parentItem) parentItem->addChild(item);
-    else m_tabs->addTopLevelItem(item);
+    if (parentItem) {
+        parentItem->addChild(item);
+        parentItem->setExpanded(true);
+    } else m_tabs->addTopLevelItem(item);
     item->setExpanded(true);
     m_views.insert(item, view);
 
@@ -731,8 +837,11 @@ void TabTree::adoptChildView(WebView *child, QTreeWidgetItem *parentItem, bool b
     item->setData(0, PinStateRole, NormalTab);
     item->setData(0, UnreadRole, false);
     item->setData(0, OriginalUrlRole, QString());
-    if (parentItem) parentItem->addChild(item);
-    else m_tabs->addTopLevelItem(item);
+    item->setData(0, DisplayHostRole, hostLabelForUrl(child->url()));
+    if (parentItem) {
+        parentItem->addChild(item);
+        parentItem->setExpanded(true);
+    } else m_tabs->addTopLevelItem(item);
     item->setExpanded(true);
     m_views.insert(item, child);
     static_cast<QStackedLayout *>(m_stack->layout())->addWidget(child);
@@ -1220,6 +1329,7 @@ void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {
         emit currentTabChanged();
     });
     connect(view, &WebView::urlChanged, this, [this, view, item](const QUrl &url) {
+        item->setData(0, DisplayHostRole, hostLabelForUrl(url));
         ChromeExtensionManager::notifyTabChanged(view);
         if (view == currentView()) emit currentTabChanged();
         else markItemUnread(item, true);
