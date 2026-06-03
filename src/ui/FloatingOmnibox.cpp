@@ -81,6 +81,16 @@ QUrl navigableUrlFor(const QString &text) {
     return QUrl();
 }
 
+QUrl desiredTldUrlFor(const QString &text) {
+    const QString trimmed = text.trimmed().toLower();
+    if (trimmed.size() < 2 || trimmed.contains(QChar::Space) || trimmed.contains('/') || trimmed.contains(':') || trimmed.contains('.')) return QUrl();
+    for (const QChar ch : trimmed) {
+        if (!(ch.isLetterOrNumber() || ch == '-')) return QUrl();
+    }
+    if (trimmed.startsWith('-') || trimmed.endsWith('-')) return QUrl();
+    return QUrl(QStringLiteral("http://www.%1.com/").arg(trimmed));
+}
+
 struct Candidate {
     QString title;
     QString value;
@@ -115,9 +125,13 @@ int localScore(const FloatingOmnibox::LocalItem &item, const QString &query) {
         if (title.contains(q) || value.contains(q)) return 350;
         return 0;
     }
-    if (value == q || title == q) return 1200;
-    if (value.startsWith(q) || title.startsWith(q)) return 1000;
-    if (value.contains(q) || title.contains(q)) return 650;
+    QUrl url = QUrl::fromUserInput(item.value);
+    QString host = url.host().toLower();
+    if (host.startsWith(QStringLiteral("www."))) host = host.mid(4);
+    const bool explicitUrlMatch = q.contains('.') && value.contains(q);
+    if (value == q || title == q || host == q) return 1200;
+    if (q.size() >= 4 && (host.startsWith(q + QChar('.')) || host.startsWith(q + QChar('-')) || title.startsWith(q + QChar(' ')) || title.startsWith(q + QChar('-')))) return 1000;
+    if (explicitUrlMatch) return 650;
     return 0;
 }
 }  // namespace
@@ -333,6 +347,14 @@ void FloatingOmnibox::keyPressEvent(QKeyEvent *e) {
 bool FloatingOmnibox::eventFilter(QObject *obj, QEvent *ev) {
     if (obj == m_input && ev->type() == QEvent::KeyPress) {
         auto *ke = static_cast<QKeyEvent *>(ev);
+        if ((ke->key() == Qt::Key_Return || ke->key() == Qt::Key_Enter) && (ke->modifiers() & Qt::ControlModifier)) {
+            const QUrl desired = desiredTldUrlFor(m_input ? m_input->text() : QString());
+            if (desired.isValid()) {
+                emit submitted(desired.toString());
+                close();
+                return true;
+            }
+        }
         if (ke->key() == Qt::Key_Down && m_list->count() > 0) {
             int row = m_list->currentRow();
             row = (row + 1) % m_list->count();
@@ -359,12 +381,19 @@ void FloatingOmnibox::onTextEdited(const QString &text) {
         rebuildSuggestions();
         return;
     }
-    rebuildSuggestions();
+    const QString cacheKey = m_engineHost.toLower() + QStringLiteral("\n") + m_pendingQuery.toLower();
+    if (m_suggestionCache.contains(cacheKey)) setSearchSuggestions(m_suggestionCache.value(cacheKey));
+    else rebuildSuggestions();
     m_debounce->start();
 }
 
 void FloatingOmnibox::fetchSuggestions() {
     if (m_pendingQuery.isEmpty()) return;
+    const QString cacheKey = m_engineHost.toLower() + QStringLiteral("\n") + m_pendingQuery.toLower();
+    if (m_suggestionCache.contains(cacheKey)) {
+        setSearchSuggestions(m_suggestionCache.value(cacheKey));
+        return;
+    }
     if (m_inflight) {
         QNetworkReply *oldReply = m_inflight.data();
         m_inflight.clear();
@@ -416,6 +445,9 @@ void FloatingOmnibox::onSuggestionsReceived(QNetworkReply *reply) {
         }
     }
     if (items.size() > kMaxItems) items = items.mid(0, kMaxItems);
+    const QString cacheKey = m_engineHost.toLower() + QStringLiteral("\n") + reply->property("query").toString().toLower();
+    if (m_suggestionCache.size() > 256) m_suggestionCache.clear();
+    m_suggestionCache.insert(cacheKey, items);
     setSearchSuggestions(items);
 }
 
@@ -443,8 +475,10 @@ void FloatingOmnibox::rebuildSuggestions() {
     const QString query = m_input ? m_input->text().trimmed() : QString();
     const QUrl navigable = navigableUrlFor(query);
     if (navigable.isValid()) {
-        const QString value = navigable.toString();
-        candidates.append({value, value, mac::sfSymbolIcon("globe", 13.0, m_theme.muted), 1400, order++});
+        QString value = navigable.toString();
+        QString title = navigable.host().isEmpty() ? value : navigable.host();
+        if (title.startsWith(QStringLiteral("www."))) title = title.mid(4);
+        candidates.append({title, value, mac::sfSymbolIcon("globe", 13.0, m_theme.muted), 1400, order++});
     }
     for (const auto &item : m_localItems) {
         const int score = localScore(item, query);

@@ -89,6 +89,16 @@ bool isBlankTabUrl(const QUrl &url) {
     return url.isEmpty() || url.toString() == QStringLiteral("about:blank") || url.toString().startsWith(QStringLiteral("data:text/html"));
 }
 
+QUrl alternateNavUrlFor(const QString &text) {
+    const QString trimmed = text.trimmed().toLower();
+    if (trimmed.size() < 2 || trimmed.contains(QChar::Space) || trimmed.contains('/') || trimmed.contains(':') || trimmed.contains('.')) return QUrl();
+    for (const QChar ch : trimmed) {
+        if (!(ch.isLetterOrNumber() || ch == '-')) return QUrl();
+    }
+    if (trimmed.startsWith('-') || trimmed.endsWith('-')) return QUrl();
+    return QUrl(QStringLiteral("http://www.%1.com/").arg(trimmed));
+}
+
 QColor disabledToolbarColor(const QColor &foreground) {
     QColor color = foreground;
     const int luma = (foreground.red() * 299 + foreground.green() * 587 + foreground.blue() * 114) / 1000;
@@ -592,7 +602,11 @@ void BrowserWindow::splitTabs(WebView *first, WebView *second, const QPoint &glo
         connect(addressCtl, &AddressBarController::submitted, this, [this, viewGuard](const QString &text) {
             if (!viewGuard) return;
             const QUrl url = urlFromInput(text);
-            if (!handleInternalUrl(url)) viewGuard->load(url);
+            if (!handleInternalUrl(url)) {
+                const QUrl alternate = alternateNavUrlFor(text);
+                viewGuard->setProperty("alternateNavUrl", alternate.isValid() && url != alternate ? alternate.toString() : QString());
+                viewGuard->load(url);
+            }
             viewGuard->setFocus();
         });
         connect(addressCtl, &AddressBarController::escapePressed, view, [viewGuard] {
@@ -970,6 +984,13 @@ void BrowserWindow::updateForCurrentTab() {
         m_reloadBtn->setEnabled(canReload);
         setButtonSymbolSmooth(m_reloadBtn, view->isLoading() && !blankTab ? "xmark" : "arrow.clockwise", 14.0, canReload ? fg : disabledFg);
     }
+    connect(view, &WebView::loadFinished, this, [this, view](bool ok) {
+        if (currentView() != view || !ok) return;
+        const QString alternate = view->property("alternateNavUrl").toString();
+        if (alternate.isEmpty()) return;
+        view->setProperty("alternateNavUrl", QString());
+        if (statusBar()) statusBar()->showMessage(QStringLiteral("Did you mean to go to %1? Press Ctrl+Enter next time to open the .com directly.").arg(QUrl(alternate).host()), 8000);
+    }, Qt::UniqueConnection);
     connect(view, &WebView::navigationStateChanged, this, [this, view] {
         if (currentView() != view) return;
         QColor fg = m_topbar ? m_topbar->property("chromeFg").value<QColor>() : QColor();
@@ -1102,7 +1123,11 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     connect(m_addressBarCtl, &AddressBarController::submitted, this, [this](const QString &text) {
         const QUrl url = urlFromInput(text);
         if (!handleInternalUrl(url)) {
-            if (auto *view = currentView()) view->load(url);
+            if (auto *view = currentView()) {
+                const QUrl alternate = alternateNavUrlFor(text);
+                view->setProperty("alternateNavUrl", alternate.isValid() && url != alternate ? alternate.toString() : QString());
+                view->load(url);
+            }
         }
         if (auto *v = currentView()) v->setFocus();
     });
@@ -1427,6 +1452,8 @@ bool BrowserWindow::handleInternalUrl(const QUrl &url) {
     const QString command = url.host().toLower();
     if (command == QStringLiteral("settings")) {
         showSettings();
+    } else if (command == QStringLiteral("passkeys")) {
+        if (auto *v = currentView()) v->loadHtml(passkeyDiagnosticsHtml());
     } else if (command == QStringLiteral("close-sidebar")) {
         if (m_sidebar) m_sidebar->setHidden(true);
     } else if (command == QStringLiteral("toggle-sidebar")) {
@@ -1454,6 +1481,79 @@ bool BrowserWindow::handleInternalUrl(const QUrl &url) {
         if (ok && m_tabTree) m_tabTree->selectView(reinterpret_cast<WebView *>(ptr));
     }
     return true;
+}
+
+QString BrowserWindow::passkeyDiagnosticsHtml() const {
+    return QStringLiteral(R"HTML(<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pocb passkeys</title>
+<style>
+:root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background: #101010; color: #f4f0ea; }
+body { margin: 0; padding: 48px; }
+main { max-width: 860px; margin: 0 auto; }
+h1 { font-size: 42px; letter-spacing: -0.04em; margin: 0 0 12px; }
+p { color: #bdb6aa; line-height: 1.55; }
+.card { border: 1px solid rgba(255,255,255,.12); border-radius: 18px; padding: 22px; margin: 18px 0; background: rgba(255,255,255,.04); }
+.row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+.row:last-child { border-bottom: 0; }
+.value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #fff; text-align: right; }
+.good { color: #94f0ba; }
+.bad { color: #ff9d8f; }
+.warn { color: #ffd479; }
+button { appearance: none; border: 0; border-radius: 999px; padding: 12px 18px; background: #f4f0ea; color: #101010; font-weight: 700; }
+code { color: #fff; }
+</style>
+</head>
+<body>
+<main>
+<h1>Passkey diagnostics</h1>
+<p>This page checks what websites can see inside pocb. Proper browser passkey support requires a signed app with Apple's browser public-key credential entitlement.</p>
+<div class="card" id="results"></div>
+<div class="card">
+<p>For local web tests, use <code>http://localhost:PORT</code>, expected origin <code>http://localhost:PORT</code>, and RP ID <code>localhost</code>. A credential created for localhost will not work on 127.0.0.1, LAN IPs, tunnel domains, or production domains.</p>
+<button id="copy">Copy required entitlement</button>
+</div>
+</main>
+<script>
+const rows = [];
+const add = (name, value, cls) => rows.push(`<div class="row"><span>${name}</span><span class="value ${cls || ''}">${value}</span></div>`);
+(async () => {
+  add('Origin', location.origin);
+  add('Secure context', String(window.isSecureContext), window.isSecureContext ? 'good' : 'warn');
+  add('navigator.credentials', String(!!navigator.credentials), navigator.credentials ? 'good' : 'bad');
+  add('PublicKeyCredential', String(!!window.PublicKeyCredential), window.PublicKeyCredential ? 'good' : 'bad');
+  if (window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
+    try {
+      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      add('Platform authenticator', String(available), available ? 'good' : 'warn');
+    } catch (error) {
+      add('Platform authenticator', error.name || String(error), 'bad');
+    }
+  } else {
+    add('Platform authenticator', 'probe unavailable', 'bad');
+  }
+  if (window.PublicKeyCredential?.isConditionalMediationAvailable) {
+    try {
+      const available = await PublicKeyCredential.isConditionalMediationAvailable();
+      add('Conditional mediation', String(available), available ? 'good' : 'warn');
+    } catch (error) {
+      add('Conditional mediation', error.name || String(error), 'bad');
+    }
+  } else {
+    add('Conditional mediation', 'probe unavailable', 'warn');
+  }
+  add('Required app entitlement', 'com.apple.developer.web-browser.public-key-credential', 'warn');
+  document.getElementById('results').innerHTML = rows.join('');
+})();
+document.getElementById('copy').addEventListener('click', async () => {
+  await navigator.clipboard.writeText('com.apple.developer.web-browser.public-key-credential');
+});
+</script>
+</body>
+</html>)HTML");
 }
 
 QList<QUrl> BrowserWindow::restoredSessionForProfile(const QString &profileName) const {
@@ -1496,11 +1596,12 @@ void BrowserWindow::rememberCurrentPage() {
     }
     m_recentPages.prepend({title, url});
     while (m_recentPages.size() > 25) m_recentPages.removeLast();
+    refreshFloatingOmniboxItems();
 }
 
 void BrowserWindow::refreshFloatingOmniboxItems() {
-    if (!m_floatingOmnibox) return;
     QList<FloatingOmnibox::LocalItem> items;
+    QList<AddressBarController::LocalItem> addressItems;
     auto addCommand = [this, &items](const QString &title, const QString &url, const QString &symbol) {
         items.append({title, url, mac::sfSymbolIcon(symbol, 13.0, m_theme.foreground), false});
     };
@@ -1519,9 +1620,10 @@ void BrowserWindow::refreshFloatingOmniboxItems() {
         }
         return mac::sfSymbolIcon("globe", 13.0, m_theme.muted);
     };
-    auto addUrlItem = [&items, &iconForUrl](const QString &title, const QUrl &url) {
+    auto addUrlItem = [&items, &addressItems, &iconForUrl](const QString &title, const QUrl &url) {
         if (!url.isValid() || url.isEmpty() || url.scheme() == QStringLiteral("about") || url.scheme() == QStringLiteral("data")) return;
         items.append({QStringLiteral("Page · ") + (title.isEmpty() ? url.toString() : title), url.toString(), iconForUrl(url), false});
+        addressItems.append({title.isEmpty() ? url.toString() : title, url.toString()});
     };
     const QList<WebView *> liveTabs = m_tabTree ? m_tabTree->views() : QList<WebView *>();
     for (int i = m_tabRecency.size() - 1; i >= 0; --i) {
@@ -1545,11 +1647,13 @@ void BrowserWindow::refreshFloatingOmniboxItems() {
     }
     for (const Bookmark &bookmark : m_bookmarks.bookmarks(m_profiles.currentName())) {
         items.append({QStringLiteral("Bookmark · ") + (bookmark.title.isEmpty() ? bookmark.url.toString() : bookmark.title), bookmark.url.toString(), iconForUrl(bookmark.url), false});
+        addressItems.append({bookmark.title.isEmpty() ? bookmark.url.toString() : bookmark.title, bookmark.url.toString()});
     }
     for (const RecentPage &page : m_recentPages) {
         addUrlItem(page.title, page.url);
     }
-    m_floatingOmnibox->setLocalItems(items);
+    if (m_floatingOmnibox) m_floatingOmnibox->setLocalItems(items);
+    if (m_addressBarCtl) m_addressBarCtl->setLocalItems(addressItems);
 }
 
 void BrowserWindow::setupUi() {
@@ -1573,7 +1677,11 @@ void BrowserWindow::setupUi() {
         const QUrl url = urlFromInput(text);
         if (handleInternalUrl(url)) return;
         m_omnibox->setText(text);
-        if (auto *view = currentView()) view->load(url);
+        if (auto *view = currentView()) {
+            const QUrl alternate = alternateNavUrlFor(text);
+            view->setProperty("alternateNavUrl", alternate.isValid() && url != alternate ? alternate.toString() : QString());
+            view->load(url);
+        }
     });
 
     // The load progress is now painted inside the address pill (see
@@ -1968,6 +2076,8 @@ void BrowserWindow::setupActions() {
     auto *aboutAction = makeAction("About pocb", {}, [] { QApplication::aboutQt(); }, QAction::AboutRole);
     auto *prefsAction = makeAction("Settings…", QKeySequence(Qt::CTRL | Qt::Key_Comma),
                                    [this] { showSettings(); }, QAction::PreferencesRole);
+    auto *passkeysAction = makeAction("Passkey Diagnostics", QKeySequence(),
+                                      [this] { if (auto *v = currentView()) v->loadHtml(passkeyDiagnosticsHtml()); }, QAction::ApplicationSpecificRole);
     auto *quitAction  = makeAction("Quit pocb", QKeySequence(Qt::CTRL | Qt::Key_Q),
                                    [] { QApplication::quit(); }, QAction::QuitRole);
 
@@ -1983,6 +2093,7 @@ void BrowserWindow::setupActions() {
     auto *fileMenu = mb->addMenu("File");
     fileMenu->addAction(aboutAction);
     fileMenu->addAction(prefsAction);
+    fileMenu->addAction(passkeysAction);
     fileMenu->addAction(defaultBrowserAction);
     fileMenu->addAction(littleExternalAction);
     fileMenu->addAction(quitAction);

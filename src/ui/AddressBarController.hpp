@@ -5,6 +5,8 @@
 #include <QColor>
 #include <QIcon>
 #include <QObject>
+#include <QHash>
+#include <QList>
 #include <QPointer>
 #include <QString>
 
@@ -22,6 +24,11 @@ public:
     AddressBarController(QLineEdit *bar, QLabel *lockIcon, const Theme &theme, QObject *parent);
 
     void setSearchEngineUrl(const QString &url) { m_searchEngine = url; }
+    struct LocalItem {
+        QString title;
+        QString value;
+    };
+    void setLocalItems(const QList<LocalItem> &items) { m_localItems = items; }
     bool isEditing() const { return m_editing; }
 
     // Update address bar text when not editing (called on tab url changes).
@@ -76,6 +83,8 @@ private:
     QString m_pendingQuery;
     QString m_savedUrl;
     QString m_statusText;
+    QList<LocalItem> m_localItems;
+    QHash<QString, QStringList> m_suggestionCache;
     QString m_currentUrl;       // Full URL of the active page (for editing).
     bool m_isHttps = false;
     bool m_showFull = false;

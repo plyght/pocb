@@ -8,6 +8,7 @@
 #include <QPixmap>
 #include <QVBoxLayout>
 #include <QSettings>
+#include <QSet>
 #include <QEvent>
 #include <QFocusEvent>
 #include <QFont>
@@ -89,6 +90,16 @@ AddrEngine engineForHost(const QString &host) {
                                           {{"format","opensearch"}, {"segment","startpage.macos"}}, "q"};
     return {"duckduckgo.com", "/ac/", {{"type","list"}}, "q"};
 }
+
+QUrl desiredTldUrlFor(const QString &text) {
+    const QString trimmed = text.trimmed().toLower();
+    if (trimmed.size() < 2 || trimmed.contains(QChar::Space) || trimmed.contains('/') || trimmed.contains(':') || trimmed.contains('.')) return QUrl();
+    for (const QChar ch : trimmed) {
+        if (!(ch.isLetterOrNumber() || ch == '-')) return QUrl();
+    }
+    if (trimmed.startsWith('-') || trimmed.endsWith('-')) return QUrl();
+    return QUrl(QStringLiteral("http://www.%1.com/").arg(trimmed));
+}
 }  // namespace
 
 AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, const Theme &theme, QObject *parent)
@@ -112,6 +123,8 @@ AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, con
         m_pendingQuery = t.trimmed();
         m_statusText.clear();
         if (m_pendingQuery.isEmpty()) { hidePopup(); return; }
+        const QString cacheKey = QUrl(m_searchEngine).host().toLower() + QStringLiteral("\n") + m_pendingQuery.toLower();
+        populatePopup(m_suggestionCache.value(cacheKey));
         m_debounce->start();
     });
     connect(m_bar, &QLineEdit::returnPressed, this, &AddressBarController::commit);
@@ -216,6 +229,15 @@ bool AddressBarController::eventFilter(QObject *obj, QEvent *ev) {
             emit escapePressed();
             return true;
         }
+        if ((ke->key() == Qt::Key_Return || ke->key() == Qt::Key_Enter) && (ke->modifiers() & Qt::ControlModifier)) {
+            const QUrl desired = desiredTldUrlFor(m_bar ? m_bar->text() : QString());
+            if (desired.isValid()) {
+                hidePopup();
+                endEditing(/*restoreUrl=*/false, QString());
+                emit submitted(desired.toString());
+                return true;
+            }
+        }
         if ((ke->key() == Qt::Key_Down || ke->key() == Qt::Key_Up) &&
             m_popupList && m_popup && m_popup->isVisible() && m_popupList->count() > 0) {
             int row = m_popupList->currentRow();
@@ -273,6 +295,11 @@ void AddressBarController::commit() {
 
 void AddressBarController::fetchSuggestions() {
     if (m_pendingQuery.isEmpty()) return;
+    const QString cacheKey = QUrl(m_searchEngine).host().toLower() + QStringLiteral("\n") + m_pendingQuery.toLower();
+    if (m_suggestionCache.contains(cacheKey)) {
+        populatePopup(m_suggestionCache.value(cacheKey));
+        return;
+    }
     if (m_inflight) {
         QNetworkReply *oldReply = m_inflight.data();
         m_inflight.clear();
@@ -395,6 +422,9 @@ void AddressBarController::onSuggestionReplyFinished(QNetworkReply *reply) {
         }
         m_statusText.clear();
         if (items.size() > 8) items = items.mid(0, 8);
+        const QString cacheKey = QUrl(m_searchEngine).host().toLower() + QStringLiteral("\n") + replyQuery.toLower();
+        if (m_suggestionCache.size() > 256) m_suggestionCache.clear();
+        m_suggestionCache.insert(cacheKey, items);
         populatePopup(items);
 }
 
@@ -425,7 +455,7 @@ void AddressBarController::fetchEngineIcon(const QString &host) {
         m_engineIconHost = host;
         if (!m_popupList) return;
         for (int i = 0; i < m_popupList->count(); ++i) {
-            m_popupList->item(i)->setIcon(m_engineIcon);
+            if (m_popupList->item(i)->data(Qt::UserRole + 1).toBool()) m_popupList->item(i)->setIcon(m_engineIcon);
         }
     });
 }
@@ -501,18 +531,49 @@ void AddressBarController::populatePopup(const QStringList &items) {
         });
     }
     m_popupList->clear();
-    if (items.isEmpty()) {
-        hidePopup();
-        return;
+    struct PopupItem {
+        QString title;
+        QString value;
+        QIcon icon;
+    };
+    QList<PopupItem> visibleItems;
+    QSet<QString> seen;
+    const QString query = m_pendingQuery.isEmpty() && m_bar ? m_bar->text().trimmed() : m_pendingQuery;
+    const QString loweredQuery = query.toLower();
+    auto addPopupItem = [&visibleItems, &seen](const QString &title, const QString &value, const QIcon &icon) {
+        const QString key = QUrl::fromUserInput(value).toString().toLower();
+        if (key.isEmpty() || seen.contains(key)) return;
+        visibleItems.append({title, value, icon});
+        seen.insert(key);
+    };
+    for (const LocalItem &item : m_localItems) {
+        const QString title = item.title.trimmed();
+        const QString value = item.value.trimmed();
+        const QUrl url = QUrl::fromUserInput(value);
+        QString host = url.host().toLower();
+        if (host.startsWith(QStringLiteral("www."))) host = host.mid(4);
+        const bool strongHostMatch = loweredQuery.size() >= 4 && (host == loweredQuery || host.startsWith(loweredQuery + QChar('.')) || host.startsWith(loweredQuery + QChar('-')));
+        const bool strongTitleMatch = loweredQuery.size() >= 4 && (title.toLower() == loweredQuery || title.toLower().startsWith(loweredQuery + QChar(' ')) || title.toLower().startsWith(loweredQuery + QChar('-')));
+        const bool explicitUrlMatch = loweredQuery.contains('.') && value.toLower().contains(loweredQuery);
+        if (loweredQuery.isEmpty() || strongHostMatch || strongTitleMatch || explicitUrlMatch) {
+            addPopupItem(host.isEmpty() ? title : host, value, mac::sfSymbolIcon("globe", 13.0, m_iconColor));
+        }
     }
     const QString engineHost = QUrl(m_searchEngine).host().isEmpty()
                                ? QStringLiteral("search")
                                : QUrl(m_searchEngine).host();
     fetchEngineIcon(engineHost);
     for (const auto &s : items) {
-        auto *it = new QListWidgetItem(s, m_popupList);
-        it->setData(Qt::UserRole, s);
-        it->setIcon(engineIcon());
+        addPopupItem(s, s, engineIcon());
+    }
+    if (visibleItems.isEmpty()) {
+        hidePopup();
+        return;
+    }
+    for (const auto &s : visibleItems) {
+        auto *it = new QListWidgetItem(s.icon, s.title, m_popupList);
+        it->setData(Qt::UserRole, s.value);
+        it->setData(Qt::UserRole + 1, s.icon.cacheKey() == engineIcon().cacheKey());
         it->setSizeHint(QSize(0, 34));
     }
     m_popupList->setCurrentRow(-1);

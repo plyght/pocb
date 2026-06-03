@@ -95,6 +95,7 @@ private:
     void applyPageColorScheme(const QString &scheme);
     QList<WebView *> orderedSwitchableTabs() const;
     bool handleInternalUrl(const QUrl &url);
+    QString passkeyDiagnosticsHtml() const;
     struct RecentPage {
         QString title;
         QUrl url;

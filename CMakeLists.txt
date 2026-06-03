@@ -160,6 +160,7 @@ set_target_properties(pocb PROPERTIES
     MACOSX_BUNDLE_ICON_FILE pcob
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+    XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/pocb.entitlements"
 )
 
 if(APPLE)
@@ -170,6 +171,7 @@ if(APPLE)
         COMMAND /usr/bin/plutil -replace CFBundleIconFile -string pcob "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
         COMMAND /usr/bin/plutil -replace CFBundleIconName -string pcob "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
         COMMAND /usr/bin/plutil -replace CFBundleURLTypes -json "[{\"CFBundleURLName\":\"Web Site URL\",\"CFBundleURLSchemes\":[\"http\",\"https\"]}]" "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
+        COMMAND /usr/bin/plutil -replace NSBluetoothAlwaysUsageDescription -string "pocb uses Bluetooth for passkey handoff and hardware security key flows on websites that request it." "$<TARGET_BUNDLE_DIR:pocb>/Contents/Info.plist"
         VERBATIM
     )
 endif()

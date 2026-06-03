@@ -2,6 +2,7 @@
 
 #include "Theme.hpp"
 
+#include <QHash>
 #include <QIcon>
 #include <QList>
 #include <QPointer>
@@ -67,5 +68,6 @@ private:
     QString m_engineHost;  // e.g. "duckduckgo.com"
     QList<LocalItem> m_localItems;
     QStringList m_searchSuggestions;
+    QHash<QString, QStringList> m_suggestionCache;
     int m_anchorWidth = 0;
 };
