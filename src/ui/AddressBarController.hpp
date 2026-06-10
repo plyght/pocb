@@ -30,6 +30,7 @@ public:
     };
     void setLocalItems(const QList<LocalItem> &items) { m_localItems = items; }
     bool isEditing() const { return m_editing; }
+    void showDisplayUrl(const QString &urlString, bool isHttps);
 
     // Update address bar text when not editing (called on tab url changes).
     void setDisplayUrl(const QString &urlString, bool isHttps);

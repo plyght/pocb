@@ -413,8 +413,8 @@ static void pocb_hide_native_traffic_lights(NSWindow *nsw) {
 // Apply
 // =============================================================================
 
-CGFloat g_originX        = 20.0;
-CGFloat g_originY_topPad = 16.0;
+CGFloat g_originX        = 19.0;
+CGFloat g_originY_topPad = 19.0;
 CGFloat g_spacing        = 22.0;
 CGFloat g_buttonWH       = 16.0;
 

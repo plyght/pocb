@@ -10,6 +10,7 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QListWidgetItem>
+#include <QMouseEvent>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -38,8 +39,8 @@ constexpr int kListPadV     = 4;    // GenericListView topMargin/bottomMargin
 constexpr int kItemMarginX  = 6;    // SelectableDelegate left/rightMargin
 constexpr float kFillAlpha  = 0.42f;  // Config.windowOpacity-ish, tuned for vibrancy
 constexpr float kDividerAlpha = 0.48f;
-constexpr float kHoverAlpha = 0.46f;
-constexpr float kSelectedAlpha = 0.64f;
+constexpr float kHoverAlpha = 0.72f;
+constexpr float kSelectedAlpha = 0.78f;
 constexpr float kScrollbarAlpha = 0.58f;
 
 QString colorWithAlpha(QColor color, float alpha) {
@@ -199,6 +200,11 @@ FloatingOmnibox::FloatingOmnibox(const Theme &theme, QWidget *parent)
     m_list->setFrameShape(QFrame::NoFrame);
     m_list->setUniformItemSizes(true);
     m_list->setAttribute(Qt::WA_TranslucentBackground);
+    m_list->setMouseTracking(true);
+    m_list->setAttribute(Qt::WA_Hover, true);
+    m_list->viewport()->setMouseTracking(true);
+    m_list->viewport()->setAttribute(Qt::WA_Hover, true);
+    m_list->viewport()->installEventFilter(this);
     m_list->viewport()->setAutoFillBackground(false);
     m_list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_list->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
@@ -223,12 +229,13 @@ FloatingOmnibox::FloatingOmnibox(const Theme &theme, QWidget *parent)
         "  border-radius: 10px;"
         "  margin: 1px %3px;"
         "}"
-        "QListWidget#OmniboxList::item:selected {"
+        "QListWidget#OmniboxList::item:selected, QListWidget#OmniboxList::item:selected:active, QListWidget#OmniboxList::item:selected:!active {"
         "  background: %4;"
         "  color: %2;"
         "}"
-        "QListWidget#OmniboxList::item:hover:!selected {"
+        "QListWidget#OmniboxList::item:hover {"
         "  background: %5;"
+        "  color: %2;"
         "}"
         "QListWidget#OmniboxList QScrollBar:vertical {"
         "  background: transparent; width: 6px; margin: 4px 2px;"
@@ -347,6 +354,14 @@ void FloatingOmnibox::keyPressEvent(QKeyEvent *e) {
 }
 
 bool FloatingOmnibox::eventFilter(QObject *obj, QEvent *ev) {
+    if (obj == m_list->viewport() && ev->type() == QEvent::MouseMove) {
+        auto *me = static_cast<QMouseEvent *>(ev);
+        const QModelIndex index = m_list->indexAt(me->pos());
+        if (index.isValid() && index.row() != m_list->currentRow()) {
+            m_list->setCurrentRow(index.row());
+            m_list->viewport()->update();
+        }
+    }
     if (obj == m_input && ev->type() == QEvent::KeyPress) {
         auto *ke = static_cast<QKeyEvent *>(ev);
         if ((ke->key() == Qt::Key_Return || ke->key() == Qt::Key_Enter) && (ke->modifiers() & Qt::ControlModifier)) {

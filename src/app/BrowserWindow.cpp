@@ -1015,7 +1015,7 @@ void BrowserWindow::updateForCurrentTab() {
         applyChromeForPageColor(view->cachedThemeColor());
     }, Qt::UniqueConnection);
     if (m_addressBarCtl) {
-        m_addressBarCtl->setDisplayUrl(view->url().toString(), view->url().scheme() == "https");
+        m_addressBarCtl->showDisplayUrl(view->url().toString(), view->url().scheme() == "https");
     }
     setWindowTitle((view->title().isEmpty() ? "pocb" : view->title()) + " — pocb");
     rememberCurrentPage();

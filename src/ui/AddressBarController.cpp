@@ -130,6 +130,15 @@ AddressBarController::AddressBarController(QLineEdit *bar, QLabel *lockIcon, con
     connect(m_bar, &QLineEdit::returnPressed, this, &AddressBarController::commit);
 }
 
+void AddressBarController::showDisplayUrl(const QString &urlString, bool isHttps) {
+    endEditing(false, QString());
+    m_currentUrl = urlString;
+    m_isHttps = isHttps;
+    renderLock();
+    applyDisplay();
+    if (m_bar) m_bar->clearFocus();
+}
+
 void AddressBarController::setDisplayUrl(const QString &urlString, bool isHttps) {
     m_currentUrl = urlString;
     m_isHttps = isHttps;
