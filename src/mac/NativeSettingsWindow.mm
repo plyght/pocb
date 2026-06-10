@@ -170,6 +170,9 @@ bool showNativeSettingsWindow(QWidget *parent,
         NSButton *sidebarAddress = checkbox(@"Move address bar into the sidebar (restart required)", settings.value("ui/addressBarInSidebar", false).toBool());
         addRow(grid, @"", sidebarAddress);
 
+        NSButton *liquidGlass = checkbox(@"Use Liquid Glass for the sidebar and browser border (restart required)", settings.value("ui/useLiquidGlass", true).toBool());
+        addRow(grid, @"Appearance", liquidGlass);
+
         NSButton *closeLastTab = checkbox(@"Close window with last tab", closeWindowWithLastTab);
         addRow(grid, @"Tabs", closeLastTab);
 
@@ -297,6 +300,7 @@ bool showNativeSettingsWindow(QWidget *parent,
         settings.setValue("ui/showFullUrl", showFullUrl);
         settings.setValue("browser/closeWindowWithLastTab", closeWindowWithLastTab);
         settings.setValue("ui/addressBarInSidebar", sidebarAddress.state == NSControlStateValueOn);
+        settings.setValue("ui/useLiquidGlass", liquidGlass.state == NSControlStateValueOn);
         ChromeExtensionManager::setConfiguredPaths(toQString(extensionPaths.stringValue).split(';', Qt::SkipEmptyParts));
         return true;
     }

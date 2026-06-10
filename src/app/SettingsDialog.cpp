@@ -154,6 +154,10 @@ SettingsDialog::SettingsDialog(ProfileStore &profiles, QWidget *parent) : QDialo
     m_addrInSidebar->setChecked(QSettings().value("ui/addressBarInSidebar", false).toBool());
     browseForm->addRow("", m_addrInSidebar);
 
+    m_liquidGlass = new QCheckBox("Use Liquid Glass for the sidebar and browser border (restart required)", browseCard);
+    m_liquidGlass->setChecked(QSettings().value("ui/useLiquidGlass", true).toBool());
+    browseForm->addRow("Appearance", m_liquidGlass);
+
     browseCol->addLayout(browseForm);
     browseCol->addWidget(makeHelp(
         "The search URL must contain %1 where the query goes.",
@@ -230,6 +234,7 @@ SettingsDialog::SettingsDialog(ProfileStore &profiles, QWidget *parent) : QDialo
         QSettings().setValue("ui/showFullUrl", full);
         emit showFullUrlChanged(full);
         QSettings().setValue("ui/addressBarInSidebar", m_addrInSidebar->isChecked());
+        QSettings().setValue("ui/useLiquidGlass", m_liquidGlass->isChecked());
         ChromeExtensionManager::setConfiguredPaths(m_extensionPaths->text().split(';', Qt::SkipEmptyParts));
         accept();
     });

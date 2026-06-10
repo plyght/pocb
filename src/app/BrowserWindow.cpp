@@ -321,6 +321,9 @@ void BrowserWindow::resizeEvent(QResizeEvent *e) {
         if (m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
         if (m_sidebar->floatingVisible()) m_sidebar->positionFloating();
     }
+    if (m_webContainer && QSettings().value("ui/useLiquidGlass", true).toBool()) {
+        mac::applyLiquidGlassSiblingBehind(m_webContainer, ui::metrics::WebContainerRadius);
+    }
 }
 
 void BrowserWindow::closeEvent(QCloseEvent *e) {
@@ -340,6 +343,9 @@ void BrowserWindow::showEvent(QShowEvent *e) {
     QTimer::singleShot(0, this, [this] {
         if (m_webContainer) {
             mac::roundWidgetCorners(m_webContainer, ui::metrics::WebContainerRadius, /*recurseDescendants=*/false);
+            if (QSettings().value("ui/useLiquidGlass", true).toBool()) {
+                mac::applyLiquidGlassSiblingBehind(m_webContainer, ui::metrics::WebContainerRadius);
+            }
         }
         if (m_stack) mac::roundWidgetCorners(m_stack, 0.0);
     });
@@ -1048,6 +1054,14 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     }
     m_settingsBtn = w.settings;
     m_addressBar = w.addressBar;
+    auto syncDisabledDragThrough = [](QToolButton *button) {
+        if (button) button->setAttribute(Qt::WA_TransparentForMouseEvents, !button->isEnabled());
+    };
+    for (QToolButton *button : {m_backBtn, m_fwdBtn, m_reloadBtn}) {
+        if (!button) continue;
+        button->installEventFilter(this);
+        syncDisabledDragThrough(button);
+    }
     m_lockIcon = w.lockIcon;
     m_searchIcon = w.searchIcon;
     m_pillMenuBtn = w.pillMenuBtn;
@@ -1080,6 +1094,13 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     if (m_addressBar && m_addrWrap) {
         m_addressBar->installEventFilter(new FocusPopFilter(m_addrWrap, this));
     }
+    w.bar->installEventFilter(this);
+    for (auto *child : w.bar->findChildren<QWidget *>()) {
+        if (qobject_cast<QToolButton *>(child) || qobject_cast<QLineEdit *>(child)) continue;
+        if (m_addrWrap && (child == m_addrWrap || m_addrWrap->isAncestorOf(child))) continue;
+        child->installEventFilter(this);
+    }
+
     if (m_addrWrap && m_pillMenuBtn) {
         m_addrWrap->setMouseTracking(true);
         m_pillMenuBtn->setMouseTracking(true);
@@ -1741,9 +1762,12 @@ void BrowserWindow::setupUi() {
     // pushing the page content down.
     m_webContainer = new QWidget(stackHost);
     m_webContainer->setObjectName("WebContainer");
+    const bool useLiquidGlass = QSettings().value("ui/useLiquidGlass", true).toBool();
     m_webContainer->setStyleSheet(QString(
-        "QWidget#WebContainer { background: rgba(26, 26, 26, 180); border: none; border-radius: %1px; }")
+        "QWidget#WebContainer { background: %1; border: none; border-radius: %2px; }")
+        .arg(useLiquidGlass ? QStringLiteral("transparent") : QStringLiteral("rgba(26, 26, 26, 180)"))
         .arg(ui::metrics::WebContainerRadius));
+    if (useLiquidGlass) m_webContainer->setAttribute(Qt::WA_TranslucentBackground);
     auto *containerLayout = new QVBoxLayout(m_webContainer);
     containerLayout->setContentsMargins(0, 0, 0, 0);
     containerLayout->setSpacing(0);
@@ -2402,6 +2426,41 @@ void BrowserWindow::hideTabSwitcher() {
 }
 
 bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
+    if (ev->type() == QEvent::EnabledChange) {
+        if (obj == m_backBtn || obj == m_fwdBtn || obj == m_reloadBtn) {
+            if (auto *button = qobject_cast<QToolButton *>(obj)) {
+                button->setAttribute(Qt::WA_TransparentForMouseEvents, !button->isEnabled());
+            }
+        }
+    }
+    QWidget *eventWidget = qobject_cast<QWidget *>(obj);
+    const bool toolbarDragTarget = eventWidget && m_topbar
+        && (eventWidget == m_topbar || m_topbar->isAncestorOf(eventWidget))
+        && !qobject_cast<QToolButton *>(eventWidget)
+        && !qobject_cast<QLineEdit *>(eventWidget)
+        && !(m_addrWrap && (eventWidget == m_addrWrap || m_addrWrap->isAncestorOf(eventWidget)));
+    if (toolbarDragTarget) {
+        if (ev->type() == QEvent::MouseButtonPress) {
+            auto *mouse = static_cast<QMouseEvent *>(ev);
+            if (mouse->button() == Qt::LeftButton) {
+                if (windowHandle() && windowHandle()->startSystemMove()) {
+                    m_toolbarDragging = false;
+                    return true;
+                }
+                m_toolbarDragging = true;
+                m_toolbarDragOffset = mouse->globalPosition().toPoint() - frameGeometry().topLeft();
+                return true;
+            }
+        } else if (ev->type() == QEvent::MouseMove && m_toolbarDragging) {
+            auto *mouse = static_cast<QMouseEvent *>(ev);
+            if (mouse->buttons() & Qt::LeftButton) {
+                move(mouse->globalPosition().toPoint() - m_toolbarDragOffset);
+                return true;
+            }
+        } else if (ev->type() == QEvent::MouseButtonRelease) {
+            m_toolbarDragging = false;
+        }
+    }
     if (ev->type() == QEvent::ShortcutOverride || ev->type() == QEvent::KeyPress) {
         auto *key = static_cast<QKeyEvent *>(ev);
         if ((key->key() == Qt::Key_Tab || key->key() == Qt::Key_Backtab) && (key->modifiers() & Qt::ControlModifier)) {

@@ -8,6 +8,7 @@
 #include <QHash>
 #include <QIcon>
 #include <QList>
+#include <QPoint>
 #include <QStringList>
 #include <QMainWindow>
 #include <QUrl>
@@ -145,6 +146,8 @@ private:
     QLabel *m_searchIcon = nullptr;
     QToolButton *m_pillMenuBtn = nullptr;
     QWidget *m_addrWrap = nullptr;
+    QPoint m_toolbarDragOffset;
+    bool m_toolbarDragging = false;
     QWidget *m_sidebarWidget = nullptr;
     QWidget *m_sidebarViewport = nullptr;
     QWidget *m_sidebarStrip = nullptr;

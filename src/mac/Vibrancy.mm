@@ -6,6 +6,7 @@
 #import <AppKit/NSGlassEffectView.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#include <QSettings>
 #include <QWidget>
 
 namespace {
@@ -104,12 +105,28 @@ void enableWindowVibrancy(QWidget *window, VibrancyMaterial material) {
     if (!content) return;
     NSView *frameView = content.superview ?: content;
     for (NSView *sub in frameView.subviews) {
-        if ([sub isKindOfClass:[NSVisualEffectView class]] &&
-            [sub.identifier isEqualToString:@"PocbWindowVibrancy"]) return;
+        const BOOL isExistingVibrancy = [sub isKindOfClass:[NSVisualEffectView class]] &&
+            [sub.identifier isEqualToString:@"PocbWindowVibrancy"];
+        const BOOL isExistingGlass = [sub.identifier isEqualToString:@"PocbWindowLiquidGlass"];
+        if (isExistingVibrancy || isExistingGlass) {
+            sub.frame = frameView.bounds;
+            return;
+        }
     }
-    NSVisualEffectView *vev = makeVev(frameView.bounds, material);
-    vev.identifier = @"PocbWindowVibrancy";
-    [frameView addSubview:vev positioned:NSWindowBelow relativeTo:nil];
+    NSView *backdrop = nil;
+    const bool useLiquidGlass = material != VibrancyMaterial::Sidebar || QSettings().value("ui/useLiquidGlass", true).toBool();
+    if (useLiquidGlass) {
+        if (@available(macOS 26.0, *)) {
+            backdrop = makeGlassView(frameView.bounds, 0.0);
+            backdrop.identifier = @"PocbWindowLiquidGlass";
+        }
+    }
+    if (!backdrop) {
+        NSVisualEffectView *vev = makeVev(frameView.bounds, material);
+        vev.identifier = @"PocbWindowVibrancy";
+        backdrop = vev;
+    }
+    [frameView addSubview:backdrop positioned:NSWindowBelow relativeTo:nil];
 #else
     (void)window; (void)material;
 #endif

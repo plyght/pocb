@@ -41,4 +41,5 @@ private:
     QLineEdit *m_extensionPaths = nullptr;
     QCheckBox *m_showFullUrl = nullptr;
     QCheckBox *m_addrInSidebar = nullptr;
+    QCheckBox *m_liquidGlass = nullptr;
 };
