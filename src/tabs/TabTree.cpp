@@ -37,6 +37,7 @@
 #include <QWindow>
 #include <QVBoxLayout>
 #include <cmath>
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -761,6 +762,8 @@ bool TabTree::eventFilter(QObject *watched, QEvent *event) {
                 m_pressedItem = item;
                 m_pressPos = mouse->pos();
                 m_pressGlobalPos = mouse->globalPosition().toPoint();
+            } else if (QWindow *handle = m_tabs->window()->windowHandle()) {
+                if (handle->startSystemMove()) return true;
             }
         }
     }
@@ -907,19 +910,77 @@ QList<QUrl> TabTree::tabUrls() const {
     return urls;
 }
 
+QStringList TabTree::sessionEntries() const {
+    QStringList entries;
+    std::function<void(QTreeWidgetItem *, int)> visit = [&](QTreeWidgetItem *item, int depth) {
+        if (auto *view = m_views.value(item, nullptr)) {
+            QUrl url = view->url();
+            const QString original = item->data(0, OriginalUrlRole).toString();
+            if (!original.isEmpty() && item->data(0, PinStateRole).toInt() != NormalTab) url = QUrl(original);
+            if (url.isValid() && !url.isEmpty() && url.scheme() != QStringLiteral("about") && url.scheme() != QStringLiteral("data")) {
+                entries.append(QStringLiteral("%1|%2|%3").arg(depth).arg(item->data(0, PinStateRole).toInt()).arg(url.toString()));
+                for (int i = 0; i < item->childCount(); ++i) visit(item->child(i), depth + 1);
+                return;
+            }
+        }
+        for (int i = 0; i < item->childCount(); ++i) visit(item->child(i), depth);
+    };
+    for (int i = 0; i < m_tabs->topLevelItemCount(); ++i) visit(m_tabs->topLevelItem(i), 0);
+    return entries;
+}
+
 void TabTree::restoreTabs(const QList<QUrl> &urls) {
+    QStringList entries;
+    for (const QUrl &url : urls) entries.append(QStringLiteral("0|0|%1").arg(url.toString()));
+    restoreSession(entries);
+}
+
+void TabTree::restoreSession(const QStringList &entries) {
     m_views.clear();
     m_tabs->clear();
     m_currentEssentialItem = nullptr;
     m_tabHistory.clear();
     const auto children = m_stack->findChildren<WebView *>();
     for (auto *child : children) child->deleteLater();
-    const QList<QUrl> targets = urls.isEmpty() ? QList<QUrl>{QUrl(m_homePage)} : urls;
-    bool first = true;
-    for (const QUrl &url : targets) {
-        newTab(url.isValid() && !url.isEmpty() ? url : QUrl(m_homePage), !first);
-        first = false;
+    QList<QTreeWidgetItem *> parents;
+    QTreeWidgetItem *firstNormal = nullptr;
+    for (const QString &entry : entries) {
+        const int firstSep = entry.indexOf(QLatin1Char('|'));
+        const int secondSep = firstSep < 0 ? -1 : entry.indexOf(QLatin1Char('|'), firstSep + 1);
+        int depth = 0;
+        int pinState = NormalTab;
+        QUrl url;
+        if (secondSep < 0) url = QUrl(entry);
+        else {
+            depth = qMax(0, entry.left(firstSep).toInt());
+            pinState = qBound(int(NormalTab), entry.mid(firstSep + 1, secondSep - firstSep - 1).toInt(), int(EssentialTab));
+            url = QUrl(entry.mid(secondSep + 1));
+        }
+        if (!url.isValid() || url.isEmpty()) continue;
+        if (pinState != NormalTab) depth = 0;
+        depth = qMin(depth, parents.size());
+        parents.resize(depth);
+        auto *view = newTabForExtension(url, true, depth > 0 ? parents.at(depth - 1) : nullptr);
+        auto *item = m_views.key(view, nullptr);
+        if (!item) continue;
+        if (depth == 0 && item->parent()) {
+            item->parent()->removeChild(item);
+            m_tabs->addTopLevelItem(item);
+        }
+        if (pinState != NormalTab) {
+            item->setData(0, PinStateRole, pinState);
+            item->setData(0, OriginalUrlRole, url.toString());
+            item->setHidden(pinState == EssentialTab);
+        } else if (!firstNormal) firstNormal = item;
+        parents.append(item);
     }
+    syncEssentialGrid();
+    if (m_views.isEmpty()) {
+        newTab(QUrl(m_homePage), false);
+        return;
+    }
+    if (firstNormal) selectItem(firstNormal);
+    else if (auto *item = m_tabs->topLevelItem(0)) selectItem(item);
 }
 
 void TabTree::reopenUrl(const QUrl &url) {
@@ -1352,8 +1413,8 @@ void TabTree::clearDropIndicator() {
     if (m_dropIndicator) m_dropIndicator->hide();
 }
 
-void TabTree::rebuildForProfile(const QList<QUrl> &urls) {
-    restoreTabs(urls);
+void TabTree::rebuildForProfile(const QStringList &entries) {
+    restoreSession(entries);
 }
 
 void TabTree::wireView(WebView *view, QTreeWidgetItem *item) {

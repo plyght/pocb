@@ -3,11 +3,13 @@
 #include <QFont>
 #include <QHash>
 #include <QLinearGradient>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPen>
 #include <QStyleOption>
 #include <QVariantAnimation>
+#include <QWindow>
 #include <QtMath>
 
 namespace ui {
@@ -204,6 +206,16 @@ SidebarPanel::SidebarPanel(const Theme &theme, QWidget *parent) : QWidget(parent
 }
 
 void SidebarPanel::paintEvent(QPaintEvent *) {}
+
+void SidebarPanel::mousePressEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        if (QWindow *handle = window()->windowHandle(); handle && handle->startSystemMove()) {
+            event->accept();
+            return;
+        }
+    }
+    QWidget::mousePressEvent(event);
+}
 
 // ---- SidebarPreviewPane ---------------------------------------------------
 

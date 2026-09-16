@@ -42,10 +42,13 @@ public:
                 QTreeWidgetItem *parentItem = nullptr);
     void closeCurrent();
     QList<QUrl> tabUrls() const;
+    // Ordered depth-first snapshot: "depth|pinState|url" per tab.
+    QStringList sessionEntries() const;
     void restoreTabs(const QList<QUrl> &urls);
+    void restoreSession(const QStringList &entries);
     void reopenUrl(const QUrl &url);
     // Re-create with restored tabs for the active profile.
-    void rebuildForProfile(const QList<QUrl> &urls = {});
+    void rebuildForProfile(const QStringList &entries = {});
 
     void setHomePage(const QString &url) { m_homePage = url; }
     QString homePage() const { return m_homePage; }

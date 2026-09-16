@@ -122,7 +122,7 @@ private:
     void refreshFloatingOmniboxItems();
     void openBlankTabForLocationEntry();
     void rememberCurrentPage();
-    QList<QUrl> restoredSessionForProfile(const QString &profileName) const;
+    QStringList restoredSessionForProfile(const QString &profileName) const;
     void saveSessionForProfile(const QString &profileName) const;
     void reopenLastClosedTab();
     void showArchiveMenu(QWidget *anchor);

@@ -85,6 +85,7 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 private:
     Theme m_theme;

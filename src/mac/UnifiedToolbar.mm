@@ -448,7 +448,7 @@ static void apply(QMainWindow *win) {
 
     nsw.titleVisibility = NSWindowTitleHidden;
     nsw.titlebarAppearsTransparent = YES;
-    nsw.movableByWindowBackground = YES;
+    nsw.movableByWindowBackground = NO;
     if (nsw.toolbar) nsw.toolbar = nil;
     nsw.styleMask |= NSWindowStyleMaskFullSizeContentView;
 

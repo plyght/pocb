@@ -268,8 +268,14 @@ struct WebView::Impl {
     });
 }
 
+static bool pocbIsBenignNavigationError(NSError *err) {
+    if ([err.domain isEqualToString:NSURLErrorDomain] && err.code == NSURLErrorCancelled) return true;
+    return [err.domain isEqualToString:@"WebKitErrorDomain"] && err.code == 102;
+}
+
 - (void)webView:(WKWebView *)wk didFailNavigation:(WKNavigation *)nav withError:(NSError *)err {
-    (void)wk; (void)nav; (void)err;
+    (void)wk; (void)nav;
+    if (pocbIsBenignNavigationError(err)) return;
     if (self.owner) emit self.owner->loadFinished(false);
 }
 
@@ -311,7 +317,8 @@ struct WebView::Impl {
 }
 
 - (void)webView:(WKWebView *)wk didFailProvisionalNavigation:(WKNavigation *)nav withError:(NSError *)err {
-    (void)wk; (void)nav; (void)err;
+    (void)wk; (void)nav;
+    if (pocbIsBenignNavigationError(err)) return;
     if (self.owner) emit self.owner->loadFinished(false);
 }
 

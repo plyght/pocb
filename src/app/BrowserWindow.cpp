@@ -377,7 +377,7 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     // the window is visible (no one-frame flash at the default position).
     winId();
     mac::integrateUnifiedToolbar(this, nullptr, /*compact=*/true);
-    if (m_tabTree) m_tabTree->restoreTabs(restoredSessionForProfile(m_profiles.currentName()));
+    if (m_tabTree) m_tabTree->restoreSession(restoredSessionForProfile(m_profiles.currentName()));
 }
 
 void BrowserWindow::setupIntegrations() {
@@ -395,7 +395,7 @@ void BrowserWindow::setupIntegrations() {
         if (!m_downloadsPopover->isVisible()) m_downloadsPopover->showAnchoredTo(m_downloadsBtn);
     });
     connect(downloads, &DownloadManager::itemFinished, this, [this, downloads](const QString &id, bool ok) {
-        if (!isActiveWindow()) return;
+        if (m_downloadsPopover && m_downloadsPopover->isVisible()) return;
         DownloadItem item;
         if (!downloads->item(id, &item)) return;
         if (ok) {
@@ -2119,23 +2119,13 @@ document.getElementById('copy').addEventListener('click', async () => {
 </html>)HTML");
 }
 
-QList<QUrl> BrowserWindow::restoredSessionForProfile(const QString &profileName) const {
-    QSettings settings;
-    const QString key = QStringLiteral("sessions/%1/urls").arg(profileName);
-    QList<QUrl> urls;
-    const QStringList stored = settings.value(key).toStringList();
-    for (const QString &value : stored) {
-        const QUrl url(value);
-        if (url.isValid() && !url.isEmpty()) urls.append(url);
-    }
-    return urls;
+QStringList BrowserWindow::restoredSessionForProfile(const QString &profileName) const {
+    return QSettings().value(QStringLiteral("sessions/%1/urls").arg(profileName)).toStringList();
 }
 
 void BrowserWindow::saveSessionForProfile(const QString &profileName) const {
     if (!m_tabTree || profileName.trimmed().isEmpty()) return;
-    QStringList values;
-    for (const QUrl &url : m_tabTree->tabUrls()) values.append(url.toString());
-    QSettings().setValue(QStringLiteral("sessions/%1/urls").arg(profileName), values);
+    QSettings().setValue(QStringLiteral("sessions/%1/urls").arg(profileName), m_tabTree->sessionEntries());
 }
 
 void BrowserWindow::showArchiveMenu(QWidget *anchor) {
