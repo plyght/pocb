@@ -22,6 +22,7 @@ public:
     void setProgress(qreal t);
     qreal progress() const { return m_progress; }
     void syncHeight();
+    void setOverlayWidth(int w);
 
 protected:
     void resizeEvent(QResizeEvent *) override;
@@ -33,6 +34,7 @@ private:
     QWidget *m_row = nullptr;
     QWidget *m_hairline = nullptr;
     qreal m_progress = 1.0;
+    bool m_overlay = false;
 };
 
 // Frameless tool window parked over the top edge of the web container while

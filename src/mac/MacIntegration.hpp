@@ -53,6 +53,8 @@ void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material = VibrancyMa
 // Qt painting over that area must be transparent for the glass to show.
 // Call again after the widget moves/resizes to resync the frame.
 void applyLiquidGlassBehind(QWidget *widget, double cornerRadius);
+enum class BackdropStyle { LiquidGlass, Glur };
+void applyBackdropBehind(QWidget *widget, double cornerRadius, BackdropStyle style);
 void hideLiquidGlassBehind(QWidget *widget);
 void applyLiquidGlassSiblingBehind(QWidget *widget, double cornerRadius);
 void hideLiquidGlassSibling(QWidget *widget);

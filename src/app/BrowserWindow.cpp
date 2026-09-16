@@ -12,6 +12,7 @@
 #include "DownloadManager.hpp"
 #include "DownloadsPopover.hpp"
 #include "NativeProfilePopover.hpp"
+#include "PasswordImport.hpp"
 #include "PasswordManager.hpp"
 #include "PasswordPrompt.hpp"
 #include "NativeSettingsWindow.hpp"
@@ -464,17 +465,34 @@ void BrowserWindow::syncAddressPillGlass() {
     if (!pill || !pill->glassMode() || !isVisible()) return;
     // The glass NSViews are not clipped by the collapsing host, so they only
     // show while the toolbar row is fully expanded.
-    const bool expanded = !m_toolbarHost || m_toolbarHost->progress() >= 1.0;
+    const bool expanded = !m_toolbarHost || m_toolbarHost->progress() > 0.0;
     if (expanded && pill->isVisible() && m_toolbarRowAvailable) {
+        if (m_toolbarHost) {
+            const bool glur = QSettings().value("ui/toolbarBackdrop", "glass").toString() == QLatin1String("glur");
+            mac::applyBackdropBehind(m_toolbarHost, 0.0, glur ? mac::BackdropStyle::Glur : mac::BackdropStyle::LiquidGlass);
+        }
         for (ui::ToolbarCluster *cluster : m_toolbarClusters) {
             if (cluster && cluster->glassBacked() && cluster->isVisible()) mac::applyLiquidGlassBehind(cluster, cluster->radius());
         }
         mac::applyLiquidGlassBehind(pill, pill->radius());
     } else {
+        if (m_toolbarHost) mac::hideLiquidGlassBehind(m_toolbarHost);
         for (ui::ToolbarCluster *cluster : m_toolbarClusters) {
             if (cluster && cluster->glassBacked()) mac::hideLiquidGlassBehind(cluster);
         }
         mac::hideLiquidGlassBehind(pill);
+    }
+}
+
+void BrowserWindow::syncToolbarOverlay() {
+    if (!m_toolbarHost || !m_webContainer) return;
+    m_toolbarHost->setOverlayWidth(m_webContainer->width());
+    m_toolbarHost->raise();
+    const double inset = m_toolbarRowAvailable && m_toolbarHost->isVisible() ? m_toolbarHost->height() : 0.0;
+    for (WebView *view : extensionViews()) {
+        if (!view) continue;
+        view->setObscuredTopInset(inset);
+        view->setCornerRadius(ui::metrics::WebContainerRadius);
     }
 }
 
@@ -485,6 +503,7 @@ void BrowserWindow::setToolbarRowVisible(bool visible) {
     if (m_toolbarHost) m_toolbarHost->setVisible(visible);
     if (!visible && m_toolbarGrabber) m_toolbarGrabber->hide();
     if (visible) positionToolbarGrabber();
+    syncToolbarOverlay();
     syncAddressPillGlass();
 }
 
@@ -503,6 +522,7 @@ void BrowserWindow::setToolbarCollapsed(bool collapsed, bool animated) {
         m_toolbarAnim->setEasingCurve(QEasingCurve::OutCubic);
         connect(m_toolbarAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
             if (m_toolbarHost) m_toolbarHost->setProgress(v.toDouble());
+            syncToolbarOverlay();
             syncAddressPillGlass();
         });
         connect(m_toolbarAnim, &QVariantAnimation::finished, this, [this] {
@@ -516,6 +536,7 @@ void BrowserWindow::setToolbarCollapsed(bool collapsed, bool animated) {
     const qreal target = collapsed ? 0.0 : 1.0;
     if (!animated || !isVisible()) {
         m_toolbarHost->setProgress(target);
+        syncToolbarOverlay();
         syncAddressPillGlass();
         positionToolbarGrabber();
         positionToast();
@@ -565,6 +586,7 @@ void BrowserWindow::observeScrollFor(WebView *view) {
     m_navigationExpandConn = QMetaObject::Connection();
     m_scrollObservedView = view;
     if (!view) return;
+    syncToolbarOverlay();
     m_scrollObserverConn = connect(view, &WebView::scriptMessage, this, [this, view](const QString &name, const QVariant &body) {
         if (name != QLatin1String("scroll") || currentView() != view) return;
         handlePageScroll(body);
@@ -638,7 +660,8 @@ void BrowserWindow::showEvent(QShowEvent *e) {
         if (m_webContainer) {
             mac::roundWidgetCorners(m_webContainer, ui::metrics::WebContainerRadius, /*recurseDescendants=*/false);
         }
-        if (m_stack) mac::roundWidgetCorners(m_stack, 0.0);
+        if (m_stack) mac::roundWidgetCorners(m_stack, ui::metrics::WebContainerRadius);
+        syncToolbarOverlay();
         // Liquid Glass backing for the address pill.
         syncAddressPillGlass();
         positionToolbarGrabber();
@@ -1229,7 +1252,8 @@ void BrowserWindow::showSettings() {
     QString searchEngine = m_searchEngine;
     bool showFullUrl = QSettings().value("ui/showFullUrl", false).toBool();
     bool closeWindowWithLastTab = QSettings().value("browser/closeWindowWithLastTab", false).toBool();
-    if (!mac::showNativeSettingsWindow(this, m_profiles, homePage, searchEngine, showFullUrl, closeWindowWithLastTab)) return;
+    const mac::SettingsOutcome outcome = mac::showNativeSettingsWindow(this, m_profiles, homePage, searchEngine, showFullUrl, closeWindowWithLastTab);
+    if (!outcome.saved) return;
 
     m_homePage = homePage;
     if (m_tabTree) m_tabTree->setHomePage(homePage);
@@ -1241,6 +1265,11 @@ void BrowserWindow::showSettings() {
     if (m_tabTree) m_tabTree->setCloseWindowWithLastTab(closeWindowWithLastTab);
 
     if (m_addressBarCtl) m_addressBarCtl->setShowFullUrl(showFullUrl);
+    m_collapseToolbarOnScroll = QSettings().value("ui/collapseToolbarOnScroll", true).toBool();
+    if (!m_collapseToolbarOnScroll) expandToolbar();
+    syncAddressPillGlass();
+    if (outcome.pageColorSchemeChanged) applyPageColorScheme(QSettings().value("ui/pageColorScheme", QStringLiteral("system")).toString());
+    if (outcome.importPasswords) PasswordImport::importFromCsvInteractive(this);
 }
 
 void BrowserWindow::updateForCurrentTab() {
@@ -2347,7 +2376,8 @@ void BrowserWindow::setupUi() {
                                       ? QStringLiteral("QWidget#WebTopSeparator { background: transparent; }")
                                       : QStringLiteral("QWidget#WebTopSeparator { background: rgba(255,255,255,0.08); }"));
     m_toolbarHost->setRow(m_topbar, m_topSeparator);
-    containerLayout->addWidget(m_toolbarHost);
+    m_toolbarHost->setAttribute(Qt::WA_TranslucentBackground);
+    m_toolbarHost->setAttribute(Qt::WA_NativeWindow);
 
     m_toolbarGrabber = new ui::ToolbarGrabber(this);
     m_toolbarGrabber->setPillColor(m_theme.foreground);
@@ -2356,7 +2386,10 @@ void BrowserWindow::setupUi() {
     m_stack = new QWidget(m_webContainer);
     auto *stackLayout = new QStackedLayout(m_stack);
     stackLayout->setContentsMargins(0, 0, 0, 0);
+    m_stack->setAttribute(Qt::WA_NativeWindow);
     containerLayout->addWidget(m_stack, 1);
+    m_toolbarHost->raise();
+    m_webContainer->installEventFilter(this);
 
     // Translucent rounded panel that hosts the tab tree and, pinned below
     // it, the profile avatar + pager dots.
@@ -3045,6 +3078,7 @@ bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
         // Deferred: the layout pass that moved us may still be running.
         QTimer::singleShot(0, this, [this] { syncAddressPillGlass(); });
     }
+    if (obj == m_webContainer && ev->type() == QEvent::Resize) syncToolbarOverlay();
     if (obj == m_sidebarViewport && ev->type() == QEvent::Resize) {
         if (m_sidebarSwipeAnim) {
             m_sidebarSwipeAnim->stop();

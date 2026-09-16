@@ -39,6 +39,7 @@ NSComparisonResult compareBehindVibrancySubviews(__kindof NSView *a, __kindof NS
 }
 static char kPocbLiquidGlassSiblingKey;
 static char kPocbLiquidGlassBehindOwnerKey;
+static char kPocbBackdropStyleKey;
 static __strong NSRunningApplication *pocbPreviousForegroundApplication;
 static __strong id pocbForegroundApplicationObserver;
 NSGlassEffectView *findGlassEffectView(NSView *view) {
@@ -306,6 +307,10 @@ void hideCursorUntilMouseMoves() {
 }
 
 void applyLiquidGlassBehind(QWidget *widget, double cornerRadius) {
+    applyBackdropBehind(widget, cornerRadius, BackdropStyle::LiquidGlass);
+}
+
+void applyBackdropBehind(QWidget *widget, double cornerRadius, BackdropStyle style) {
 #ifdef __APPLE__
     if (!widget) return;
     // The widget stays a plain (alien) Qt child: promoting it to a native
@@ -323,16 +328,22 @@ void applyLiquidGlassBehind(QWidget *widget, double cornerRadius) {
     const NSRect frame = [container convertRect:inAnchor fromView:anchorView];
 
     NSView *glass = nil;
-    for (NSView *sub in container.subviews) {
+    const bool glur = style == BackdropStyle::Glur;
+    for (NSView *sub in [container.subviews copy]) {
         if ([sub.identifier isEqualToString:@"PocbLiquidGlassBehind"] &&
             [objc_getAssociatedObject(sub, &kPocbLiquidGlassBehindOwnerKey) isEqual:@((uintptr_t)widget)]) {
-            glass = sub;
-            break;
+            const bool subIsGlur = [objc_getAssociatedObject(sub, &kPocbBackdropStyleKey) boolValue];
+            if (subIsGlur == glur) {
+                glass = sub;
+                break;
+            }
+            [sub removeFromSuperview];
         }
     }
     if (!glass) {
-        glass = makeGlassView(frame, cornerRadius);
+        glass = glur ? makeGlurBackdropView(frame, cornerRadius, 24.0, 0.0, 0.85) : makeGlassView(frame, cornerRadius);
         glass.identifier = @"PocbLiquidGlassBehind";
+        objc_setAssociatedObject(glass, &kPocbBackdropStyleKey, @(glur), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         glass.autoresizingMask = NSViewNotSizable;
         objc_setAssociatedObject(glass, &kPocbLiquidGlassBehindOwnerKey, @((uintptr_t)widget), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         QObject::connect(widget, &QObject::destroyed, [glass] { [glass removeFromSuperview]; });
@@ -341,7 +352,7 @@ void applyLiquidGlassBehind(QWidget *widget, double cornerRadius) {
     glass.hidden = NO;
     [container addSubview:glass positioned:NSWindowBelow relativeTo:anchorView];
 #else
-    (void)widget; (void)cornerRadius;
+    (void)widget; (void)cornerRadius; (void)style;
 #endif
 }
 

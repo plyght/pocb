@@ -32,6 +32,8 @@
 #include <utility>
 #include <vector>
 
+#import <objc/message.h>
+
 namespace {
 
 struct RegisteredScript {
@@ -52,6 +54,12 @@ std::vector<std::function<void(void *, WebView *)>> &nativeHooks() {
 std::unordered_map<void *, WebView *> &ownerMap() {
     static std::unordered_map<void *, WebView *> owners;
     return owners;
+}
+
+void disableScrollPocket(WKWebView *wk) {
+    SEL selector = sel_registerName("_addReasonToHideTopScrollPocket:");
+    if (![wk respondsToSelector:selector]) return;
+    ((void (*)(id, SEL, unsigned char))objc_msgSend)(wk, selector, 1);
 }
 
 QVariant variantFromNSObject(id object) {
@@ -191,6 +199,8 @@ struct WebView::Impl {
     NSView *observedHost = nil;
     NSArray<NSLayoutConstraint *> *edgeConstraints = nil;
     QColor cachedTopColor;
+    double obscuredTop = 0.0;
+    double cornerRadius = 0.0;
 };
 
 // Objective-C bridge: forwards WKNavigationDelegate / WKUIDelegate /
@@ -469,12 +479,21 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
     wk.wantsLayer = YES;
     wk.layer.opaque = NO;
     wk.layer.backgroundColor = NSColor.clearColor.CGColor;
+    wk.layer.cornerRadius = m_impl->cornerRadius;
+    wk.layer.masksToBounds = m_impl->cornerRadius > 0.0;
+    [wk.layer setValue:@"continuous" forKey:@"cornerCurve"];
     [wk setValue:@NO forKey:@"drawsBackground"];
     NSClickGestureRecognizer *click = [[NSClickGestureRecognizer alloc] initWithTarget:m_impl->bridge action:@selector(contentMouseDown:)];
     click.delaysPrimaryMouseButtonEvents = NO;
     [wk addGestureRecognizer:click];
     [m_impl->bridge attachKVO:wk];
     ownerMap()[(__bridge void *)wk] = this;
+    if (@available(macOS 26.0, *)) {
+        disableScrollPocket(wk);
+        NSEdgeInsets insets = wk.obscuredContentInsets;
+        insets.top = m_impl->obscuredTop;
+        wk.obscuredContentInsets = insets;
+    }
     for (const auto &hook : nativeHooks()) hook((__bridge void *)wk, this);
 
     NSView *host = qtNSView(this);
@@ -610,6 +629,25 @@ QPixmap WebView::snapshot(const QSize &size) const {
 
 void *WebView::nativeWebView() const {
     return (__bridge void *)m_impl->wk;
+}
+
+void WebView::setCornerRadius(double radius) {
+    m_impl->cornerRadius = std::max(0.0, radius);
+    if (!m_impl->wk) return;
+    m_impl->wk.layer.cornerRadius = m_impl->cornerRadius;
+    m_impl->wk.layer.masksToBounds = m_impl->cornerRadius > 0.0;
+    [m_impl->wk.layer setValue:@"continuous" forKey:@"cornerCurve"];
+}
+
+void WebView::setObscuredTopInset(double inset) {
+    m_impl->obscuredTop = std::max(0.0, inset);
+    if (!m_impl->wk) return;
+    if (@available(macOS 26.0, *)) {
+        NSEdgeInsets insets = m_impl->wk.obscuredContentInsets;
+        if (insets.top == m_impl->obscuredTop) return;
+        insets.top = m_impl->obscuredTop;
+        m_impl->wk.obscuredContentInsets = insets;
+    }
 }
 
 QColor WebView::cachedThemeColor() const {

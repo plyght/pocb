@@ -33,6 +33,8 @@ public:
     QString title() const;
     QPixmap snapshot(const QSize &size) const;
     void *nativeWebView() const;
+    void setObscuredTopInset(double inset);
+    void setCornerRadius(double radius);
 
     // Internal: install an externally-created WKWebView (used by the
     // WKUIDelegate's createWebViewWithConfiguration: path so popups stay

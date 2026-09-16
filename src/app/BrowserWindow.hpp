@@ -112,6 +112,7 @@ private:
     void expandToolbar();
     void handlePageScroll(const QVariant &body);
     void observeScrollFor(WebView *view);
+    void syncToolbarOverlay();
     void positionToolbarGrabber();
     void syncAddressPillGlass();
     void positionToast();

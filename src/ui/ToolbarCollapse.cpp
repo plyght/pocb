@@ -49,6 +49,7 @@ void CollapsingToolbarHost::syncHeight() {
     const int full = expandedHeight();
     const int h = qRound(full * m_progress);
     if (h != height() || minimumHeight() != h || maximumHeight() != h) setFixedHeight(h);
+    if (m_overlay && height() != h) resize(width(), h);
     layoutChildren();
 }
 
@@ -56,6 +57,12 @@ void CollapsingToolbarHost::paintEvent(QPaintEvent *e) {
     QPainter p(this);
     p.setCompositionMode(QPainter::CompositionMode_Source);
     p.fillRect(e->rect(), Qt::transparent);
+}
+
+void CollapsingToolbarHost::setOverlayWidth(int w) {
+    m_overlay = true;
+    setGeometry(0, 0, w, qRound(expandedHeight() * m_progress));
+    layoutChildren();
 }
 
 void CollapsingToolbarHost::resizeEvent(QResizeEvent *e) {

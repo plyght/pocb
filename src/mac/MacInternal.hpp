@@ -9,4 +9,8 @@ namespace mac::internal {
 NSWindow *nsWindowOf(QWidget *w);
 }
 
+namespace mac {
+NSView *makeGlurBackdropView(NSRect frame, double cornerRadius, double blurRadius, double offset, double interpolation);
+}
+
 #endif
