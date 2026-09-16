@@ -20,6 +20,113 @@
 #import <WebKit/WKWebExtensionController.h>
 #import <WebKit/WKUserContentController.h>
 #import <WebKit/WKUserScript.h>
+#import <WebKit/WKScriptMessage.h>
+#import <WebKit/WKScriptMessageHandler.h>
+#import <WebKit/WKNavigationResponse.h>
+#import <WebKit/WKDownload.h>
+
+#include <QVariantList>
+#include <QVariantMap>
+
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+namespace {
+
+struct RegisteredScript {
+    QString source;
+    bool mainFrameOnly = false;
+};
+
+std::vector<RegisteredScript> &registeredScripts() {
+    static std::vector<RegisteredScript> scripts;
+    return scripts;
+}
+
+std::vector<std::function<void(void *, WebView *)>> &nativeHooks() {
+    static std::vector<std::function<void(void *, WebView *)>> hooks;
+    return hooks;
+}
+
+std::unordered_map<void *, WebView *> &ownerMap() {
+    static std::unordered_map<void *, WebView *> owners;
+    return owners;
+}
+
+QVariant variantFromNSObject(id object) {
+    if (!object || object == [NSNull null]) return QVariant();
+    if ([object isKindOfClass:[NSString class]]) return QString::fromNSString((NSString *)object);
+    if ([object isKindOfClass:[NSNumber class]]) {
+        NSNumber *number = (NSNumber *)object;
+        if (CFGetTypeID((__bridge CFTypeRef)number) == CFBooleanGetTypeID()) return QVariant(number.boolValue == YES);
+        const char *type = number.objCType;
+        if (strcmp(type, @encode(double)) == 0 || strcmp(type, @encode(float)) == 0) return QVariant(number.doubleValue);
+        return QVariant(static_cast<qlonglong>(number.longLongValue));
+    }
+    if ([object isKindOfClass:[NSArray class]]) {
+        QVariantList list;
+        for (id item in (NSArray *)object) list.append(variantFromNSObject(item));
+        return list;
+    }
+    if ([object isKindOfClass:[NSDictionary class]]) {
+        QVariantMap map;
+        NSDictionary *dict = (NSDictionary *)object;
+        for (id key in dict) {
+            if (![key isKindOfClass:[NSString class]]) continue;
+            map.insert(QString::fromNSString((NSString *)key), variantFromNSObject(dict[key]));
+        }
+        return map;
+    }
+    if ([object isKindOfClass:[NSURL class]]) return QUrl(QString::fromNSString(((NSURL *)object).absoluteString));
+    return QString::fromNSString([object description]);
+}
+
+}  // namespace
+
+@interface PocbScriptRouter : NSObject <WKScriptMessageHandler>
++ (instancetype)shared;
+@end
+
+@implementation PocbScriptRouter
++ (instancetype)shared {
+    static PocbScriptRouter *router = nil;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ router = [[PocbScriptRouter alloc] init]; });
+    return router;
+}
+
+- (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
+    (void)controller;
+    WKWebView *wk = message.webView;
+    if (!wk) return;
+    auto it = ownerMap().find((__bridge void *)wk);
+    if (it == ownerMap().end() || !it->second) return;
+    QString name;
+    QVariant body;
+    if ([message.body isKindOfClass:[NSDictionary class]]) {
+        NSDictionary *dict = (NSDictionary *)message.body;
+        id n = dict[@"name"];
+        if ([n isKindOfClass:[NSString class]]) name = QString::fromNSString((NSString *)n);
+        body = variantFromNSObject(dict[@"body"]);
+    } else {
+        body = variantFromNSObject(message.body);
+    }
+    emit it->second->scriptMessage(name, body);
+}
+@end
+
+static void installRegisteredScripts(WKUserContentController *content) {
+    if (!content) return;
+    for (const RegisteredScript &entry : registeredScripts()) {
+        WKUserScript *script = [[WKUserScript alloc] initWithSource:entry.source.toNSString()
+                                                      injectionTime:WKUserScriptInjectionTimeAtDocumentStart
+                                                   forMainFrameOnly:entry.mainFrameOnly];
+        [content addUserScript:script];
+    }
+    [content removeScriptMessageHandlerForName:@"pocb"];
+    [content addScriptMessageHandler:[PocbScriptRouter shared] name:@"pocb"];
+}
 
 static void disableWebKit60FpsCap(WKPreferences *preferences) {
     if (!preferences) return;
@@ -166,6 +273,43 @@ struct WebView::Impl {
     if (self.owner) emit self.owner->loadFinished(false);
 }
 
+- (void)webView:(WKWebView *)wk
+    decidePolicyForNavigationAction:(WKNavigationAction *)action
+                    decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
+    (void)wk;
+    if (action.shouldPerformDownload) {
+        decisionHandler(WKNavigationActionPolicyDownload);
+        return;
+    }
+    decisionHandler(WKNavigationActionPolicyAllow);
+}
+
+- (void)webView:(WKWebView *)wk
+    decidePolicyForNavigationResponse:(WKNavigationResponse *)response
+                      decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler {
+    (void)wk;
+    BOOL attachment = NO;
+    if ([response.response isKindOfClass:[NSHTTPURLResponse class]]) {
+        NSString *disposition = ((NSHTTPURLResponse *)response.response).allHeaderFields[@"Content-Disposition"];
+        attachment = disposition && [[disposition lowercaseString] hasPrefix:@"attachment"];
+    }
+    if (!response.canShowMIMEType || attachment) {
+        decisionHandler(WKNavigationResponsePolicyDownload);
+        return;
+    }
+    decisionHandler(WKNavigationResponsePolicyAllow);
+}
+
+- (void)webView:(WKWebView *)wk navigationAction:(WKNavigationAction *)action didBecomeDownload:(WKDownload *)download {
+    (void)wk; (void)action;
+    if (self.owner) emit self.owner->downloadStarted((__bridge void *)download);
+}
+
+- (void)webView:(WKWebView *)wk navigationResponse:(WKNavigationResponse *)response didBecomeDownload:(WKDownload *)download {
+    (void)wk; (void)response;
+    if (self.owner) emit self.owner->downloadStarted((__bridge void *)download);
+}
+
 - (void)webView:(WKWebView *)wk didFailProvisionalNavigation:(WKNavigation *)nav withError:(NSError *)err {
     (void)wk; (void)nav; (void)err;
     if (self.owner) emit self.owner->loadFinished(false);
@@ -255,6 +399,7 @@ WebView::WebView(WebKitProfile *profile, QWidget *parent)
             [content addUserScript:script];
         }
         ChromeExtensionManager::installContentRuleLists((__bridge void *)content);
+        installRegisteredScripts(content);
         cfg.userContentController = content;
         if (@available(macOS 15.4, *)) {
             if (void *controller = ChromeExtensionManager::nativeController()) {
@@ -279,6 +424,7 @@ WebView::~WebView() {
         m_impl->observedHost = nil;
     }
     if (m_impl->wk) {
+        ownerMap().erase((__bridge void *)m_impl->wk);
         [m_impl->bridge detachKVO:m_impl->wk];
         m_impl->wk.navigationDelegate = nil;
         m_impl->wk.UIDelegate = nil;
@@ -296,6 +442,7 @@ WebView::~WebView() {
 void WebView::adoptNativeWebView(void *wkWebViewPtr) {
     WKWebView *wk = (__bridge_transfer WKWebView *)wkWebViewPtr;
     if (m_impl->wk) {
+        ownerMap().erase((__bridge void *)m_impl->wk);
         [m_impl->bridge detachKVO:m_impl->wk];
         if (m_impl->edgeConstraints) {
             [NSLayoutConstraint deactivateConstraints:m_impl->edgeConstraints];
@@ -320,6 +467,8 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
     click.delaysPrimaryMouseButtonEvents = NO;
     [wk addGestureRecognizer:click];
     [m_impl->bridge attachKVO:wk];
+    ownerMap()[(__bridge void *)wk] = this;
+    for (const auto &hook : nativeHooks()) hook((__bridge void *)wk, this);
 
     NSView *host = qtNSView(this);
     if (host) {
@@ -352,6 +501,30 @@ void WebView::adoptNativeWebView(void *wkWebViewPtr) {
             m_impl->observedHost = host;
         }
     }
+}
+
+void WebView::runJavaScript(const QString &script, std::function<void(const QVariant &)> done) {
+    if (!m_impl->wk) {
+        if (done) done(QVariant());
+        return;
+    }
+    if (!done) {
+        [m_impl->wk evaluateJavaScript:script.toNSString() completionHandler:nil];
+        return;
+    }
+    auto callback = std::move(done);
+    [m_impl->wk evaluateJavaScript:script.toNSString() completionHandler:^(id result, NSError *error) {
+        (void)error;
+        callback(variantFromNSObject(result));
+    }];
+}
+
+void WebView::registerUserScript(const QString &source, bool mainFrameOnly) {
+    registeredScripts().push_back({source, mainFrameOnly});
+}
+
+void WebView::addNativeWebViewHook(std::function<void(void *, WebView *)> hook) {
+    if (hook) nativeHooks().push_back(std::move(hook));
 }
 
 void WebView::load(const QUrl &url) {

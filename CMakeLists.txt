@@ -65,47 +65,12 @@ if(APPLE)
     remove_agl_framework_from_target(Qt6::Widgets)
 endif()
 
-qt_add_executable(pocb MACOSX_BUNDLE
-    src/main.cpp
-    src/app/BrowserWindow.cpp
-    src/app/BrowserWindow.hpp
-    src/app/LittleWindow.cpp
-    src/app/LittleWindow.hpp
-    src/app/SettingsDialog.cpp
-    src/app/SettingsDialog.hpp
-    src/services/ProfileStore.cpp
-    src/services/ProfileStore.hpp
-    src/services/Theme.cpp
-    src/services/Theme.hpp
-    src/services/FaviconService.cpp
-    src/services/FaviconService.hpp
-    src/services/BookmarkStore.cpp
-    src/services/BookmarkStore.hpp
-    src/services/ChromeExtensionManager.cpp
-    src/services/ChromeExtensionManager.hpp
-    src/ui/FloatingOmnibox.cpp
-    src/ui/FloatingOmnibox.hpp
-    src/ui/AddressBarController.cpp
-    src/ui/AddressBarController.hpp
-    src/ui/SidebarController.cpp
-    src/ui/SidebarController.hpp
-    src/ui/Topbar.cpp
-    src/ui/Topbar.hpp
-    src/ui/ChromeWidgets.cpp
-    src/ui/ChromeWidgets.hpp
-    src/ui/LayoutMetrics.hpp
-    src/tabs/MiniWindowDragPreview.cpp
-    src/tabs/MiniWindowDragPreview.hpp
-    src/tabs/TabTree.cpp
-    src/tabs/TabTree.hpp
-    src/mac/MacIntegration.hpp
-    src/mac/DefaultBrowser.hpp
-    src/mac/GlobalHotkeys.hpp
-    src/mac/NativeSettingsWindow.hpp
-    src/mac/NativeProfilePopover.hpp
-    src/web/WebView.hpp
-    src/web/WebKitProfile.hpp
+file(GLOB_RECURSE POCB_CXX_SOURCES CONFIGURE_DEPENDS
+    ${CMAKE_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/*.hpp
 )
+
+qt_add_executable(pocb MACOSX_BUNDLE ${POCB_CXX_SOURCES})
 
 target_include_directories(pocb PRIVATE
     src
@@ -118,20 +83,7 @@ target_include_directories(pocb PRIVATE
 )
 
 if(APPLE)
-    set(POCB_OBJC_SOURCES
-        src/mac/MacInternal.mm
-        src/mac/SfSymbols.mm
-        src/mac/LayerCorners.mm
-        src/mac/Vibrancy.mm
-        src/mac/HighRefresh.mm
-        src/mac/UnifiedToolbar.mm
-        src/mac/NativeSettingsWindow.mm
-        src/mac/NativeProfilePopover.mm
-        src/mac/DefaultBrowser.mm
-        src/mac/GlobalHotkeys.mm
-        src/web/WebView.mm
-        src/web/WebKitProfile.mm
-    )
+    file(GLOB_RECURSE POCB_OBJC_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.mm)
     target_sources(pocb PRIVATE ${POCB_OBJC_SOURCES})
     foreach(_src IN LISTS POCB_OBJC_SOURCES)
         set_source_files_properties(${_src} PROPERTIES COMPILE_FLAGS "-fobjc-arc")
@@ -144,6 +96,10 @@ if(APPLE)
         "-framework QuartzCore"
         "-framework CoreServices"
         "-framework Carbon"
+        "-framework AuthenticationServices"
+        "-framework LocalAuthentication"
+        "-framework UserNotifications"
+        "-framework UniformTypeIdentifiers"
     )
 endif()
 

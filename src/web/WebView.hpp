@@ -3,7 +3,10 @@
 #include <QColor>
 #include <QPixmap>
 #include <QUrl>
+#include <QVariant>
 #include <QWidget>
+
+#include <functional>
 
 class WebKitProfile;
 
@@ -41,6 +44,20 @@ public:
     // Re-runs the sniff JS and (asynchronously) emits themeColorChanged.
     void sniffTopColor();
 
+    // Runs JS in the page's main frame. Fire-and-forget when `done` is empty.
+    void runJavaScript(const QString &script, std::function<void(const QVariant &)> done = {});
+
+    // Registers a WKUserScript (injected at document start, all frames) that
+    // is added to every WKWebView configuration created from now on. Pages
+    // may post back via window.webkit.messageHandlers.pocb.postMessage({name, body})
+    // and the owning WebView emits scriptMessage(name, body).
+    static void registerUserScript(const QString &source, bool mainFrameOnly = false);
+
+    // Called with the raw WKWebView* every time one is adopted by a WebView.
+    // Lets native integrations (downloads, passwords, gestures) attach
+    // themselves without editing this file.
+    static void addNativeWebViewHook(std::function<void(void *wkWebView, WebView *owner)> hook);
+
 signals:
     void urlChanged(const QUrl &url);
     void titleChanged(const QString &title);
@@ -53,6 +70,11 @@ signals:
     // colour. Invalid QColor when the page exposes nothing useful.
     void themeColorChanged(const QColor &color);
     void contentMouseDown();
+    // Message posted from an injected user script via the `pocb` handler.
+    void scriptMessage(const QString &name, const QVariant &body);
+    // A navigation turned into a WKDownload*. Receivers own the delegate
+    // wiring; the pointer is the raw (unretained) WKDownload.
+    void downloadStarted(void *wkDownload);
 
 protected:
     void resizeEvent(QResizeEvent *e) override;
