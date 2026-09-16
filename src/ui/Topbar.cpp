@@ -21,14 +21,14 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
 
     auto *bar = new ChromeBar(parent);
     bar->setObjectName("WebTopbar");
-    bar->setFixedHeight(40);
+    bar->setFixedHeight(44);
     bar->setTopCornerRadius(ui::metrics::WebContainerRadius);
-    bar->setBackgroundColor(QColor(28, 28, 30, 235), /*animate=*/false);
+    bar->setBackgroundColor(theme.background.lightness() < 128 ? QColor(24, 24, 27, 235) : QColor(245, 245, 247, 235), /*animate=*/false);
     w.bar = bar;
 
     auto *row = new QHBoxLayout(bar);
-    row->setContentsMargins(8, 4, 8, 4);
-    row->setSpacing(2);
+    row->setContentsMargins(10, 6, 10, 6);
+    row->setSpacing(4);
 
     const QColor iconColor = theme.foreground;
     const double symPt = 14.0;
@@ -39,14 +39,14 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
         btn->setFocusPolicy(Qt::NoFocus);
         btn->setCursor(Qt::PointingHandCursor);
         btn->setIconSize(QSize(16, 16));
-        btn->setFixedSize(28, 28);
+        btn->setFixedSize(32, 32);
         btn->setToolTip(tip);
         btn->setIcon(mac::sfSymbolIcon(symbol, symPt, iconColor));
         btn->setStyleSheet(QString(
             "QToolButton {"
             "  background: transparent;"
             "  border: none;"
-            "  border-radius: 6px;"
+            "  border-radius: 16px;"
             "  padding: 0px;"
             "}"
             "QToolButton:hover { background: %1; }"
@@ -68,21 +68,34 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
     w.newTab   = makeBtn("plus",             "New Tab  (\xE2\x8C\x98T)");
     w.settings = makeBtn("gearshape",        "Settings");
 
-    row->addWidget(w.sidebar);
-    row->addWidget(w.back);
-    row->addWidget(w.forward);
-    row->addWidget(w.reload);
-    row->addSpacing(6);
+    const QColor clusterFill = theme.background.lightness() < 128 ? QColor(255, 255, 255, 30) : QColor(0, 0, 0, 18);
+    auto makeCluster = [&] {
+        auto *cluster = new ToolbarCluster(bar);
+        cluster->setFixedHeight(32);
+        cluster->setFillColor(clusterFill);
+        auto *l = new QHBoxLayout(cluster);
+        l->setContentsMargins(0, 0, 0, 0);
+        l->setSpacing(0);
+        return cluster;
+    };
+    w.navCluster = makeCluster();
+    w.navCluster->setObjectName("NavCluster");
+    w.navCluster->layout()->addWidget(w.sidebar);
+    w.navCluster->layout()->addWidget(w.back);
+    w.navCluster->layout()->addWidget(w.forward);
+    w.navCluster->layout()->addWidget(w.reload);
+    row->addWidget(w.navCluster);
+    row->addSpacing(8);
 
     // Address bar — clickable read-only display that opens the floating
     // omnibox for editing.
     auto *addrWrap = new AddrPill(bar);
     w.addrWrap = addrWrap;
     addrWrap->setObjectName("AddressWrap");
-    addrWrap->setFixedHeight(28);
-    addrWrap->setRadius(7);
+    addrWrap->setFixedHeight(32);
+    addrWrap->setRadius(16);
     auto *addrRow = new QHBoxLayout(addrWrap);
-    addrRow->setContentsMargins(8, 0, 8, 0);
+    addrRow->setContentsMargins(12, 0, 10, 0);
     addrRow->setSpacing(6);
 
     w.lockIcon = new QLabel(addrWrap);
@@ -155,11 +168,14 @@ TopbarWidgets buildTopbar(QWidget *parent, const Theme &theme) {
     addrRow->addWidget(w.pillMenuBtn);
 
     row->addWidget(addrWrap, 1);
-    row->addSpacing(6);
+    row->addSpacing(8);
     w.newTab->hide();
     w.settings->hide();
-    row->addWidget(w.newTab);
-    row->addWidget(w.settings);
+    w.actionsCluster = makeCluster();
+    w.actionsCluster->setObjectName("ActionsCluster");
+    w.actionsCluster->layout()->addWidget(w.newTab);
+    w.actionsCluster->layout()->addWidget(w.settings);
+    row->addWidget(w.actionsCluster);
 
     return w;
 }

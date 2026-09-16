@@ -9,10 +9,17 @@
 #include "LittleWindow.hpp"
 #include "MacIntegration.hpp"
 #include "DefaultBrowser.hpp"
+#include "DownloadManager.hpp"
+#include "DownloadsPopover.hpp"
 #include "NativeProfilePopover.hpp"
+#include "PasswordManager.hpp"
+#include "PasswordPrompt.hpp"
 #include "NativeSettingsWindow.hpp"
 #include "SidebarController.hpp"
+#include "SidebarWidgets.hpp"
 #include "TabTree.hpp"
+#include "ToastWidget.hpp"
+#include "ToolbarCollapse.hpp"
 #include "Topbar.hpp"
 #include "WebView.hpp"
 
@@ -52,6 +59,7 @@
 #include <QPointer>
 #include <QPixmap>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QShortcut>
 #include <QShortcutEvent>
 #include <QTimer>
@@ -104,6 +112,63 @@ QColor disabledToolbarColor(const QColor &foreground) {
     const int luma = (foreground.red() * 299 + foreground.green() * 587 + foreground.blue() * 114) / 1000;
     color.setAlpha(95);
     return color;
+}
+
+// Main-frame-only scroll observer. rAF-throttled so at most one message per
+// frame reaches the native side, and it never posts when nothing moved.
+const char kScrollObserverScript[] = R"JS(
+(function () {
+  if (window.__pocbScrollObserverInstalled) return;
+  window.__pocbScrollObserverInstalled = true;
+  var lastY = window.scrollY || 0;
+  var pending = false;
+  function flush() {
+    pending = false;
+    var y = window.scrollY || document.documentElement.scrollTop || 0;
+    var dy = y - lastY;
+    if (dy === 0) return;
+    lastY = y;
+    try {
+      window.webkit.messageHandlers.pocb.postMessage({
+        name: "scroll",
+        body: { y: y, dy: dy, atTop: y <= 0, direction: dy > 0 ? "down" : "up" }
+      });
+    } catch (e) {}
+  }
+  window.addEventListener("scroll", function () {
+    if (pending) return;
+    pending = true;
+    window.requestAnimationFrame(flush);
+  }, { passive: true });
+})();
+)JS";
+
+constexpr int kToolbarCollapseThresholdPx = 24;
+constexpr int kToolbarCollapseMs = 180;
+// A single-frame jump this large is scroll restoration / an anchor jump,
+// not a user scroll; it must not collapse the toolbar.
+constexpr double kToolbarProgrammaticJumpPx = 400.0;
+constexpr int kProfileSwipeAxisLockPx = 6;
+constexpr double kProfileSwipeCommitFraction = 0.30;
+constexpr double kProfileSwipeFlickVelocity = 650.0;  // px/s
+constexpr int kProfileSwipeMinFlickTravel = 18;
+constexpr int kProfileSwipeSettleMinMs = 140;
+constexpr int kProfileSwipeSettleMaxMs = 260;
+constexpr int kProfileSwipeVelocityWindowMs = 110;
+
+// iOS-style rubber band: asymptotically approaches `limit`.
+int rubberBand(int raw, int limit) {
+    if (raw == 0 || limit <= 0) return 0;
+    const double x = qAbs(raw);
+    const double d = limit;
+    const double out = (1.0 - 1.0 / (0.55 * x / d + 1.0)) * d;
+    return raw < 0 ? -qRound(out) : qRound(out);
+}
+
+qint64 nowMs() {
+    static QElapsedTimer timer;
+    if (!timer.isValid()) timer.start();
+    return timer.elapsed();
 }
 
 void setButtonSymbolSmooth(QToolButton *button, const QString &symbol, double pointSize, const QColor &color) {
@@ -288,8 +353,16 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowFlags(windowFlags() | Qt::ExpandedClientAreaHint | Qt::NoTitleBarBackgroundHint);
 #endif
     ChromeExtensionManager::setBrowserWindow(this);
+    // Registered before any WKWebView exists so every tab gets the observer.
+    static bool scrollObserverRegistered = false;
+    if (!scrollObserverRegistered) {
+        scrollObserverRegistered = true;
+        WebView::registerUserScript(QString::fromLatin1(kScrollObserverScript), /*mainFrameOnly=*/true);
+    }
+    m_collapseToolbarOnScroll = QSettings().value("ui/collapseToolbarOnScroll", true).toBool();
     setupUi();
     setupActions();
+    setupIntegrations();
     setWindowTitle("pocb");
     {
         QSettings settings;
@@ -307,12 +380,72 @@ BrowserWindow::BrowserWindow(QWidget *parent) : QMainWindow(parent) {
     if (m_tabTree) m_tabTree->restoreTabs(restoredSessionForProfile(m_profiles.currentName()));
 }
 
+void BrowserWindow::setupIntegrations() {
+    m_downloadsPopover = new DownloadsPopover(m_theme, this);
+    auto *downloads = DownloadManager::instance();
+    connect(this, &BrowserWindow::downloadsRequested, this, [this] {
+        if (m_downloadsPopover->isVisible()) m_downloadsPopover->hidePopover();
+        else m_downloadsPopover->showAnchoredTo(m_downloadsBtn);
+    });
+    connect(downloads, &DownloadManager::activeCountChanged, this, [this](int active, double progress) {
+        showDownloadsBadge(active, progress);
+    });
+    connect(downloads, &DownloadManager::itemAdded, this, [this](const QString &) {
+        if (!isActiveWindow() || !m_downloadsBtn) return;
+        if (!m_downloadsPopover->isVisible()) m_downloadsPopover->showAnchoredTo(m_downloadsBtn);
+    });
+    connect(downloads, &DownloadManager::itemFinished, this, [this, downloads](const QString &id, bool ok) {
+        if (!isActiveWindow()) return;
+        DownloadItem item;
+        if (!downloads->item(id, &item)) return;
+        if (ok) {
+            m_lastFinishedDownload = id;
+            showToast(QStringLiteral("%1 downloaded").arg(item.fileName), humanSize(item.total > 0 ? item.total : item.received),
+                      DownloadManager::fileIcon(item.path, 32));
+        } else if (item.state == DownloadItem::Failed) {
+            showToast(QStringLiteral("Download failed"), item.fileName, mac::sfSymbolIcon("exclamationmark.triangle.fill", 16.0, m_theme.foreground));
+        }
+    });
+    connect(this, &BrowserWindow::toastClicked, this, [this, downloads] {
+        if (!m_lastFinishedDownload.isEmpty()) downloads->revealInFinder(m_lastFinishedDownload);
+    });
+
+    auto *passwords = PasswordManager::instance();
+    connect(passwords, &PasswordManager::autofillAvailable, this, [this, passwords](WebView *view, const QStringList &accounts) {
+        if (view != currentView() || !m_addrWrap) return;
+        if (PasswordPrompt *cur = PasswordPrompt::current(); cur && cur->kind() == PasswordPrompt::Kind::Save) return;
+        if (auto *p = PasswordPrompt::showSaved(m_addrWrap, view->url().host(), accounts, m_theme))
+            connect(p, &PasswordPrompt::useSavedChosen, passwords, [passwords, view](const QString &user) { passwords->fill(view, user); });
+    });
+    connect(passwords, &PasswordManager::generateAvailable, this, [this, passwords](WebView *view, const QString &password) {
+        if (view != currentView() || !m_addrWrap) return;
+        if (PasswordPrompt *cur = PasswordPrompt::current(); cur && cur->kind() == PasswordPrompt::Kind::Generate && cur->site() == view->url().host()) return;
+        if (auto *p = PasswordPrompt::showGenerate(m_addrWrap, view->url().host(), password, m_theme))
+            connect(p, &PasswordPrompt::useGeneratedChosen, passwords, [passwords, view](const QString &) { passwords->generateAndFill(view); });
+    });
+    connect(passwords, &PasswordManager::saveOffered, this, [this, passwords](WebView *view, const QString &user, const QString &password) {
+        if (view != currentView() || !m_addrWrap) return;
+        const QUrl site = view->url();
+        if (auto *p = PasswordPrompt::showSave(m_addrWrap, site.host(), user, m_theme)) {
+            connect(p, &PasswordPrompt::saveChosen, passwords, [passwords, site, user, password] { passwords->save(site, user, password); });
+            connect(p, &PasswordPrompt::neverForSiteChosen, passwords, [passwords, site] { passwords->setNeverSave(site, true); });
+        }
+    });
+    connect(passwords, &PasswordManager::saveFinished, this, [this](const QUrl &site, const QString &user, bool ok, const QString &error) {
+        if (!isActiveWindow()) return;
+        if (ok) showToast(QStringLiteral("Saved to Apple Passwords"), QStringLiteral("%1 · %2").arg(user, site.host()), mac::sfSymbolIcon("key.fill", 16.0, m_theme.foreground));
+        else showToast(QStringLiteral("Couldn't save password"), error, mac::sfSymbolIcon("exclamationmark.triangle.fill", 16.0, m_theme.foreground));
+    });
+}
+
 void BrowserWindow::moveEvent(QMoveEvent *e) {
     QMainWindow::moveEvent(e);
     if (m_sidebar) {
         if (m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
         if (m_sidebar->floatingVisible()) m_sidebar->positionFloating();
     }
+    positionToolbarGrabber();
+    positionToast();
 }
 
 void BrowserWindow::resizeEvent(QResizeEvent *e) {
@@ -321,9 +454,169 @@ void BrowserWindow::resizeEvent(QResizeEvent *e) {
         if (m_sidebar->hoverZoneVisible()) m_sidebar->positionHoverZone();
         if (m_sidebar->floatingVisible()) m_sidebar->positionFloating();
     }
-    if (m_webContainer && QSettings().value("ui/useLiquidGlass", true).toBool()) {
-        mac::applyLiquidGlassSiblingBehind(m_webContainer, ui::metrics::WebContainerRadius);
+    syncAddressPillGlass();
+    positionToolbarGrabber();
+    positionToast();
+}
+
+void BrowserWindow::syncAddressPillGlass() {
+    auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap);
+    if (!pill || !pill->glassMode() || !isVisible()) return;
+    // The glass NSViews are not clipped by the collapsing host, so they only
+    // show while the toolbar row is fully expanded.
+    const bool expanded = !m_toolbarHost || m_toolbarHost->progress() >= 1.0;
+    if (expanded && pill->isVisible() && m_toolbarRowAvailable) {
+        for (ui::ToolbarCluster *cluster : m_toolbarClusters) {
+            if (cluster && cluster->glassBacked() && cluster->isVisible()) mac::applyLiquidGlassBehind(cluster, cluster->radius());
+        }
+        mac::applyLiquidGlassBehind(pill, pill->radius());
+    } else {
+        for (ui::ToolbarCluster *cluster : m_toolbarClusters) {
+            if (cluster && cluster->glassBacked()) mac::hideLiquidGlassBehind(cluster);
+        }
+        mac::hideLiquidGlassBehind(pill);
     }
+}
+
+// ---- Collapsing toolbar -----------------------------------------------------
+
+void BrowserWindow::setToolbarRowVisible(bool visible) {
+    m_toolbarRowAvailable = visible;
+    if (m_toolbarHost) m_toolbarHost->setVisible(visible);
+    if (!visible && m_toolbarGrabber) m_toolbarGrabber->hide();
+    if (visible) positionToolbarGrabber();
+    syncAddressPillGlass();
+}
+
+void BrowserWindow::setToolbarCollapsed(bool collapsed, bool animated) {
+    if (!m_toolbarHost || m_addrInSidebar) return;
+    if (collapsed && !m_toolbarRowAvailable) return;
+    if (m_toolbarCollapsed == collapsed && (!m_toolbarAnim || m_toolbarAnim->state() != QAbstractAnimation::Running)) {
+        positionToolbarGrabber();
+        return;
+    }
+    m_toolbarCollapsed = collapsed;
+    m_scrollDownAccum = 0.0;
+    if (!m_toolbarAnim) {
+        m_toolbarAnim = new QVariantAnimation(this);
+        m_toolbarAnim->setDuration(kToolbarCollapseMs);
+        m_toolbarAnim->setEasingCurve(QEasingCurve::OutCubic);
+        connect(m_toolbarAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
+            if (m_toolbarHost) m_toolbarHost->setProgress(v.toDouble());
+            syncAddressPillGlass();
+        });
+        connect(m_toolbarAnim, &QVariantAnimation::finished, this, [this] {
+            syncAddressPillGlass();
+            positionToolbarGrabber();
+            positionToast();
+            mac::refreshUnifiedToolbar(this);
+        });
+    }
+    m_toolbarAnim->stop();
+    const qreal target = collapsed ? 0.0 : 1.0;
+    if (!animated || !isVisible()) {
+        m_toolbarHost->setProgress(target);
+        syncAddressPillGlass();
+        positionToolbarGrabber();
+        positionToast();
+        return;
+    }
+    // Hide the grabber immediately when expanding so it never overlaps the
+    // returning toolbar; when collapsing it appears once the row is gone.
+    if (!collapsed && m_toolbarGrabber) m_toolbarGrabber->hide();
+    m_toolbarAnim->setStartValue(m_toolbarHost->progress());
+    m_toolbarAnim->setEndValue(target);
+    m_toolbarAnim->start();
+}
+
+void BrowserWindow::expandToolbar() {
+    m_scrollDownAccum = 0.0;
+    if (m_toolbarCollapsed) setToolbarCollapsed(false);
+}
+
+void BrowserWindow::handlePageScroll(const QVariant &body) {
+    if (!m_collapseToolbarOnScroll || m_addrInSidebar || !m_toolbarRowAvailable) return;
+    const QVariantMap map = body.toMap();
+    const double y = map.value("y").toDouble();
+    const double dy = map.value("dy").toDouble();
+    const bool atTop = map.value("atTop").toBool() || y <= 0.0;
+    if (atTop || dy < 0.0) {
+        expandToolbar();
+        return;
+    }
+    if (dy <= 0.0) return;
+    if (dy > kToolbarProgrammaticJumpPx) {
+        m_scrollDownAccum = 0.0;
+        return;
+    }
+    // Never collapse while the user is typing in the omnibox.
+    if (m_addressBar && m_addressBar->hasFocus()) return;
+    m_scrollDownAccum += dy;
+    if (!m_toolbarCollapsed && m_scrollDownAccum > kToolbarCollapseThresholdPx && y > kToolbarCollapseThresholdPx) {
+        setToolbarCollapsed(true);
+    }
+}
+
+void BrowserWindow::observeScrollFor(WebView *view) {
+    if (m_scrollObservedView == view) return;
+    if (m_scrollObserverConn) QObject::disconnect(m_scrollObserverConn);
+    if (m_navigationExpandConn) QObject::disconnect(m_navigationExpandConn);
+    m_scrollObserverConn = QMetaObject::Connection();
+    m_navigationExpandConn = QMetaObject::Connection();
+    m_scrollObservedView = view;
+    if (!view) return;
+    m_scrollObserverConn = connect(view, &WebView::scriptMessage, this, [this, view](const QString &name, const QVariant &body) {
+        if (name != QLatin1String("scroll") || currentView() != view) return;
+        handlePageScroll(body);
+    });
+    // Navigation start (URL change) brings the toolbar back.
+    m_navigationExpandConn = connect(view, &WebView::urlChanged, this, [this, view](const QUrl &) {
+        if (currentView() == view) expandToolbar();
+    });
+}
+
+void BrowserWindow::positionToolbarGrabber() {
+    if (!m_toolbarGrabber || !m_webContainer) return;
+    const bool show = m_toolbarCollapsed && m_toolbarRowAvailable && !m_addrInSidebar && isVisible()
+        && !isMinimized() && (!m_toolbarAnim || m_toolbarAnim->state() != QAbstractAnimation::Running);
+    if (!show) {
+        if (m_toolbarGrabber->isVisible()) m_toolbarGrabber->hide();
+        return;
+    }
+    const QPoint origin = m_webContainer->mapToGlobal(QPoint(0, 0));
+    m_toolbarGrabber->setGeometry(origin.x(), origin.y(), m_webContainer->width(), ui::ToolbarGrabber::HotZoneHeight);
+    if (!m_toolbarGrabber->isVisible()) {
+        m_toolbarGrabber->show();
+        mac::showWindowWithoutAppActivation(m_toolbarGrabber);
+    }
+    m_toolbarGrabber->raise();
+}
+
+// ---- Downloads badge + toast ----------------------------------------------
+
+void BrowserWindow::showDownloadsBadge(int activeCount, double progress) {
+    if (m_downloadsBtn) m_downloadsBtn->setActivity(activeCount, progress);
+}
+
+void BrowserWindow::positionToast() {
+    if (!m_toast || !m_toast->isVisible() || !m_webContainer) return;
+    const QPoint origin = m_webContainer->mapToGlobal(QPoint(0, 0));
+    const int toolbarBottom = m_toolbarHost && m_toolbarHost->isVisible() ? m_toolbarHost->height() : 0;
+    m_toast->reposition(QPoint(origin.x() + m_webContainer->width() - ui::metrics::ToastInset,
+                               origin.y() + toolbarBottom + ui::metrics::ToastInset));
+}
+
+void BrowserWindow::showToast(const QString &title, const QString &subtitle, const QIcon &icon) {
+    if (!m_toast) {
+        m_toast = new ui::ToastWidget(m_theme, this);
+        connect(m_toast, &ui::ToastWidget::clicked, this, &BrowserWindow::toastClicked);
+    }
+    m_toast->setContent(title, subtitle, icon);
+    const QPoint origin = m_webContainer ? m_webContainer->mapToGlobal(QPoint(0, 0)) : mapToGlobal(QPoint(0, 0));
+    const int width = m_webContainer ? m_webContainer->width() : this->width();
+    const int toolbarBottom = m_toolbarHost && m_toolbarHost->isVisible() ? m_toolbarHost->height() : 0;
+    m_toast->presentAt(QPoint(origin.x() + width - ui::metrics::ToastInset,
+                              origin.y() + toolbarBottom + ui::metrics::ToastInset));
 }
 
 void BrowserWindow::closeEvent(QCloseEvent *e) {
@@ -336,6 +629,7 @@ void BrowserWindow::closeEvent(QCloseEvent *e) {
 void BrowserWindow::showEvent(QShowEvent *e) {
     QMainWindow::showEvent(e);
     mac::integrateUnifiedToolbar(this, nullptr, /*compact=*/true);
+    mac::setWindowAppearanceDark(this, m_theme.background.lightness() < 128);
     mac::enableWindowVibrancy(this, mac::VibrancyMaterial::Sidebar);
     mac::enableHighRefreshRate(this);
     // Round the web-content stack on the next event loop turn (after the
@@ -343,11 +637,11 @@ void BrowserWindow::showEvent(QShowEvent *e) {
     QTimer::singleShot(0, this, [this] {
         if (m_webContainer) {
             mac::roundWidgetCorners(m_webContainer, ui::metrics::WebContainerRadius, /*recurseDescendants=*/false);
-            if (QSettings().value("ui/useLiquidGlass", true).toBool()) {
-                mac::applyLiquidGlassSiblingBehind(m_webContainer, ui::metrics::WebContainerRadius);
-            }
         }
         if (m_stack) mac::roundWidgetCorners(m_stack, 0.0);
+        // Liquid Glass backing for the address pill.
+        syncAddressPillGlass();
+        positionToolbarGrabber();
     });
 }
 
@@ -396,18 +690,18 @@ void BrowserWindow::extensionSetAction(const QString &key, const QString &label,
     if (!m_topbar) return;
     QToolButton *button = m_extensionActionButtons.value(key, nullptr);
     if (!button) {
-        button = new QToolButton(m_topbar);
+        button = new QToolButton(m_toolbarActions ? static_cast<QWidget *>(m_toolbarActions) : m_topbar);
         button->setAutoRaise(true);
         button->setFocusPolicy(Qt::NoFocus);
         button->setCursor(Qt::PointingHandCursor);
         button->setIconSize(QSize(16, 16));
-        button->setFixedSize(28, 28);
+        button->setFixedSize(32, 32);
         button->setStyleSheet(QString(
-            "QToolButton { background: transparent; border: none; border-radius: 6px; padding: 0px; color: %1; }"
+            "QToolButton { background: transparent; border: none; border-radius: 16px; padding: 0px; color: %1; }"
             "QToolButton:hover { background: %2; }"
             "QToolButton:pressed { background: %3; }")
             .arg(m_theme.foreground.name(), m_theme.hover.name(), m_theme.raised.name()));
-        if (auto *layout = qobject_cast<QHBoxLayout *>(m_topbar->layout())) {
+        if (auto *layout = qobject_cast<QHBoxLayout *>(m_toolbarActions ? m_toolbarActions->layout() : m_topbar->layout())) {
             const int index = m_extensionsBtn ? layout->indexOf(m_extensionsBtn) : (m_settingsBtn ? layout->indexOf(m_settingsBtn) : layout->count());
             layout->insertWidget(qMax(0, index), button);
         }
@@ -959,11 +1253,17 @@ void BrowserWindow::updateForCurrentTab() {
         static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(splitHost);
         if (m_topbar) m_topbar->hide();
         if (m_topSeparator) m_topSeparator->hide();
+        setToolbarRowVisible(false);
     } else {
         static_cast<QStackedLayout *>(m_stack->layout())->setCurrentWidget(view);
         if (!m_addrInSidebar && m_topbar) m_topbar->show();
         if (!m_addrInSidebar && m_topSeparator) m_topSeparator->show();
+        setToolbarRowVisible(!m_addrInSidebar);
     }
+    // Tab change always brings the toolbar back and re-targets the scroll
+    // observer at the newly current tab only.
+    observeScrollFor(view);
+    expandToolbar();
     m_omnibox->setText(view->url().toString());
     auto syncNavButtons = [this, view] {
         QColor fg = m_topbar ? m_topbar->property("chromeFg").value<QColor>() : QColor();
@@ -1035,7 +1335,9 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     m_reloadBtn = w.reload;
     m_newTabBtn = w.newTab;
     m_settingsBtn = w.settings;
-    m_extensionsBtn = new QToolButton(w.bar);
+    m_toolbarActions = w.actionsCluster;
+    m_toolbarClusters = {w.navCluster, w.actionsCluster};
+    m_extensionsBtn = new QToolButton(w.actionsCluster);
     m_extensionsBtn->setAutoRaise(true);
     m_extensionsBtn->setFocusPolicy(Qt::NoFocus);
     m_extensionsBtn->setCursor(Qt::PointingHandCursor);
@@ -1044,14 +1346,26 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
     m_extensionsBtn->setToolTip("Extensions");
     m_extensionsBtn->setIcon(mac::sfSymbolIcon("puzzlepiece.extension", 16.0, m_theme.foreground));
     m_extensionsBtn->setStyleSheet(QString(
-        "QToolButton { background: transparent; border: none; border-radius: 6px; padding: 0px; }"
+        "QToolButton { background: transparent; border: none; border-radius: 16px; padding: 0px; }"
         "QToolButton:hover { background: %1; }"
         "QToolButton:pressed { background: %2; }")
         .arg(m_theme.hover.name(), m_theme.raised.name()));
-    if (auto *layout = qobject_cast<QHBoxLayout *>(w.bar->layout())) {
+    m_downloadsBtn = new ui::DownloadsButton(w.actionsCluster);
+    m_downloadsBtn->setAutoRaise(true);
+    m_downloadsBtn->setFocusPolicy(Qt::NoFocus);
+    m_downloadsBtn->setCursor(Qt::PointingHandCursor);
+    m_downloadsBtn->setIconSize(QSize(18, 18));
+    m_downloadsBtn->setFixedSize(32, 32);
+    m_downloadsBtn->setToolTip("Downloads");
+    m_downloadsBtn->setIcon(mac::sfSymbolIcon("arrow.down.circle", 16.0, m_theme.foreground));
+    m_downloadsBtn->setStyleSheet(m_extensionsBtn->styleSheet());
+    m_downloadsBtn->setRingColor(m_theme.accent);
+    if (auto *layout = qobject_cast<QHBoxLayout *>(w.actionsCluster->layout())) {
         const int index = m_settingsBtn ? layout->indexOf(m_settingsBtn) : layout->count();
         layout->insertWidget(qMax(0, index), m_extensionsBtn);
+        layout->insertWidget(qMax(0, index) + 1, m_downloadsBtn);
     }
+    connect(m_downloadsBtn, &QToolButton::clicked, this, &BrowserWindow::downloadsRequested);
     m_settingsBtn = w.settings;
     m_addressBar = w.addressBar;
     auto syncDisabledDragThrough = [](QToolButton *button) {
@@ -1077,22 +1391,44 @@ QWidget *BrowserWindow::buildTopbar(QWidget *parent) {
 
     if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
         pill->setIdleColor(QColor(28, 28, 30, 235));
+        pill->setFocusColor(m_theme.accent);
+        if (QSettings().value("ui/useLiquidGlass", true).toBool() && !QSettings().value("ui/addressBarInSidebar", false).toBool()) {
+            // The toolbar leaves a hole under the pill and an
+            // NSGlassEffectView is stacked beneath the native container
+            // (applied once the NSViews exist, see syncAddressPillGlass).
+            pill->setGlassMode(true);
+            if (auto *bar = qobject_cast<ui::ChromeBar *>(pill->parentWidget())) {
+                bar->setGlassCutout(pill, pill->radius());
+                bar->setGlassBacked(true);
+            }
+            for (ui::ToolbarCluster *cluster : m_toolbarClusters) {
+                if (cluster) cluster->setGlassBacked(true);
+            }
+            pill->installEventFilter(this);
+            if (m_webContainer) m_webContainer->installEventFilter(this);
+        }
     }
     // Pop the pill when the user begins editing it.
     class FocusPopFilter : public QObject {
     public:
-        FocusPopFilter(QWidget *pill, QObject *parent) : QObject(parent), m_pill(pill) {}
+        FocusPopFilter(QWidget *pill, BrowserWindow *owner, std::function<void()> onFocusIn)
+            : QObject(owner), m_pill(pill), m_onFocusIn(std::move(onFocusIn)) {}
         bool eventFilter(QObject *o, QEvent *e) override {
             if (auto *ap = qobject_cast<ui::AddrPill *>(m_pill)) {
-                if (e->type() == QEvent::FocusIn) ap->setPopped(true);
-                else if (e->type() == QEvent::FocusOut) ap->setPopped(false);
+                if (e->type() == QEvent::FocusIn) {
+                    ap->setPopped(true);
+                    if (m_onFocusIn) m_onFocusIn();
+                } else if (e->type() == QEvent::FocusOut) {
+                    ap->setPopped(false);
+                }
             }
             return QObject::eventFilter(o, e);
         }
         QWidget *m_pill;
+        std::function<void()> m_onFocusIn;
     };
     if (m_addressBar && m_addrWrap) {
-        m_addressBar->installEventFilter(new FocusPopFilter(m_addrWrap, this));
+        m_addressBar->installEventFilter(new FocusPopFilter(m_addrWrap, this, [this] { expandToolbar(); }));
     }
     w.bar->installEventFilter(this);
     for (auto *child : w.bar->findChildren<QWidget *>()) {
@@ -1189,24 +1525,32 @@ QWidget *BrowserWindow::buildProfileSwitcher(QWidget *parent) {
     wrap->setObjectName("ProfileSwitcher");
     wrap->setAttribute(Qt::WA_TranslucentBackground);
     auto *layout = new QHBoxLayout(wrap);
-    layout->setContentsMargins(0, 8, 0, 0);
-    layout->setSpacing(0);
+    layout->setContentsMargins(2, 6, 2, 0);
+    layout->setSpacing(6);
 
-    m_profileBtn = new QToolButton(wrap);
-    m_profileBtn->setObjectName("ProfileButton");
-    m_profileBtn->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    m_profileBtn->setCursor(Qt::PointingHandCursor);
-    m_profileBtn->setFocusPolicy(Qt::NoFocus);
-    m_profileBtn->setIconSize(QSize(19, 19));
-    m_profileBtn->setMinimumSize(32, 32);
-    m_profileBtn->setMaximumSize(32, 32);
-    m_profileBtn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    m_profileBtn->setStyleSheet(QString(
-        "QToolButton#ProfileButton { background: transparent; border: none; border-radius: 8px; padding: 0px; color: %1; text-align: center; font-family: '%2'; font-size: %3px; }"
-        "QToolButton#ProfileButton:hover { background: rgba(255,255,255,0.08); }"
-        "QToolButton#ProfileButton:pressed { background: rgba(255,255,255,0.12); }")
-        .arg(m_theme.foreground.name(), m_theme.fontFamily, QString::number(m_theme.regularSize)));
-    layout->addWidget(m_profileBtn, 1, Qt::AlignLeft | Qt::AlignBottom);
+    m_profileAvatar = new ui::ProfileAvatarButton(m_theme, wrap);
+    m_profileAvatar->setObjectName("ProfileButton");
+    m_profileAvatar->setDiameter(ui::metrics::ProfileAvatarDiameter);
+    m_profileBtn = m_profileAvatar;
+    layout->addWidget(m_profileAvatar, 0, Qt::AlignLeft | Qt::AlignVCenter);
+    m_pagerDots = new ui::PagerDots(m_theme, wrap);
+    layout->addWidget(m_pagerDots, 1, Qt::AlignCenter);
+    auto *archiveBtn = new QToolButton(wrap);
+    archiveBtn->setAutoRaise(true);
+    archiveBtn->setFocusPolicy(Qt::NoFocus);
+    archiveBtn->setCursor(Qt::PointingHandCursor);
+    archiveBtn->setFixedSize(m_profileAvatar->size());
+    archiveBtn->setToolTip(QStringLiteral("Recently closed tabs"));
+    archiveBtn->setIcon(mac::sfSymbolIcon("archivebox", 14.0, m_theme.foreground));
+    const bool darkSidebar = m_theme.background.lightness() < 128;
+    archiveBtn->setStyleSheet(QString(
+        "QToolButton { background: rgba(255,255,255,%2); border: none; border-radius: %1px; padding: 0px; }"
+        "QToolButton:hover { background: rgba(255,255,255,%3); }"
+        "QToolButton:pressed { background: rgba(255,255,255,%4); }")
+        .arg(m_profileAvatar->width() / 2)
+        .arg(darkSidebar ? 14 : 90).arg(darkSidebar ? 30 : 140).arg(darkSidebar ? 44 : 180));
+    connect(archiveBtn, &QToolButton::clicked, this, [this, archiveBtn] { showArchiveMenu(archiveBtn); });
+    layout->addWidget(archiveBtn, 0, Qt::AlignRight | Qt::AlignVCenter);
     wrap->installEventFilter(this);
     m_profileBtn->installEventFilter(this);
     connect(m_profileBtn, &QToolButton::clicked, this, &BrowserWindow::showProfileMenu);
@@ -1219,7 +1563,23 @@ void BrowserWindow::updateProfileSwitcher() {
     const QString name = m_profiles.currentName().isEmpty() ? QStringLiteral("Default") : m_profiles.currentName();
     m_profileBtn->setText(QString());
     m_profileBtn->setToolTip(QStringLiteral("Profile: %1").arg(name));
-    m_profileBtn->setIcon(mac::sfSymbolIcon(m_profiles.iconName(name), 15.0, m_theme.foreground));
+    if (m_profileAvatar) {
+        m_profileAvatar->setProfileName(name);
+        m_profileAvatar->setActive(true);
+    }
+    updatePagerDots();
+}
+
+void BrowserWindow::updatePagerDots() {
+    if (!m_pagerDots) return;
+    const QStringList list = orderedProfiles();
+    m_pagerDots->setCount(list.size());
+    const int current = qMax(0, list.indexOf(m_profiles.currentName()));
+    const int width = m_sidebarViewport ? qMax(1, m_sidebarViewport->width()) : 1;
+    // Offset < 0 means the next profile is sliding in from the right.
+    const qreal shift = -qreal(m_sidebarSwipeOffset) / qreal(width);
+    m_pagerDots->setPosition(current + shift);
+    m_pagerDots->setVisible(list.size() > 1);
 }
 
 void BrowserWindow::switchProfileRelative(int direction) {
@@ -1254,25 +1614,52 @@ void BrowserWindow::updateCurrentProfileSnapshot() {
     m_profileTabSnapshots.insert(m_profiles.currentName(), titles);
 }
 
+QPixmap BrowserWindow::renderProfilePreview(const QString &profile, const QSize &size) const {
+    // Painted once per gesture into an offscreen pixmap (see
+    // updateSidebarPreview); the preview pane then just blits it.
+    const qreal dpr = devicePixelRatioF();
+    QPixmap pixmap(size * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    pixmap.fill(Qt::transparent);
+    QPainter p(&pixmap);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    p.setRenderHint(QPainter::TextAntialiasing, true);
+    const QStringList titles = m_profileTabSnapshots.value(profile, QStringList{QStringLiteral("New tab")});
+    QFont f(m_theme.fontFamily, m_theme.regularSize);
+    p.setFont(f);
+    const int rowH = ui::metrics::SidebarRowHeight + 2;
+    const int iconSize = 14;
+    const QPixmap globe = mac::sfSymbolIcon("globe", 12.0, m_theme.muted).pixmap(iconSize, iconSize);
+    int y = 2;
+    const int rows = qMax(0, (size.height() - 4) / rowH);
+    for (int i = 0; i < titles.size() && i < rows; ++i) {
+        const QRect row(2, y, size.width() - 4, rowH - 2);
+        if (i == 0) {
+            QColor sel = m_theme.raised;
+            sel.setAlpha(140);
+            p.setPen(Qt::NoPen);
+            p.setBrush(sel);
+            p.drawRoundedRect(row, 7, 7);
+        }
+        p.drawPixmap(row.left() + 8, row.center().y() - iconSize / 2 + 1, globe);
+        p.setPen(i == 0 ? m_theme.foreground : m_theme.muted);
+        const QRect textRect(row.left() + 8 + iconSize + 8, row.top(), row.width() - iconSize - 24, row.height());
+        p.drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, p.fontMetrics().elidedText(titles.at(i), Qt::ElideRight, textRect.width()));
+        y += rowH;
+    }
+    return pixmap;
+}
+
 void BrowserWindow::updateSidebarPreview(int direction) {
-    if (!m_sidebarPreviewTabs || !m_sidebarPreviewIcon) return;
+    if (!m_sidebarPreviewPane || !m_sidebarViewport) return;
     const QStringList list = orderedProfiles();
     const int current = qMax(0, list.indexOf(m_profiles.currentName()));
     const int next = qBound(0, current + direction, list.size() - 1);
     if (next == current || next < 0 || next >= list.size()) return;
     const QString profile = list.at(next);
-    if (m_sidebarPreviewProfile == profile) return;
+    if (m_sidebarPreviewProfile == profile && m_sidebarPreviewPane->hasSnapshot()) return;
     m_sidebarPreviewProfile = profile;
-    m_sidebarPreviewIcon->setIcon(mac::sfSymbolIcon(m_profiles.iconName(profile), 18.0, m_theme.foreground));
-    m_sidebarPreviewTabs->setUpdatesEnabled(false);
-    m_sidebarPreviewTabs->clear();
-    const QStringList titles = m_profileTabSnapshots.value(profile, QStringList{QStringLiteral("New tab")});
-    for (const QString &title : titles) {
-        auto *item = new QTreeWidgetItem(QStringList() << title);
-        item->setIcon(0, mac::sfSymbolIcon("globe", 12.0, m_theme.muted));
-        m_sidebarPreviewTabs->addTopLevelItem(item);
-    }
-    m_sidebarPreviewTabs->setUpdatesEnabled(true);
+    m_sidebarPreviewPane->setSnapshot(renderProfilePreview(profile, m_sidebarViewport->size()));
 }
 
 void BrowserWindow::setSidebarSwipeOffset(int offset) {
@@ -1286,10 +1673,11 @@ void BrowserWindow::setSidebarSwipeOffset(int offset) {
         m_sidebarStrip->setGeometry(bounds);
         m_sidebarPage->setGeometry(bounds);
         if (m_sidebarPreviewPage) m_sidebarPreviewPage->hide();
+        updatePagerDots();
         return;
     }
     const int direction = m_sidebarSwipeDirection != 0 ? m_sidebarSwipeDirection : (m_sidebarSwipeOffset < 0 ? 1 : -1);
-    updateSidebarPreview(direction);
+    const bool previewAvailable = m_sidebarPreviewPane && m_sidebarPreviewPane->hasSnapshot();
     m_sidebarStrip->setGeometry(direction > 0 ? m_sidebarSwipeOffset : m_sidebarSwipeOffset - width,
                                 0, width * 2, bounds.height());
     if (direction > 0) {
@@ -1299,49 +1687,203 @@ void BrowserWindow::setSidebarSwipeOffset(int offset) {
         if (m_sidebarPreviewPage) m_sidebarPreviewPage->setGeometry(0, 0, width, bounds.height());
         m_sidebarPage->setGeometry(width, 0, width, bounds.height());
     }
-    if (m_sidebarPreviewPage) m_sidebarPreviewPage->show();
+    if (m_sidebarPreviewPage) {
+        if (previewAvailable) {
+            // Parallax: the incoming page lags ~25% behind the live one and
+            // fades in over the first half of the travel.
+            const qreal t = qBound(0.0, qreal(qAbs(m_sidebarSwipeOffset)) / qreal(width), 1.0);
+            const int lag = qRound((1.0 - t) * width * 0.25) * (direction > 0 ? 1 : -1);
+            m_sidebarPreviewPane->setReveal(qMin(1.0, 0.35 + t * 1.3), lag);
+            if (!m_sidebarPreviewPage->isVisible()) m_sidebarPreviewPage->show();
+        } else {
+            // Rubber-banding past the last profile: nothing to show.
+            m_sidebarPreviewPage->hide();
+        }
+    }
+    updatePagerDots();
+}
+
+void BrowserWindow::resetProfileSwipeState() {
+    m_sidebarSwipeActive = false;
+    m_sidebarSwipeSettling = false;
+    m_sidebarSwipeGestureOpen = false;
+    m_sidebarSwipeHapticFired = false;
+    m_sidebarSwipeAxis = 0;
+    m_sidebarSwipeAxisDx = 0;
+    m_sidebarSwipeAxisDy = 0;
+    m_profileSwipeRemainder = 0;
+    m_sidebarSwipeDirection = 0;
+    m_sidebarSwipeSamples.clear();
+    m_sidebarPreviewProfile.clear();
+    if (m_sidebarPreviewPane) m_sidebarPreviewPane->clearSnapshot();
 }
 
 void BrowserWindow::settleSidebarSwipe(bool commit) {
-    if (m_sidebarSwipeSettleTimer) m_sidebarSwipeSettleTimer->stop();
     if (m_sidebarSwipeSettling) return;
     if (m_sidebarSwipeAnim) {
         m_sidebarSwipeAnim->stop();
         m_sidebarSwipeAnim->deleteLater();
         m_sidebarSwipeAnim = nullptr;
     }
-    const int width = m_sidebarWidget ? qMax(160, m_sidebarWidget->width()) : 240;
+    const int width = m_sidebarViewport ? qMax(1, m_sidebarViewport->width()) : 240;
     const int startOffset = m_sidebarSwipeOffset;
-    const int direction = startOffset < 0 ? 1 : -1;
+    const int direction = m_sidebarSwipeDirection != 0 ? m_sidebarSwipeDirection : (startOffset < 0 ? 1 : -1);
     const QStringList list = orderedProfiles();
     const int current = qMax(0, list.indexOf(m_profiles.currentName()));
     const int next = qBound(0, current + direction, list.size() - 1);
     if (commit && (next == current || next < 0 || next >= list.size())) commit = false;
+    if (commit && !(m_sidebarPreviewPane && m_sidebarPreviewPane->hasSnapshot())) updateSidebarPreview(direction);
+    const int endOffset = commit ? (direction > 0 ? -width : width) : 0;
+    const int remaining = qAbs(endOffset - startOffset);
+    if (remaining == 0) {
+        if (commit) {
+            saveSessionForProfile(m_profiles.currentName());
+            m_profiles.setCurrentProfile(list.at(next));
+        }
+        resetProfileSwipeState();
+        setSidebarSwipeOffset(0);
+        return;
+    }
+    // Duration scales with what is left to travel, clamped to 140..260 ms.
+    const int duration = qBound(kProfileSwipeSettleMinMs,
+                                qRound(qreal(remaining) / qreal(width) * kProfileSwipeSettleMaxMs),
+                                kProfileSwipeSettleMaxMs);
     auto *driver = new QVariantAnimation(this);
     m_sidebarSwipeAnim = driver;
     driver->setStartValue(startOffset);
-    driver->setEndValue(commit ? (direction > 0 ? -width : width) : 0);
-    driver->setDuration(commit ? 150 : 105);
-    driver->setEasingCurve(responsiveEaseOut());
+    driver->setEndValue(endOffset);
+    driver->setDuration(duration);
+    driver->setEasingCurve(QEasingCurve::OutCubic);
     m_sidebarSwipeSettling = true;
+    m_sidebarSwipeGestureOpen = false;
     connect(driver, &QVariantAnimation::valueChanged, this, [this](const QVariant &value) {
         setSidebarSwipeOffset(value.toInt());
     });
     connect(driver, &QVariantAnimation::finished, this, [this, driver, commit, list, next] {
         if (m_sidebarSwipeAnim != driver) return;
-        if (commit && next >= 0 && next < list.size()) {
-            m_profiles.setCurrentProfile(list.at(next));
-        }
-        setSidebarSwipeOffset(0);
-        m_sidebarSwipeActive = false;
-        m_sidebarSwipeSettling = false;
-        m_profileSwipeRemainder = 0;
-        m_sidebarSwipeDirection = 0;
-        m_sidebarPreviewProfile.clear();
         m_sidebarSwipeAnim = nullptr;
         driver->deleteLater();
+        // The profile only changes once the settle animation has landed.
+        if (commit && next >= 0 && next < list.size()) {
+            saveSessionForProfile(m_profiles.currentName());
+            m_profiles.setCurrentProfile(list.at(next));
+        }
+        resetProfileSwipeState();
+        setSidebarSwipeOffset(0);
     });
     driver->start();
+}
+
+bool BrowserWindow::handleProfileSwipeWheel(QWheelEvent *wheel) {
+    // Phase-driven trackpad gesture:
+    //   ScrollBegin  -> open a gesture (nothing moves yet)
+    //   ScrollUpdate -> 1:1 horizontal pixelDelta().x() once axis-locked
+    //   ScrollEnd    -> commit (>=30% travel or flick) or cancel
+    // ScrollMomentum and NoScrollPhase (legacy mouse wheels) are ignored and
+    // can never open or move a gesture.
+    const Qt::ScrollPhase phase = wheel->phase();
+    if (phase == Qt::ScrollMomentum || phase == Qt::NoScrollPhase) {
+        // Let vertical momentum keep scrolling the tab tree; swallow only
+        // horizontal momentum so it can't leak into a neighbouring scroller.
+        return m_sidebarSwipeActive && qAbs(wheel->pixelDelta().x()) > qAbs(wheel->pixelDelta().y());
+    }
+    if (m_sidebarSwipeSettling) return m_sidebarSwipeAxis > 0;
+
+    if (phase == Qt::ScrollBegin) {
+        m_sidebarSwipeGestureOpen = true;
+        m_sidebarSwipeAxis = 0;
+        m_sidebarSwipeAxisDx = 0;
+        m_sidebarSwipeAxisDy = 0;
+        m_sidebarSwipeHapticFired = false;
+        m_sidebarSwipeSamples.clear();
+        m_profileSwipeRemainder = 0;
+        m_sidebarSwipeDirection = 0;
+        return false;
+    }
+    if (!m_sidebarSwipeGestureOpen) return false;
+
+    if (phase == Qt::ScrollUpdate) {
+        const QPoint pixel = wheel->pixelDelta();
+        if (m_sidebarSwipeAxis == 0) {
+            m_sidebarSwipeAxisDx += pixel.x();
+            m_sidebarSwipeAxisDy += pixel.y();
+            if (qAbs(m_sidebarSwipeAxisDx) < kProfileSwipeAxisLockPx && qAbs(m_sidebarSwipeAxisDy) < kProfileSwipeAxisLockPx) return false;
+            if (qAbs(m_sidebarSwipeAxisDy) >= qAbs(m_sidebarSwipeAxisDx)) {
+                // Vertical: this gesture belongs to the tab tree.
+                m_sidebarSwipeAxis = -1;
+                return false;
+            }
+            m_sidebarSwipeAxis = 1;
+            m_sidebarSwipeActive = true;
+            m_profileSwipeRemainder = m_sidebarSwipeAxisDx;
+        } else if (m_sidebarSwipeAxis < 0) {
+            return false;
+        } else {
+            m_profileSwipeRemainder += pixel.x();
+        }
+        const qint64 now = nowMs();
+        m_sidebarSwipeSamples.append({now, pixel.x()});
+        while (!m_sidebarSwipeSamples.isEmpty() && now - m_sidebarSwipeSamples.first().ms > kProfileSwipeVelocityWindowMs) {
+            m_sidebarSwipeSamples.removeFirst();
+        }
+
+        const int width = m_sidebarViewport ? qMax(1, m_sidebarViewport->width()) : 240;
+        const int intendedDirection = m_profileSwipeRemainder < 0 ? 1 : (m_profileSwipeRemainder > 0 ? -1 : 0);
+        if (intendedDirection != 0 && intendedDirection != m_sidebarSwipeDirection) {
+            m_sidebarSwipeDirection = intendedDirection;
+            m_sidebarPreviewProfile.clear();
+            if (m_sidebarPreviewPane) m_sidebarPreviewPane->clearSnapshot();
+            m_sidebarSwipeHapticFired = false;
+            updateSidebarPreview(intendedDirection);
+        }
+        const QStringList list = orderedProfiles();
+        const int profileIndex = qMax(0, list.indexOf(m_profiles.currentName()));
+        const int targetIndex = profileIndex + m_sidebarSwipeDirection;
+        const bool hasTarget = m_sidebarSwipeDirection != 0 && targetIndex >= 0 && targetIndex < list.size();
+        int displayed = 0;
+        if (hasTarget) {
+            const int magnitude = qAbs(m_profileSwipeRemainder);
+            // Past a full page the extra travel is rubber-banded so the
+            // preview never overshoots into empty space.
+            displayed = magnitude <= width ? magnitude : width + rubberBand(magnitude - width, width / 8);
+            displayed = qMin(displayed, width);
+            displayed *= (m_profileSwipeRemainder < 0 ? -1 : 1);
+            const int threshold = qRound(width * kProfileSwipeCommitFraction);
+            if (!m_sidebarSwipeHapticFired && magnitude >= threshold) {
+                m_sidebarSwipeHapticFired = true;
+                mac::performHapticFeedback();
+            }
+        } else {
+            // First/last profile: resist, never wrap.
+            displayed = rubberBand(m_profileSwipeRemainder, width / 4);
+        }
+        setSidebarSwipeOffset(displayed);
+        return true;
+    }
+
+    if (phase == Qt::ScrollEnd) {
+        m_sidebarSwipeGestureOpen = false;
+        if (m_sidebarSwipeAxis <= 0 || !m_sidebarSwipeActive) {
+            resetProfileSwipeState();
+            return false;
+        }
+        const int width = m_sidebarViewport ? qMax(1, m_sidebarViewport->width()) : 240;
+        const int magnitude = qAbs(m_profileSwipeRemainder);
+        // Velocity from the recent, timestamped samples (px/s).
+        double velocity = 0.0;
+        if (m_sidebarSwipeSamples.size() >= 2) {
+            const qint64 span = m_sidebarSwipeSamples.last().ms - m_sidebarSwipeSamples.first().ms;
+            int sum = 0;
+            for (const SwipeSample &s : m_sidebarSwipeSamples) sum += s.dx;
+            if (span > 0) velocity = sum * 1000.0 / double(span);
+        }
+        const bool sameDirection = (velocity < 0 && m_profileSwipeRemainder < 0) || (velocity > 0 && m_profileSwipeRemainder > 0);
+        const bool flick = sameDirection && qAbs(velocity) >= kProfileSwipeFlickVelocity && magnitude >= kProfileSwipeMinFlickTravel;
+        const bool commit = magnitude >= qRound(width * kProfileSwipeCommitFraction) || flick;
+        settleSidebarSwipe(commit);
+        return true;
+    }
+    return false;
 }
 
 void BrowserWindow::animateProfileSwitcher(int direction) {
@@ -1596,6 +2138,33 @@ void BrowserWindow::saveSessionForProfile(const QString &profileName) const {
     QSettings().setValue(QStringLiteral("sessions/%1/urls").arg(profileName), values);
 }
 
+void BrowserWindow::showArchiveMenu(QWidget *anchor) {
+    QMenu menu(this);
+    bool any = false;
+    for (const ClosedTab &tab : m_closedTabs) {
+        if (!tab.url.isValid() || tab.url.isEmpty()) continue;
+        any = true;
+        const QString title = tab.title.isEmpty() ? tab.url.toString() : tab.title;
+        const QUrl url = tab.url;
+        const QPixmap favicon = m_favicons ? m_favicons->cached(url) : QPixmap();
+        const QIcon icon = favicon.isNull() ? mac::sfSymbolIcon("globe", 13.0, m_theme.muted) : QIcon(favicon);
+        menu.addAction(icon, QFontMetrics(menu.font()).elidedText(title, Qt::ElideRight, 320), this, [this, url] {
+            if (m_tabTree) m_tabTree->reopenUrl(url);
+            refreshFloatingOmniboxItems();
+        });
+    }
+    if (!any) menu.addAction(QStringLiteral("No archived tabs"))->setEnabled(false);
+    else {
+        menu.addSeparator();
+        menu.addAction(QStringLiteral("Clear Archive"), this, [this] {
+            m_closedTabs.clear();
+            refreshFloatingOmniboxItems();
+        });
+    }
+    const QPoint pos = anchor ? anchor->mapToGlobal(QPoint(0, anchor->height() + 4)) : QCursor::pos();
+    menu.exec(pos);
+}
+
 void BrowserWindow::reopenLastClosedTab() {
     while (!m_closedTabs.isEmpty()) {
         const ClosedTab tab = m_closedTabs.takeFirst();
@@ -1753,6 +2322,7 @@ void BrowserWindow::setupUi() {
     auto *stackHost = new QWidget(m_splitter);
     stackHost->setObjectName("StackHost");
     stackHost->setStyleSheet("QWidget#StackHost { background: transparent; }");
+    stackHost->setAttribute(Qt::WA_TranslucentBackground);
     auto *hostLayout = new QVBoxLayout(stackHost);
     hostLayout->setContentsMargins(ui::metrics::stackHostMargins(/*sidebarVisible=*/true));
     hostLayout->setSpacing(0);
@@ -1772,24 +2342,44 @@ void BrowserWindow::setupUi() {
     containerLayout->setContentsMargins(0, 0, 0, 0);
     containerLayout->setSpacing(0);
 
-    m_topbar = buildTopbar(m_webContainer);
-    containerLayout->addWidget(m_topbar);
+    // Toolbar row + hairline live inside one host whose fixed height is the
+    // only thing that animates when the toolbar collapses (see
+    // ui::CollapsingToolbarHost).
+    m_toolbarHost = new ui::CollapsingToolbarHost(m_webContainer);
+    m_topbar = buildTopbar(m_toolbarHost);
 
     // Fixed thin hairline between toolbar and the page.
-    m_topSeparator = new QWidget(m_webContainer);
+    m_topSeparator = new QWidget(m_toolbarHost);
     m_topSeparator->setObjectName("WebTopSeparator");
     m_topSeparator->setFixedHeight(1);
     m_topSeparator->setAttribute(Qt::WA_TransparentForMouseEvents);
-    m_topSeparator->setStyleSheet(
-        "QWidget#WebTopSeparator { background: rgba(255,255,255,0.08); }");
-    containerLayout->addWidget(m_topSeparator);
+    m_topSeparator->setStyleSheet(QSettings().value("ui/useLiquidGlass", true).toBool()
+                                      ? QStringLiteral("QWidget#WebTopSeparator { background: transparent; }")
+                                      : QStringLiteral("QWidget#WebTopSeparator { background: rgba(255,255,255,0.08); }"));
+    m_toolbarHost->setRow(m_topbar, m_topSeparator);
+    containerLayout->addWidget(m_toolbarHost);
+
+    m_toolbarGrabber = new ui::ToolbarGrabber(this);
+    m_toolbarGrabber->setPillColor(m_theme.foreground);
+    connect(m_toolbarGrabber, &ui::ToolbarGrabber::hovered, this, &BrowserWindow::expandToolbar);
 
     m_stack = new QWidget(m_webContainer);
     auto *stackLayout = new QStackedLayout(m_stack);
     stackLayout->setContentsMargins(0, 0, 0, 0);
     containerLayout->addWidget(m_stack, 1);
 
-    m_sidebarViewport = new QWidget(sidebar);
+    // Translucent rounded panel that hosts the tab tree and, pinned below
+    // it, the profile avatar + pager dots.
+    auto *sidebarPanel = new ui::SidebarPanel(m_theme, sidebar);
+    sidebarPanel->setObjectName("SidebarPanel");
+    sidebarPanel->setRadius(ui::metrics::SidebarPanelRadius);
+    m_sidebarContent = sidebarPanel;
+    auto *panelLayout = new QVBoxLayout(sidebarPanel);
+    panelLayout->setContentsMargins(ui::metrics::SidebarPanelPadding, ui::metrics::SidebarPanelPadding,
+                                    ui::metrics::SidebarPanelPadding, ui::metrics::SidebarPanelPadding);
+    panelLayout->setSpacing(0);
+
+    m_sidebarViewport = new QWidget(sidebarPanel);
     m_sidebarViewport->setObjectName("SidebarViewport");
     m_sidebarViewport->setAttribute(Qt::WA_TranslucentBackground);
     m_sidebarViewport->setStyleSheet("QWidget#SidebarViewport { background: transparent; }");
@@ -1817,42 +2407,25 @@ void BrowserWindow::setupUi() {
     connect(m_tabTree, &TabTree::tabSplitPreviewRequested, this, &BrowserWindow::showSplitPreview);
     connect(m_tabTree, &TabTree::tabSplitPreviewEnded, this, &BrowserWindow::hideSplitPreview);
     connect(m_tabTree, &TabTree::lastTabCloseRequested, this, &BrowserWindow::close);
+    {
+        auto *addTabRow = new ui::SidebarActionRow(m_theme, mac::sfSymbolIcon("plus", 14.0, m_theme.foreground),
+                                                    QStringLiteral("Add Tab"), m_sidebarPage);
+        connect(addTabRow, &QToolButton::clicked, this, [this] { openBlankTabForLocationEntry(); });
+        pageLayout->addWidget(addTabRow, 0);
+    }
     pageLayout->addWidget(m_tabTree->widget(), 1);
-    m_profileSwitcher = buildProfileSwitcher(m_sidebarPage);
-    pageLayout->addWidget(m_profileSwitcher, 0, Qt::AlignLeft | Qt::AlignBottom);
-    sideLayout->addWidget(m_sidebarViewport, 1);
+    panelLayout->addWidget(m_sidebarViewport, 1);
+    m_profileSwitcher = buildProfileSwitcher(sidebarPanel);
+    panelLayout->addWidget(m_profileSwitcher, 0);
+    sideLayout->addWidget(sidebarPanel, 1);
     m_sidebarPreviewPage = new QWidget(m_sidebarStrip);
     m_sidebarPreviewPage->setObjectName("SidebarPreviewPage");
     m_sidebarPreviewPage->setAttribute(Qt::WA_TranslucentBackground);
     m_sidebarPreviewPage->setStyleSheet("QWidget#SidebarPreviewPage { background: transparent; }");
     auto *previewLayout = new QVBoxLayout(m_sidebarPreviewPage);
     previewLayout->setContentsMargins(0, 0, 0, 0);
-    m_sidebarPreviewTabs = new QTreeWidget(m_sidebarPreviewPage);
-    m_sidebarPreviewTabs->setHeaderHidden(true);
-    m_sidebarPreviewTabs->setRootIsDecorated(false);
-    m_sidebarPreviewTabs->setFrameShape(QFrame::NoFrame);
-    m_sidebarPreviewTabs->setFocusPolicy(Qt::NoFocus);
-    m_sidebarPreviewTabs->setSelectionMode(QAbstractItemView::NoSelection);
-    m_sidebarPreviewTabs->setIconSize(QSize(16, 16));
-    m_sidebarPreviewTabs->setUniformRowHeights(true);
-    m_sidebarPreviewTabs->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-    m_sidebarPreviewTabs->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_sidebarPreviewTabs->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_sidebarPreviewTabs->setAttribute(Qt::WA_TranslucentBackground);
-    m_sidebarPreviewTabs->viewport()->setAttribute(Qt::WA_TranslucentBackground);
-    m_sidebarPreviewTabs->setStyleSheet(QString(
-        "QTreeWidget { background: transparent; border: none; color: %1; outline: 0; }"
-        "QTreeWidget::item { padding: 4px 28px 4px 6px; border: none; background: transparent; color: %1; selection-background-color: transparent; }")
-        .arg(m_theme.foreground.name()));
-    previewLayout->addWidget(m_sidebarPreviewTabs, 1);
-    m_sidebarPreviewIcon = new QToolButton(m_sidebarPreviewPage);
-    m_sidebarPreviewIcon->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    m_sidebarPreviewIcon->setIconSize(QSize(19, 19));
-    m_sidebarPreviewIcon->setMinimumSize(32, 32);
-    m_sidebarPreviewIcon->setMaximumSize(32, 32);
-    m_sidebarPreviewIcon->setEnabled(false);
-    m_sidebarPreviewIcon->setStyleSheet("QToolButton { background: transparent; border: none; }");
-    previewLayout->addWidget(m_sidebarPreviewIcon, 0, Qt::AlignLeft | Qt::AlignBottom);
+    m_sidebarPreviewPane = new ui::SidebarPreviewPane(m_sidebarPreviewPage);
+    previewLayout->addWidget(m_sidebarPreviewPane, 1);
     m_sidebarPreviewPage->hide();
     m_sidebarPage->setGeometry(QRect(QPoint(0, 0), m_sidebarViewport->size()));
     m_sidebarPreviewPage->setGeometry(QRect(QPoint(m_sidebarViewport->width(), 0), m_sidebarViewport->size()));
@@ -1875,20 +2448,14 @@ void BrowserWindow::setupUi() {
         hostLayout->setContentsMargins(ui::metrics::stackHostMargins(sidebarVisible));
     };
     m_sidebar = new SidebarController(this, m_splitter, applyStackHostInset, this);
-    m_sidebar->setSidebarContent(m_sidebarViewport, sideLayout);
-    m_sidebarSwipeSettleTimer = new QTimer(this);
-    m_sidebarSwipeSettleTimer->setSingleShot(true);
-    m_sidebarSwipeSettleTimer->setInterval(180);
-    connect(m_sidebarSwipeSettleTimer, &QTimer::timeout, this, [this] {
-        if (!m_sidebarSwipeActive) return;
-        settleSidebarSwipe(qAbs(m_profileSwipeRemainder) >= qMax(160, m_sidebarWidget ? m_sidebarWidget->width() : 240) / 3);
-    });
+    m_sidebar->setSidebarContent(m_sidebarContent, sideLayout);
 
     if (m_addrInSidebar) {
         // Drop the toolbar entirely; the address pill + nav buttons live in
         // the sidebar instead.
         if (m_topbar) m_topbar->hide();
         if (m_topSeparator) m_topSeparator->hide();
+        setToolbarRowVisible(false);
 
         // Sidebar already has 52px top inset for the traffic-light band; we
         // re-use that band by placing nav buttons inside it (right-aligned),
@@ -2048,10 +2615,12 @@ void BrowserWindow::setupUi() {
     connect(&m_profiles, &ProfileStore::currentProfileChanged, this, [this] {
         m_tabTree->rebuildForProfile(restoredSessionForProfile(m_profiles.currentName()));
         updateProfileSwitcher();
+        updateCurrentProfileSnapshot();
     });
     connect(&m_profiles, &ProfileStore::profilesChanged, this, [this] {
         updateProfileSwitcher();
     });
+    updateCurrentProfileSnapshot();
 }
 
 void BrowserWindow::setupActions() {
@@ -2064,6 +2633,7 @@ void BrowserWindow::setupActions() {
             if (!s.isEmpty() && s != "about:blank" && !s.startsWith("data:")) current = s;
         }
         refreshFloatingOmniboxItems();
+        expandToolbar();
         m_floatingOmnibox->showFor(m_stack, current);
     };
     auto toggleSidebar = [this] {
@@ -2480,72 +3050,28 @@ bool BrowserWindow::eventFilter(QObject *obj, QEvent *ev) {
             return true;
         }
     }
-    if (obj == m_sidebarViewport && ev->type() == QEvent::Resize) {
-        setSidebarSwipeOffset(0);
-        if (m_sidebarPreviewTabs) m_sidebarPreviewTabs->setColumnWidth(0, m_sidebarViewport->width());
+    if ((obj == m_addrWrap || obj == m_webContainer)
+        && (ev->type() == QEvent::Move || ev->type() == QEvent::Resize || ev->type() == QEvent::Show || ev->type() == QEvent::Hide)) {
+        // Deferred: the layout pass that moved us may still be running.
+        QTimer::singleShot(0, this, [this] { syncAddressPillGlass(); });
     }
-    if (ev->type() == QEvent::Wheel && m_sidebarWidget && m_sidebarWidget->isVisible() && !m_sidebarSwipeSettling) {
+    if (obj == m_sidebarViewport && ev->type() == QEvent::Resize) {
+        if (m_sidebarSwipeAnim) {
+            m_sidebarSwipeAnim->stop();
+            m_sidebarSwipeAnim->deleteLater();
+            m_sidebarSwipeAnim = nullptr;
+        }
+        resetProfileSwipeState();
+        setSidebarSwipeOffset(0);
+    }
+    if (ev->type() == QEvent::Wheel && m_sidebarWidget && m_sidebarWidget->isVisible()) {
         const QPoint global = QCursor::pos();
         const QRect sidebarRect(m_sidebarWidget->mapToGlobal(QPoint(0, 0)), m_sidebarWidget->size());
-        if (sidebarRect.contains(global)) {
-            auto *wheel = static_cast<QWheelEvent *>(ev);
-            const QPoint pixel = wheel->pixelDelta();
-            const QPoint angle = wheel->angleDelta();
-            const bool highResolutionTrackpad = !pixel.isNull();
-            if (wheel->phase() == Qt::ScrollBegin && !m_sidebarSwipeSettling) {
-                if (m_sidebarSwipeSettleTimer) m_sidebarSwipeSettleTimer->stop();
-                m_profileSwipeRemainder = m_sidebarSwipeOffset;
-            }
-            if (wheel->phase() == Qt::ScrollEnd && m_sidebarSwipeActive) {
-                settleSidebarSwipe(qAbs(m_sidebarSwipeOffset) >= qMax(160, m_sidebarWidget->width()) / 4);
-                return true;
-            }
-            const int horizontal = pixel.x() != 0 ? pixel.x() : angle.x() / 2;
-            const int vertical = pixel.y() != 0 ? pixel.y() : angle.y() / 2;
-            if (qAbs(horizontal) > qAbs(vertical) && horizontal != 0) {
-                const int width = qMax(160, m_sidebarWidget->width());
-                if (m_sidebarSwipeSettleTimer) m_sidebarSwipeSettleTimer->stop();
-                const int intended = m_profileSwipeRemainder + horizontal;
-                if (m_sidebarSwipeDirection != 0 && ((m_sidebarSwipeDirection > 0 && intended > 0) || (m_sidebarSwipeDirection < 0 && intended < 0))) {
-                    m_profileSwipeRemainder = 0;
-                    setSidebarSwipeOffset(0);
-                    m_sidebarSwipeActive = true;
-                    return true;
-                }
-                const int intendedDirection = m_sidebarSwipeDirection != 0 ? m_sidebarSwipeDirection : (intended < 0 ? 1 : -1);
-                const QStringList list = orderedProfiles();
-                const int profileIndex = qMax(0, list.indexOf(m_profiles.currentName()));
-                const int targetIndex = profileIndex + intendedDirection;
-                if (targetIndex < 0 || targetIndex >= list.size()) {
-                    m_profileSwipeRemainder = 0;
-                    m_sidebarSwipeDirection = 0;
-                    setSidebarSwipeOffset(0);
-                    m_sidebarSwipeActive = false;
-                    m_sidebarPreviewProfile.clear();
-                    return true;
-                }
-                m_sidebarSwipeDirection = intendedDirection;
-                m_profileSwipeRemainder = qBound(-width, intended, width);
-                const int sign = m_profileSwipeRemainder < 0 ? -1 : 1;
-                const int magnitude = qAbs(m_profileSwipeRemainder);
-                const int displayed = magnitude <= width * 2 / 3
-                    ? magnitude
-                    : width * 2 / 3 + (magnitude - width * 2 / 3) / 4;
-                setSidebarSwipeOffset(sign * displayed);
-                m_sidebarSwipeActive = true;
-                if (magnitude >= width * 3 / 4) {
-                    settleSidebarSwipe(true);
-                } else if (wheel->phase() == Qt::ScrollEnd) {
-                    settleSidebarSwipe(magnitude >= width / 4);
-                } else if (!highResolutionTrackpad && m_sidebarSwipeSettleTimer) {
-                    m_sidebarSwipeSettleTimer->start(180);
-                }
-                return true;
-            }
-            if (m_sidebarSwipeActive && wheel->phase() == Qt::ScrollEnd) {
-                settleSidebarSwipe(qAbs(m_profileSwipeRemainder) >= qMax(160, m_sidebarWidget->width()) / 3);
-                return true;
-            }
+        // Only wheel events delivered to widgets inside the sidebar take
+        // part; the cursor check guards against stale positions.
+        const bool inSidebar = eventWidget && (eventWidget == m_sidebarWidget || m_sidebarWidget->isAncestorOf(eventWidget));
+        if (inSidebar && sidebarRect.contains(global)) {
+            if (handleProfileSwipeWheel(static_cast<QWheelEvent *>(ev))) return true;
         }
     }
     return QMainWindow::eventFilter(obj, ev);
@@ -2555,9 +3081,14 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
     if (!m_topbar || m_addrInSidebar) return;
 
     const bool hasColor = pageColor.isValid() && pageColor.alpha() >= 16;
-    const QString pageScheme = QSettings().value("ui/pageColorScheme", QStringLiteral("system")).toString();
-    const QColor fallbackBg = pageScheme == QStringLiteral("light") ? QColor(245, 245, 247, 235) : QColor(28, 28, 30, 235);
-    const QColor bg = hasColor ? pageColor : fallbackBg;
+    const QColor base = m_theme.background.lightness() < 128 ? QColor(24, 24, 27, 235) : QColor(245, 245, 247, 235);
+    auto blend = [](const QColor &from, const QColor &to, double t) {
+        return QColor(qRound(from.red() + (to.red() - from.red()) * t),
+                      qRound(from.green() + (to.green() - from.green()) * t),
+                      qRound(from.blue() + (to.blue() - from.blue()) * t),
+                      from.alpha());
+    };
+    const QColor bg = hasColor ? blend(base, pageColor, 0.22) : base;
 
     // Skip the (relatively expensive) re-rasterise of 6 SF Symbols + 5
     // button stylesheet resets when nothing actually changed — common on
@@ -2620,6 +3151,14 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
     setButtonSymbolSmooth(m_reloadBtn, currentView() && currentView()->isLoading() && !blankTab ? "xmark" : "arrow.clockwise", symPt, canReload ? fg : disabledFg);
     reSymbol(m_newTabBtn,  "plus", symPt);
     reSymbol(m_extensionsBtn, "puzzlepiece.extension", 16.0);
+    reSymbol(m_downloadsBtn, "arrow.down.circle", 16.0);
+    if (m_downloadsBtn) {
+        QColor track = fg;
+        track.setAlpha(50);
+        m_downloadsBtn->setTrackColor(track);
+        m_downloadsBtn->setBadgeTextColor(dark ? QColor(20, 20, 22) : QColor(250, 250, 252));
+    }
+    if (m_toolbarGrabber) m_toolbarGrabber->setPillColor(fg);
     reSymbol(m_settingsBtn,"gearshape", symPt);
     reSymbol(m_pillMenuBtn,"ellipsis.circle", m_addrInSidebar ? 14.0 : 12.0);
 
@@ -2629,13 +3168,13 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
         "QToolButton {"
         "  background: transparent;"
         "  border: none;"
-        "  border-radius: 6px;"
+        "  border-radius: 16px;"
         "  padding: 0px;"
         "}"
         "QToolButton:hover { background: %1; }"
         "QToolButton:pressed { background: %2; }")
         .arg(rgba(hover), rgba(pressed));
-    for (QToolButton *btn : {m_sidebarBtn, m_backBtn, m_fwdBtn, m_reloadBtn, m_newTabBtn, m_extensionsBtn, m_settingsBtn}) {
+    for (QToolButton *btn : {m_sidebarBtn, m_backBtn, m_fwdBtn, m_reloadBtn, m_newTabBtn, m_extensionsBtn, static_cast<QToolButton *>(m_downloadsBtn), m_settingsBtn}) {
         if (btn) btn->setStyleSheet(btnQss);
     }
     if (m_pillMenuBtn) {
@@ -2647,11 +3186,14 @@ void BrowserWindow::applyChromeForPageColor(const QColor &pageColor) {
     }
 
     if (auto *pill = qobject_cast<ui::AddrPill *>(m_addrWrap)) {
-        pill->setIdleColor(bg);
+        pill->setIdleColor(dark ? QColor(255, 255, 255, 30) : QColor(0, 0, 0, 18));
         pill->setHoverColor(hover);
         QColor loadTint = fg;
         loadTint.setAlpha(220);
         pill->setLoadColor(loadTint);
+        QColor focus = fg;
+        focus.setAlpha(dark ? 90 : 120);
+        pill->setFocusColor(focus);
     }
 
     if (m_addressBar) {

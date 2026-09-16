@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ChromeWidgets.hpp"
 #include "Theme.hpp"
 
 class QLabel;
@@ -11,6 +12,8 @@ namespace ui {
 
 struct TopbarWidgets {
     QWidget *bar = nullptr;
+    ToolbarCluster *navCluster = nullptr;
+    ToolbarCluster *actionsCluster = nullptr;
     QToolButton *sidebar = nullptr;
     QToolButton *back = nullptr;
     QToolButton *forward = nullptr;

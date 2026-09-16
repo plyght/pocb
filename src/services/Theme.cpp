@@ -1,6 +1,8 @@
 #include "Theme.hpp"
 
 #include <QFile>
+#include <QGuiApplication>
+#include <QStyleHints>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
@@ -106,6 +108,10 @@ ThemeFile makeBuiltin(ThemeVariant variant) {
 
 ThemeFile ThemeFile::dark() { return makeBuiltin(ThemeVariant::Dark); }
 ThemeFile ThemeFile::light() { return makeBuiltin(ThemeVariant::Light); }
+ThemeFile ThemeFile::system() {
+    const bool light = QGuiApplication::instance() && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Light;
+    return makeBuiltin(light ? ThemeVariant::Light : ThemeVariant::Dark);
+}
 
 std::optional<ThemeFile> ThemeFile::fromJsonFile(const QString &path) {
     QFile f(path);

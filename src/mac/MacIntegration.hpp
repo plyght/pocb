@@ -41,12 +41,19 @@ enum class VibrancyMaterial { WindowBackground = 0, Sidebar = 1, HeaderView = 2,
 // NSVisualEffectView as the bottom sibling of the content view. No-op off macOS.
 void enableWindowVibrancy(QWidget *window, VibrancyMaterial material = VibrancyMaterial::WindowBackground);
 
+void setWindowAppearanceDark(QWidget *window, bool dark);
+
 // Inserts an NSVisualEffectView as the bottom subview of `widget`'s NSView
 // (sized to fill, autoresizing). `widget` should paint transparently
 // (Qt::WA_TranslucentBackground + transparent stylesheet) so the blur is visible.
 void applyVibrancyBehind(QWidget *widget, VibrancyMaterial material = VibrancyMaterial::Sidebar);
 
+// Stacks a Liquid Glass view at `widget`'s frame directly beneath the
+// nearest native ancestor's NSView. `widget` stays an alien Qt child; the
+// Qt painting over that area must be transparent for the glass to show.
+// Call again after the widget moves/resizes to resync the frame.
 void applyLiquidGlassBehind(QWidget *widget, double cornerRadius);
+void hideLiquidGlassBehind(QWidget *widget);
 void applyLiquidGlassSiblingBehind(QWidget *widget, double cornerRadius);
 void hideLiquidGlassSibling(QWidget *widget);
 
@@ -57,6 +64,10 @@ void hideLiquidGlassSibling(QWidget *widget);
 // the vibrancy follows the rounded shape (not the square frame). Native
 // NSWindow shadow is enabled so the shadow tracks the rounded silhouette.
 void makeFloatingVibrantPanel(QWidget *window, VibrancyMaterial material, double cornerRadius);
+
+// Same as makeFloatingVibrantPanel but backed by Liquid Glass
+// (NSGlassEffectView on macOS 26+, NSVisualEffectView fallback earlier).
+void makeFloatingGlassPanel(QWidget *window, double cornerRadius);
 
 // Configure a top-level QWidget as a transparent rounded floating panel
 // without adding AppKit vibrancy. Qt's own translucent painting remains

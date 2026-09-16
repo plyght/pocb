@@ -8,13 +8,18 @@
 #include <QHash>
 #include <QIcon>
 #include <QList>
+#include <QMetaObject>
+#include <QPixmap>
 #include <QPoint>
+#include <QPointer>
 #include <QStringList>
 #include <QMainWindow>
 #include <QUrl>
+#include <QVariant>
 #include <functional>
 
 class AddressBarController;
+class DownloadsPopover;
 class SidebarController;
 class TabTree;
 class FloatingOmnibox;
@@ -36,6 +41,16 @@ class QTreeWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
 class WebView;
+namespace ui {
+class CollapsingToolbarHost;
+class DownloadsButton;
+class PagerDots;
+class ProfileAvatarButton;
+class SidebarPreviewPane;
+class ToastWidget;
+class ToolbarCluster;
+class ToolbarGrabber;
+}
 
 class BrowserWindow final : public QMainWindow {
     Q_OBJECT
@@ -48,6 +63,17 @@ public:
     void extensionSelectView(WebView *view);
     void extensionCloseView(WebView *view);
     void extensionSetAction(const QString &key, const QString &label, const QIcon &icon, std::function<void(QWidget *)> handler);
+
+    // Downloads button badge: activeCount <= 0 clears it; progress is the
+    // aggregate 0..1 (negative = indeterminate).
+    void showDownloadsBadge(int activeCount, double progress);
+    // Liquid Glass toast, top-right under the toolbar, auto-dismisses after
+    // 3.5 s. Clicking it emits toastClicked().
+    void showToast(const QString &title, const QString &subtitle, const QIcon &icon);
+
+signals:
+    void downloadsRequested();
+    void toastClicked();
 
 protected:
     void showEvent(QShowEvent *e) override;
@@ -66,6 +92,7 @@ private:
     WebView *currentView() const;
     void setupUi();
     void setupActions();
+    void setupIntegrations();
     QWidget *buildTopbar(QWidget *parent);
     QWidget *buildProfileSwitcher(QWidget *parent);
     void updateProfileSwitcher();
@@ -76,6 +103,19 @@ private:
     QStringList orderedProfiles() const;
     void updateCurrentProfileSnapshot();
     void updateSidebarPreview(int direction);
+    QPixmap renderProfilePreview(const QString &profile, const QSize &size) const;
+    bool handleProfileSwipeWheel(QWheelEvent *wheel);
+    void resetProfileSwipeState();
+    void updatePagerDots();
+    // Collapsing toolbar.
+    void setToolbarCollapsed(bool collapsed, bool animated = true);
+    void expandToolbar();
+    void handlePageScroll(const QVariant &body);
+    void observeScrollFor(WebView *view);
+    void positionToolbarGrabber();
+    void syncAddressPillGlass();
+    void positionToast();
+    void setToolbarRowVisible(bool visible);
     void showProfileMenu();
     void showExtensionsMenu();
     void showCopiedLinkPopup();
@@ -85,6 +125,7 @@ private:
     QList<QUrl> restoredSessionForProfile(const QString &profileName) const;
     void saveSessionForProfile(const QString &profileName) const;
     void reopenLastClosedTab();
+    void showArchiveMenu(QWidget *anchor);
     void detachTabToWindow(WebView *view, const QUrl &url, const QPoint &globalPos);
     void splitTabs(WebView *first, WebView *second, const QPoint &globalPos);
     void showSplitPreview(WebView *dragged, WebView *target, const QPoint &globalPos);
@@ -126,18 +167,50 @@ private:
     QToolButton *m_reloadBtn = nullptr;
     QToolButton *m_settingsBtn = nullptr;
     QToolButton *m_newTabBtn = nullptr;
+    ui::ToolbarCluster *m_toolbarActions = nullptr;
+    QList<ui::ToolbarCluster *> m_toolbarClusters;
     QToolButton *m_extensionsBtn = nullptr;
+    ui::DownloadsButton *m_downloadsBtn = nullptr;
+    DownloadsPopover *m_downloadsPopover = nullptr;
+    QString m_lastFinishedDownload;
     QToolButton *m_profileBtn = nullptr;
+    ui::ProfileAvatarButton *m_profileAvatar = nullptr;
+    ui::PagerDots *m_pagerDots = nullptr;
     QWidget *m_profileSwitcher = nullptr;
     QPropertyAnimation *m_profileAnim = nullptr;
     QVariantAnimation *m_sidebarSwipeAnim = nullptr;
-    QTimer *m_sidebarSwipeSettleTimer = nullptr;
+    // Profile swipe gesture state (strictly phase driven, see
+    // handleProfileSwipeWheel). m_profileSwipeRemainder is the raw,
+    // unclamped horizontal travel; m_sidebarSwipeOffset is what is drawn.
     int m_profileSwipeRemainder = 0;
     int m_sidebarSwipeOffset = 0;
     int m_sidebarSwipeDirection = 0;
     bool m_sidebarSwipeActive = false;
     bool m_sidebarSwipeSettling = false;
+    bool m_sidebarSwipeGestureOpen = false;
+    bool m_sidebarSwipeHapticFired = false;
+    int m_sidebarSwipeAxis = 0;  // 0 undecided, +1 horizontal, -1 vertical
+    int m_sidebarSwipeAxisDx = 0;
+    int m_sidebarSwipeAxisDy = 0;
+    struct SwipeSample {
+        qint64 ms;
+        int dx;
+    };
+    QList<SwipeSample> m_sidebarSwipeSamples;
     QString m_sidebarPreviewProfile;
+    ui::SidebarPreviewPane *m_sidebarPreviewPane = nullptr;
+    // Collapsing toolbar state.
+    ui::CollapsingToolbarHost *m_toolbarHost = nullptr;
+    ui::ToolbarGrabber *m_toolbarGrabber = nullptr;
+    QVariantAnimation *m_toolbarAnim = nullptr;
+    QMetaObject::Connection m_scrollObserverConn;
+    QMetaObject::Connection m_navigationExpandConn;
+    QPointer<WebView> m_scrollObservedView;
+    bool m_toolbarCollapsed = false;
+    bool m_toolbarRowAvailable = true;
+    bool m_collapseToolbarOnScroll = true;
+    double m_scrollDownAccum = 0.0;
+    ui::ToastWidget *m_toast = nullptr;
     QHash<QString, QStringList> m_profileTabSnapshots;
     QHash<QString, QToolButton *> m_extensionActionButtons;
     QHash<QString, std::function<void(QWidget *)>> m_extensionActionHandlers;
@@ -153,8 +226,7 @@ private:
     QWidget *m_sidebarStrip = nullptr;
     QWidget *m_sidebarPage = nullptr;
     QWidget *m_sidebarPreviewPage = nullptr;
-    QTreeWidget *m_sidebarPreviewTabs = nullptr;
-    QToolButton *m_sidebarPreviewIcon = nullptr;
+    QWidget *m_sidebarContent = nullptr;
     QWidget *m_sidebarHeader = nullptr;
     bool m_addrInSidebar = false;
     QColor m_lastAppliedChrome;

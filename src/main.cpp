@@ -1,7 +1,9 @@
 #include "BrowserWindow.hpp"
+#include "DownloadManager.hpp"
 #include "GlobalHotkeys.hpp"
 #include "LittleWindow.hpp"
 #include "MacIntegration.hpp"
+#include "PasswordManager.hpp"
 
 #include <QApplication>
 #include <QEvent>
@@ -47,6 +49,8 @@ int main(int argc, char *argv[]) {
     QApplication::setApplicationName("pocb");
     QApplication::setOrganizationName("plyght");
     QApplication::setApplicationDisplayName("pocb");
+    DownloadManager::instance();
+    PasswordManager::instance();
     mac::installForegroundApplicationTracker();
     app.setQuitOnLastWindowClosed(false);
 

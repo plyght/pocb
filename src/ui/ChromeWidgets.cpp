@@ -2,9 +2,13 @@
 
 #include <QEasingCurve>
 #include <QEnterEvent>
+#include <QEvent>
+#include <QFont>
+#include <QFontMetrics>
 #include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPen>
 #include <QVariantAnimation>
 
 namespace ui {
@@ -55,22 +59,69 @@ void ChromeBar::setBackgroundColor(const QColor &c, bool animate) {
     m_anim->start();
 }
 
+void ChromeBar::setGlassCutout(QWidget *child, qreal radius) {
+    if (m_cutout) m_cutout->removeEventFilter(this);
+    m_cutout = child;
+    m_cutoutRadius = radius;
+    if (m_cutout) m_cutout->installEventFilter(this);
+    update();
+}
+
+bool ChromeBar::eventFilter(QObject *watched, QEvent *event) {
+    if (watched == m_cutout) {
+        switch (event->type()) {
+        case QEvent::Move:
+        case QEvent::Resize:
+        case QEvent::Show:
+        case QEvent::Hide:
+            update();
+            break;
+        default:
+            break;
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
 void ChromeBar::paintEvent(QPaintEvent *) {
+    if (m_glassBacked) return;
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
-    if (m_topCornerRadius <= 0) {
-        p.fillRect(rect(), m_bg);
-        return;
-    }
 
     QPainterPath path;
-    path.setFillRule(Qt::WindingFill);
     const QRectF r(rect());
-    path.addRoundedRect(r, m_topCornerRadius, m_topCornerRadius);
-    path.addRect(QRectF(r.left(), r.top() + m_topCornerRadius, r.width(), r.height() - m_topCornerRadius));
-    if (!m_roundTopLeft) path.addRect(QRectF(r.left(), r.top(), m_topCornerRadius, m_topCornerRadius));
-    if (!m_roundTopRight) path.addRect(QRectF(r.right() - m_topCornerRadius, r.top(), m_topCornerRadius, m_topCornerRadius));
+    if (m_topCornerRadius <= 0) {
+        path.addRect(r);
+    } else {
+        path.setFillRule(Qt::WindingFill);
+        path.addRoundedRect(r, m_topCornerRadius, m_topCornerRadius);
+        path.addRect(QRectF(r.left(), r.top() + m_topCornerRadius, r.width(), r.height() - m_topCornerRadius));
+        if (!m_roundTopLeft) path.addRect(QRectF(r.left(), r.top(), m_topCornerRadius, m_topCornerRadius));
+        if (!m_roundTopRight) path.addRect(QRectF(r.right() - m_topCornerRadius, r.top(), m_topCornerRadius, m_topCornerRadius));
+        path = path.simplified();
+    }
+    if (m_cutout && m_cutout->isVisible()) {
+        QPainterPath hole;
+        hole.addRoundedRect(QRectF(m_cutout->geometry()), m_cutoutRadius, m_cutoutRadius);
+        path = path.subtracted(hole);
+    }
     p.fillPath(path, m_bg);
+}
+
+// ---- ToolbarCluster -------------------------------------------------------
+
+ToolbarCluster::ToolbarCluster(QWidget *parent) : QWidget(parent) {
+    setAttribute(Qt::WA_StyledBackground, false);
+    setAutoFillBackground(false);
+}
+
+void ToolbarCluster::paintEvent(QPaintEvent *) {
+    if (m_glass || !m_fill.isValid()) return;
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    p.setPen(Qt::NoPen);
+    p.setBrush(m_fill);
+    p.drawRoundedRect(QRectF(rect()), radius(), radius());
 }
 
 // ---- AddrPill -----------------------------------------------------------
@@ -183,20 +234,43 @@ void AddrPill::paintEvent(QPaintEvent *) {
     // Idle base — used to give the pill a slightly lighter tone than the
     // surrounding chrome, even when not hovered.
     if (m_idleColor.alpha() > 0) {
-        p.fillPath(path, m_idleColor);
+        QColor idle = m_idleColor;
+        // In glass mode the NSGlassEffectView behind us supplies the body;
+        // keep only a faint tint so the refraction stays visible.
+        if (!m_glass) p.fillPath(path, idle);
     }
 
     if (m_progress > 0.0) {
         QColor c = m_hoverColor;
-        c.setAlphaF(c.alphaF() * m_progress);
+        c.setAlphaF(c.alphaF() * m_progress * (m_glass ? 0.45 : 1.0));
         p.fillPath(path, c);
+    }
+
+    if (m_glass) {
+        // Specular 1 px inner top highlight + soft edge stroke.
+        p.save();
+        p.setClipPath(path);
+        QLinearGradient sheen(0, 0, 0, height());
+        sheen.setColorAt(0.0, QColor(255, 255, 255, 34));
+        sheen.setColorAt(0.5, QColor(255, 255, 255, 6));
+        sheen.setColorAt(1.0, QColor(255, 255, 255, 0));
+        p.fillPath(path, sheen);
+        p.setPen(QPen(QColor(255, 255, 255, 46), 1.0));
+        p.drawLine(QPointF(m_radius, 1.0), QPointF(width() - m_radius, 1.0));
+        p.restore();
+        const bool lightIdle = m_idleColor.alpha() > 0 && m_idleColor.lightness() < 128;
+        QPen edge(lightIdle ? QColor(0, 0, 0, 30) : QColor(255, 255, 255, 26));
+        edge.setWidthF(1.0);
+        p.setPen(edge);
+        p.setBrush(Qt::NoBrush);
+        p.drawPath(path);
     }
 
     // Focused/"popped" state: brighten the fill and draw a subtle 1 px
     // border so the pill reads as elevated above the rest of the chrome.
     if (m_popped) {
         p.fillPath(path, QColor(255, 255, 255, 22));
-        QPen pen(QColor(255, 255, 255, 60));
+        QPen pen(m_focusColor);
         pen.setWidthF(1.0);
         p.setPen(pen);
         p.setBrush(Qt::NoBrush);
@@ -234,6 +308,70 @@ void AddrPill::paintEvent(QPaintEvent *) {
         }
         p.restore();
     }
+}
+
+// ---- DownloadsButton ----------------------------------------------------
+
+DownloadsButton::DownloadsButton(QWidget *parent) : QToolButton(parent) {
+    m_spinAnim = new QVariantAnimation(this);
+    m_spinAnim->setStartValue(0.0);
+    m_spinAnim->setEndValue(1.0);
+    m_spinAnim->setDuration(900);
+    m_spinAnim->setLoopCount(-1);
+    m_spinAnim->setEasingCurve(QEasingCurve::Linear);
+    connect(m_spinAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant &v) {
+        m_spin = v.toDouble();
+        update();
+    });
+}
+
+void DownloadsButton::setActivity(int activeCount, double progress) {
+    m_active = qMax(0, activeCount);
+    m_progress = progress < 0.0 ? -1.0 : qBound(0.0, progress, 1.0);
+    const bool spin = m_active > 0 && m_progress < 0.0;
+    if (spin && m_spinAnim->state() != QAbstractAnimation::Running) m_spinAnim->start();
+    if (!spin && m_spinAnim->state() == QAbstractAnimation::Running) m_spinAnim->stop();
+    setToolTip(m_active > 0
+                   ? QStringLiteral("Downloads — %1 active").arg(m_active)
+                   : QStringLiteral("Downloads"));
+    update();
+}
+
+void DownloadsButton::paintEvent(QPaintEvent *e) {
+    QToolButton::paintEvent(e);
+    if (m_active <= 0) return;
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    const QRectF r(rect());
+    const qreal ringSide = qMin(r.width(), r.height()) - 8.0;
+    QRectF ring(r.center().x() - ringSide / 2.0, r.center().y() - ringSide / 2.0, ringSide, ringSide);
+    ring.adjust(1.0, 1.0, -1.0, -1.0);
+    QPen track(m_track, 1.6);
+    track.setCapStyle(Qt::RoundCap);
+    p.setPen(track);
+    p.setBrush(Qt::NoBrush);
+    p.drawEllipse(ring);
+    QPen arc(m_ring, 1.8);
+    arc.setCapStyle(Qt::RoundCap);
+    p.setPen(arc);
+    if (m_progress < 0.0) {
+        const int start = qRound(90.0 * 16 - m_spin * 360.0 * 16);
+        p.drawArc(ring, start, -110 * 16);
+    } else {
+        p.drawArc(ring, 90 * 16, -qRound(m_progress * 360.0 * 16));
+    }
+    // Count badge, top-right.
+    const qreal badge = 12.0;
+    const QRectF badgeRect(r.right() - badge - 2.0, r.top() + 2.0, badge, badge);
+    p.setPen(Qt::NoPen);
+    p.setBrush(m_ring);
+    p.drawEllipse(badgeRect);
+    QFont f = font();
+    f.setPixelSize(8);
+    f.setWeight(QFont::Bold);
+    p.setFont(f);
+    p.setPen(m_badgeText);
+    p.drawText(badgeRect, Qt::AlignCenter, m_active > 9 ? QStringLiteral("9+") : QString::number(m_active));
 }
 
 }  // namespace ui

@@ -48,6 +48,7 @@ class ThemeFile {
 public:
     static ThemeFile dark();
     static ThemeFile light();
+    static ThemeFile system();
 
     // Load a theme from JSON. Unrecognized keys are ignored. Returns std::nullopt on parse error.
     static std::optional<ThemeFile> fromJsonFile(const QString &path);
@@ -69,7 +70,7 @@ private:
 // Backward-compat façade: the existing code uses Theme as a flat struct.
 // Keep that working by deriving the fields from a ThemeFile resolution.
 struct Theme {
-    Theme() : Theme(ThemeFile::dark()) {}
+    Theme() : Theme(ThemeFile::system()) {}
     explicit Theme(const ThemeFile &tf);
 
     QColor background;

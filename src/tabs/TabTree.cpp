@@ -49,6 +49,12 @@ QRect tabRowRect(const QRect &rawRect, int viewportWidth) {
     return rect;
 }
 
+int tabRowHeight(const QWidget *widget) {
+    const QWidget *window = widget ? widget->window() : nullptr;
+    const int windowHeight = window ? window->height() : 0;
+    return windowHeight > 0 ? qBound(32, qRound(windowHeight * 0.042), 38) : 34;
+}
+
 QRect closeButtonRect(const QRect &rowRect, int) {
     constexpr int side = 20;
     constexpr int edgeInset = 3;
@@ -61,7 +67,7 @@ QRect closeButtonRect(const QRect &rowRect, int) {
 QRect disclosureButtonRect(const QRect &rowRect, int depth) {
     constexpr int side = 20;
     constexpr int edgeInset = 3;
-    return QRect(rowRect.left() + edgeInset + depth * 16,
+    return QRect(rowRect.left() + edgeInset + depth * 18,
                  rowRect.top() + (rowRect.height() - side) / 2,
                  side,
                  side);
@@ -124,8 +130,8 @@ class TabItemDelegate final : public QStyledItemDelegate {
 public:
     TabItemDelegate(const Theme &theme, QObject *parent)
         : QStyledItemDelegate(parent), m_theme(theme), m_closeIcon(mac::sfSymbolIcon("xmark", 10.5, theme.foreground)),
-          m_disclosureOpenIcon(mac::sfSymbolIcon("chevron.down", 9.0, theme.muted)),
-          m_disclosureClosedIcon(mac::sfSymbolIcon("chevron.right", 9.0, theme.muted)) {}
+          m_disclosureOpenIcon(mac::sfSymbolIcon("chevron.down", 10.0, theme.foreground)),
+          m_disclosureClosedIcon(mac::sfSymbolIcon("chevron.right", 10.0, theme.foreground)) {}
 
     void paint(QPainter *painter, const QStyleOptionViewItem &option,
                const QModelIndex &index) const override {
@@ -139,32 +145,42 @@ public:
         const QRect closeRect = closeButtonRect(rowRect, viewportWidth);
         const QPoint cursorPos = option.widget ? option.widget->mapFromGlobal(QCursor::pos()) : QPoint(-1, -1);
         const bool closeHovered = hovered && closeRect.contains(cursorPos);
+        QTreeWidgetItem *rowItem = tree ? tree->itemFromIndex(index) : nullptr;
+        const bool hasChildren = rowItem && rowItem->childCount() > 0;
         QRect contentRect = rowRect;
-        contentRect.setLeft(30 + depth * 16);
+        contentRect.setLeft(rowRect.left() + 24 + depth * 18);
 
         painter->save();
         painter->setRenderHint(QPainter::Antialiasing, true);
         if (!split) {
-            if (auto *item = tree ? tree->itemFromIndex(index) : nullptr; item && item->childCount() > 0) {
-                const QIcon &disclosure = item->isExpanded() ? m_disclosureOpenIcon : m_disclosureClosedIcon;
+            const QRect disclosureRect = disclosureButtonRect(rowRect, depth);
+            if (hasChildren) {
+                const QIcon &disclosure = rowItem->isExpanded() ? m_disclosureOpenIcon : m_disclosureClosedIcon;
                 if (!disclosure.isNull()) {
-                    const QRect disclosureRect = disclosureButtonRect(rowRect, depth);
                     const bool disclosureHovered = hovered && disclosureRect.contains(cursorPos);
                     painter->save();
                     painter->translate(0, 0.5);
                     if (disclosureHovered) paintIconButton(painter, disclosureRect, m_theme);
-                    painter->setOpacity((selected || hovered) ? 0.86 : 0.58);
-                    disclosure.paint(painter, disclosureRect.adjusted(5, 5, -5, -5), Qt::AlignCenter);
+                    painter->setOpacity((selected || hovered) ? 0.9 : 0.6);
+                    disclosure.paint(painter, disclosureRect.adjusted(4, 4, -4, -4), Qt::AlignCenter);
                     painter->restore();
                 }
+            } else if (depth > 0) {
+                QColor leaf = m_theme.muted;
+                leaf.setAlpha(150);
+                painter->setPen(Qt::NoPen);
+                painter->setBrush(leaf);
+                painter->drawEllipse(QRectF(disclosureRect.center().x() - 1.5, disclosureRect.center().y() - 1.5, 3.0, 3.0));
             }
         }
-        QColor fill = m_theme.background.lightness() < 128 ? QColor(255, 255, 255) : QColor(0, 0, 0);
+        const bool darkTheme = m_theme.background.lightness() < 128;
+        QColor fill(255, 255, 255);
         if (selected || hovered || split) {
-            fill.setAlpha(selected ? 34 : (hovered ? 18 : 10));
+            fill.setAlpha(darkTheme ? (selected ? 34 : (hovered ? 18 : 10))
+                                    : (selected ? 130 : (hovered ? 70 : 45)));
             painter->setPen(Qt::NoPen);
             painter->setBrush(fill);
-            painter->drawRoundedRect(rowRect.adjusted(0, 2, 0, -2), 7, 7);
+            painter->drawRoundedRect(rowRect.adjusted(0, 2, 0, -2), 8, 8);
         }
         if (split) {
             QColor line = m_theme.foreground;
@@ -201,13 +217,13 @@ public:
                 textRect.setLeft(iconRect.right() + 9);
             }
             QFont titleFont = option.font;
-            titleFont.setWeight(unread || depth == 0 ? QFont::DemiBold : QFont::Medium);
+            titleFont.setWeight(unread ? QFont::DemiBold : QFont::Medium);
             painter->setFont(titleFont);
             const QFontMetrics titleMetrics(titleFont);
             const QString title = titleMetrics.elidedText(label, Qt::ElideRight, textRect.width());
             painter->setPen(textColor);
             painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, title);
-            if (!host.isEmpty() && textRect.width() > 92) {
+            if (!host.isEmpty() && textRect.width() > 72) {
                 QFont hostFont = option.font;
                 hostFont.setWeight(QFont::Medium);
                 painter->setFont(hostFont);
@@ -215,9 +231,10 @@ public:
                 const int titleWidth = qMin(titleMetrics.horizontalAdvance(title), textRect.width());
                 QRect hostRect = textRect;
                 hostRect.setLeft(textRect.left() + titleWidth + 9);
-                const QString meta = hostMetrics.elidedText(host, Qt::ElideRight, hostRect.width());
-                painter->setPen(metaColor);
-                painter->drawText(hostRect, Qt::AlignVCenter | Qt::AlignLeft, meta);
+                if (hostRect.width() >= hostMetrics.horizontalAdvance(host)) {
+                    painter->setPen(metaColor);
+                    painter->drawText(hostRect, Qt::AlignVCenter | Qt::AlignLeft, host);
+                }
             }
         };
         if (split) {
@@ -250,7 +267,7 @@ public:
 
     QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
-        size.setHeight(31);
+        size.setHeight(tabRowHeight(option.widget));
         return size;
     }
 
@@ -342,6 +359,22 @@ public:
 
 protected:
     void drawBranches(QPainter *, const QRect &, const QModelIndex &) const override {}
+    void drawRow(QPainter *painter, const QStyleOptionViewItem &options,
+                 const QModelIndex &index) const override {
+        QStyleOptionViewItem opt = options;
+        opt.widget = this;
+        opt.rect = visualRect(index);
+        opt.state &= ~(QStyle::State_Selected | QStyle::State_HasFocus);
+        const QPoint cursor = viewport()->mapFromGlobal(QCursor::pos());
+        if (viewport()->rect().contains(cursor) && opt.rect.contains(cursor)) {
+            opt.state |= QStyle::State_MouseOver;
+        } else {
+            opt.state &= ~QStyle::State_MouseOver;
+        }
+        if (QAbstractItemDelegate *delegate = itemDelegateForIndex(index)) {
+            delegate->paint(painter, opt, index);
+        }
+    }
 };
 
 }  // namespace
@@ -386,7 +419,7 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
     m_tabs->setObjectName("TabTree");
     m_tabs->setHeaderHidden(true);
     m_tabs->header()->setStretchLastSection(true);
-    m_tabs->setIndentation(14);
+    m_tabs->setIndentation(18);
     m_tabs->setRootIsDecorated(false);
     m_tabs->setAllColumnsShowFocus(false);
     m_tabs->setSelectionMode(QAbstractItemView::NoSelection);
@@ -410,11 +443,16 @@ TabTree::TabTree(ProfileStore &profiles, FaviconService *favicons, QWidget *stac
     m_tabs->viewport()->setAttribute(Qt::WA_TranslucentBackground);
     m_tabs->viewport()->setAttribute(Qt::WA_NoSystemBackground);
     m_tabs->viewport()->setAutoFillBackground(false);
+    QPalette treePalette = m_tabs->palette();
+    treePalette.setColor(QPalette::Highlight, Qt::transparent);
+    treePalette.setColor(QPalette::Inactive, QPalette::Highlight, Qt::transparent);
+    treePalette.setColor(QPalette::HighlightedText, m_theme.foreground);
+    m_tabs->setPalette(treePalette);
     layout->addWidget(m_tabs, 1);
 
     m_tabs->setStyleSheet(QString(
         "QTreeWidget#TabTree { background: transparent; border: none; color: %1; outline: 0; }"
-        "QTreeWidget#TabTree::item { min-height: 31px; padding: 2px 26px 2px 4px; border: none; background: transparent; color: %1; selection-background-color: transparent; }"
+        "QTreeWidget#TabTree::item { min-height: 32px; padding: 2px 26px 2px 4px; border: none; background: transparent; color: %1; selection-background-color: transparent; }"
         "QTreeWidget#TabTree::item:selected { background: transparent; color: %1; selection-background-color: transparent; }"
         "QTreeWidget#TabTree::item:selected:active { background: transparent; color: %1; selection-background-color: transparent; }"
         "QTreeWidget#TabTree::item:selected:!active { background: transparent; color: %1; selection-background-color: transparent; }"
@@ -532,6 +570,10 @@ void TabTree::selectItem(QTreeWidgetItem *item) {
 }
 
 bool TabTree::eventFilter(QObject *watched, QEvent *event) {
+    if (event->type() == QEvent::Resize && (watched == m_tabsViewport || watched == m_essentialsViewport)) {
+        auto *view = qobject_cast<QAbstractItemView *>(qobject_cast<QWidget *>(watched)->parentWidget());
+        if (view) QTimer::singleShot(0, view, [view] { view->doItemsLayout(); });
+    }
     if (watched->property("pocbDetachOverlay").toBool()) {
         if (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove) {
             auto *drag = static_cast<QDragMoveEvent *>(event);

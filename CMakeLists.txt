@@ -19,6 +19,22 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network)
 
+# Swift is optional: it only backs the on-device Foundation Models filename
+# suggestions (src/services/DownloadIntelligence.swift). Without a Swift
+# toolchain the C++ bridge reports "unavailable" and everything else builds.
+set(POCB_HAS_SWIFT OFF)
+if(APPLE AND NOT POCB_DISABLE_SWIFT)
+    if(POLICY CMP0157)
+        cmake_policy(SET CMP0157 NEW)
+    endif()
+    include(CheckLanguage)
+    check_language(Swift)
+    if(CMAKE_Swift_COMPILER)
+        enable_language(Swift)
+        set(POCB_HAS_SWIFT ON)
+    endif()
+endif()
+
 if(APPLE)
     function(remove_agl_framework_from_target target)
         if(NOT TARGET ${target})
@@ -100,7 +116,39 @@ if(APPLE)
         "-framework LocalAuthentication"
         "-framework UserNotifications"
         "-framework UniformTypeIdentifiers"
+        "-framework Security"
     )
+endif()
+
+if(APPLE AND POCB_HAS_SWIFT)
+    add_library(pocb_intelligence STATIC ${CMAKE_SOURCE_DIR}/src/services/DownloadIntelligence.swift)
+    target_compile_options(pocb_intelligence PRIVATE "$<$<COMPILE_LANGUAGE:Swift>:-swift-version;5;-parse-as-library>")
+    set_target_properties(pocb_intelligence PROPERTIES
+        Swift_MODULE_NAME PocbIntelligence
+        AUTOMOC OFF
+        AUTOUIC OFF
+        AUTORCC OFF
+    )
+    target_compile_definitions(pocb PRIVATE POCB_HAS_SWIFT_INTELLIGENCE=1)
+    if(CMAKE_OSX_SYSROOT)
+        set(_pocb_sdk_path "${CMAKE_OSX_SYSROOT}")
+    else()
+        execute_process(COMMAND /usr/bin/xcrun --show-sdk-path OUTPUT_VARIABLE _pocb_sdk_path OUTPUT_STRIP_TRAILING_WHITESPACE)
+    endif()
+    get_filename_component(_pocb_swift_toolchain_bin "${CMAKE_Swift_COMPILER}" DIRECTORY)
+    get_filename_component(_pocb_swift_toolchain_root "${_pocb_swift_toolchain_bin}" DIRECTORY)
+    target_link_libraries(pocb PRIVATE pocb_intelligence)
+    # Keep clang++ as the final linker (CMake would otherwise switch the whole
+    # executable to swiftc); the Swift runtime is autolinked from the archive
+    # and only needs the SDK's stub search path.
+    set_target_properties(pocb PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_options(pocb PRIVATE
+        "-L${_pocb_sdk_path}/usr/lib/swift"
+        "-Wl,-weak_framework,FoundationModels"
+    )
+    if(EXISTS "${_pocb_swift_toolchain_root}/lib/swift/macosx")
+        target_link_options(pocb PRIVATE "-L${_pocb_swift_toolchain_root}/lib/swift/macosx")
+    endif()
 endif()
 
 target_link_libraries(pocb PRIVATE
